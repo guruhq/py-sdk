@@ -14,7 +14,7 @@ from guru.core import (
   SALMON,
   GREEN_APPLE,
   # collection roles:
-  MEMBER,
+  READ_ONLY,
   AUTHOR,
   COLLECTION_OWNER,
 )

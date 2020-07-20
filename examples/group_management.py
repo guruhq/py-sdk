@@ -7,7 +7,7 @@ g = guru.Guru(dry_run=False)
 g.make_collection("Test Collection")
 
 # add some groups to it.
-g.add_group_to_collection("group 3", "Test Collection", guru.MEMBER)
+g.add_group_to_collection("group 3", "Test Collection", guru.READ_ONLY)
 g.add_group_to_collection("Experts", "Test Collection", guru.COLLECTION_OWNER)
 
 # change some existing group permissions.

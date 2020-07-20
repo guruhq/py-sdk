@@ -23,7 +23,7 @@ DODGER_BLUE = "#2962FF"
 SALMON = "#FF8A65"
 GREEN_APPLE = "#689F38"
 
-MEMBER = "MEMBER"
+READ_ONLY = "MEMBER"
 AUTHOR = "AUTHOR"
 COLLECTION_OWNER = "COLL_ADMIN"
 
@@ -850,7 +850,7 @@ class Guru:
     Args:
       group (str): A group name or ID.
       collection (str): A collection name or ID.
-      role (str): Either MEMBER, AUTHOR, or COLLECTION_OWNER.
+      role (str): Either guru.READ_ONLY, guru.AUTHOR, or guru.COLLECTION_OWNER.
     
     Returns:
       bool: True if it was successful and False otherwise.
