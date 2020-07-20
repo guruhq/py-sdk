@@ -154,7 +154,6 @@ class Card:
     return saved_card
   
   def add_tag(self, tag, create=False):
-    # todo: if create is True and the tag doesn't exist, make it.
     for t in self.tags:
       if t.value.lower() == tag.lower():
         return True
@@ -164,7 +163,11 @@ class Card:
       self.tags.append(tag_object)
       return True
     else:
+      # todo: if create is True, make the tag.
       return False
+
+  def comment(self, comment):
+    return self.guru.add_comment_to_card(self, comment)
 
   def json(self, verify=False):
     # if you accessed the doc object then we want to use its HTML so
@@ -181,4 +184,25 @@ class Card:
       "tags": [tag.json() for tag in self.tags],
       # if verify is false then we do want to suppress verification.
       "suppressVerification": not verify
+    }
+
+class CardComment:
+  def __init__(self, data, card=None, guru=None):
+    self.guru = guru
+    self.card = card
+    self.id = data.get("id")
+    self.content = data.get("content")
+    self.owner = User(data.get("owner")) if data.get("owner") else None
+    self.created_date = data.get("dateCreated")
+    self.last_modified_date = data.get("lastModified")
+
+  def delete(self):
+    return self.guru.delete_card_comment(self.card.id, self.id)
+  
+  def save(self):
+    return self.guru.update_card_comment(self)
+  
+  def json(self):
+    return {
+      "content": self.content,
     }

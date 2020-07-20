@@ -6,7 +6,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 from guru.sync import Sync
-from guru.data_objects import Board, Card, Collection, Group, HomeBoard, Tag, User
+from guru.data_objects import Board, Card, CardComment, Collection, Group, HomeBoard, Tag, User
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -494,7 +494,10 @@ class Guru:
     url = "%s/cards/%s" % (self.base_url, card)
     response = self.__get(url)
     if status_to_bool(response.status_code):
-      return Card(response.json(), guru=self)
+      try:
+        return Card(response.json(), guru=self)
+      except:
+        return None
 
   def make_card(self, title, content, collection):
     """
@@ -666,6 +669,95 @@ class Guru:
       return False
 
     url = "%s/cards/%s" % (self.base_url, card_obj.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
+  def add_comment_to_card(self, card, comment):
+    """
+    Adds a comment to a card.
+
+    Args:
+      card (str): The name or ID of the card to add a comment to.
+      comment (str): The text content of the comment.
+    
+    Returns:
+      CardComment: An object representing the card comment.
+    """
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+    
+    if not comment:
+      return
+
+    data = {"content": comment}
+    url = "%s/cards/%s/comments" % (self.base_url, card_obj.id)
+    response = self.__post(url, data)
+    return CardComment(response.json(), card=card_obj, guru=self)
+
+  def get_card_comments(self, card):
+    """
+    Gets all comments on a card.
+
+    Args:
+      card (str): The name or ID of the card.
+    
+    Returns:
+      list of CardComment: The card's comments.
+    """
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+    
+    url = "%s/cards/%s/comments" % (self.base_url, card_obj.id)
+    comments = self.__get_and_get_all(url)
+    comments = [CardComment(c, card=card_obj, guru=self) for c in comments]
+    return comments
+
+  def update_card_comment(self, comment_obj):
+    """
+    Updates a card comment.
+
+    Args:
+      comment_obj (CardComment): The CardComment object that has changes to save.
+    
+    Returns:
+      CardComment: An updated CardComment object.
+    """
+    # https://api.getguru.com/api/v1/cards/a0201644-5dcf-4a90-868c-fb5e4981aa17/comments/2ecb2e09-e78a-4de8-90ac-f075e1cf6447
+    url = "%s/cards/%s/comments/%s" % (self.base_url, comment_obj.card.id, comment_obj.id)
+    response = self.__put(url, comment_obj.json())
+    if status_to_bool(response.status_code):
+      return CardComment(response.json(), card=comment_obj.card, guru=self)
+
+  def delete_card_comment(self, card, comment_id):
+    """
+    Deletes a comment from a card. You need the exact comment ID
+    to do this. The other way to do this is by getting the list of
+    comments on a card and then those objects will have a delete()
+    method:
+
+      ```
+      g = guru.Guru()
+      comments = g.get_card_comments("card-id...")
+      comments[0].delete()
+      ```
+    
+    Args:
+      card (str): The ID of the card that contains the comment.
+      comment_id (str): The ID of the comment to delete.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return False
+
+    url = "%s/cards/%s/comments/%s" % (self.base_url, card_obj.id, comment_id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 

@@ -721,6 +721,105 @@ class TestExample(unittest.TestCase):
   
   @use_guru()
   @responses.activate
+  def test_add_comment_to_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+      "id": "1111"
+    })
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/1111/comments", json={
+      "id": "2222",
+      "content": "comment text"
+    })
+
+    comment = g.add_comment_to_card("1111", "comment text")
+
+    self.assertEqual(comment.id, "2222")
+    self.assertEqual(comment.card.id, "1111")
+    self.assertEqual(comment.content, "comment text")
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments",
+      "body": {"content": "comment text"}
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_update_card_comment(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/comments", json=[{
+      "id": "2222"
+    }])
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222", json={
+      "id": "2222",
+      "content": "updated content"
+    })
+
+    comments = g.get_card_comments("1111")
+    comments[0].content = "updated content"
+    comment = comments[0].save()
+
+    self.assertEqual(comment.content, "updated content")
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments/2222",
+      "body": {"content": "updated content"}
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_card_comment_edge_cases(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222", json=None)
+
+    card = g.get_card("1111")
+    card.comment("")
+
+    g.add_comment_to_card("2222", "test")
+    g.get_card_comments("2222")
+    g.delete_card_comment("2222", "3333")
+
+  @use_guru()
+  @responses.activate
+  def test_delete_card_comment(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/comments", json=[{
+      "id": "2222"
+    }])
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/cards/1111/comments/2222")
+
+    comments = g.get_card_comments("1111")
+    comments[0].delete()
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }, {
+      "method": "DELETE",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments/2222"
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_archive_invalid_card(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
 
