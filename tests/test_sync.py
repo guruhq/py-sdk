@@ -25,7 +25,7 @@ def read_html(filename):
   with open(filename) as file_in:
     return file_in.read()
 
-class TestExample(unittest.TestCase):
+class TestSync(unittest.TestCase):
   @use_guru()
   def test_sync_with_two_nodes(self, g):
     sync = g.sync("test_sync_with_two_nodes")

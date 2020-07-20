@@ -23,7 +23,7 @@ def get_calls():
     calls.append(c)
   return calls
 
-class TestExample(unittest.TestCase):
+class TestUtil(unittest.TestCase):
   @responses.activate
   def test_load_html(self):
     # register the response for the API call we'll make.

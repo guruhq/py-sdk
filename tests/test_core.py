@@ -32,7 +32,7 @@ def get_calls():
     calls.append(c)
   return calls
 
-class TestExample(unittest.TestCase):
+class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_get_card(self, g):
