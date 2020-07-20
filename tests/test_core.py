@@ -721,6 +721,18 @@ class TestExample(unittest.TestCase):
   
   @use_guru()
   @responses.activate
+  def test_archive_invalid_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
+
+    g.archive_card("1111")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_make_card_with_invalid_collection(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/cards", json={})
@@ -1008,6 +1020,37 @@ class TestExample(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_delete_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1111",
+      "name": "New Group"
+    }])
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/groups/1111")
+
+    g.delete_group("new group")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups",
+    }, {
+      "method": "DELETE",
+      "url": "https://api.getguru.com/api/v1/groups/1111",
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_delete_invalid_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[])
+
+    g.delete_group("new group")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups",
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_get_board(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/test", json={
       "items": [{
@@ -1144,7 +1187,7 @@ class TestExample(unittest.TestCase):
     responses.add(responses.POST, "https://api.getguru.com/app/contentupload?collectionId=1234", status=400)
 
     with self.assertRaises(BaseException):
-      g.upload_content("General", "test.zip", "test.zip")
+      g.upload_content("General", "test.zip", "./tests/test.zip")
 
   @use_guru()
   @responses.activate
