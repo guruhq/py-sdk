@@ -366,6 +366,47 @@ class Guru:
     
     return response.json(), response.status_code
   
+  def add_users_to_group(self, emails, group):
+    """
+    Adds a list of users to a single group. If you're adding many users
+    to the same group, this call is more efficient than calling
+    ass_user_to_group once for each individual user-to-group assignment.
+
+    Args:
+      emails (list of str): The list of email address of the users to add to the group.
+      group (str): The name or ID of the group.
+    
+    Returns:
+      dict of str: bool: The keys are email addresses and the value is
+        True if the user was added to the group and False otherwise.
+    """
+    group_obj = self.get_group(group)
+    if not group_obj:
+      self.__log(make_red("could not find group:", group))
+      return
+    
+    results = {}
+
+    # do it in batches of 100 users per call.
+    for index in range(0, len(emails), 100):
+      batch = emails[index:index + 100]
+      
+      url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
+      response = self.__post(url, batch)
+
+      if status_to_bool(response.status_code):
+        for obj in response.json():
+          email = obj.get("id")
+          if email:
+            results[email] = True
+      else:
+        for email in batch:
+          results[email] = False
+    
+    # todo: do the ones who failed one at a time.
+    return results
+
+
   def add_user_to_groups(self, email, *groups):
     """
     Adds a user to one or more groups. If the user is already in some
@@ -524,6 +565,7 @@ class Guru:
     return card.save()
 
   def get_tag(self, tag):
+    # todo: update this to work by ID or value.
     if not tag:
       return
 

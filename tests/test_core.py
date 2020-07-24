@@ -600,6 +600,82 @@ class TestCore(unittest.TestCase):
   
   @use_guru()
   @responses.activate
+  def test_add_users_to_group(self, g):
+    users = [
+      "user1@example.com",
+      "user2@example.com",
+      "user3@example.com"
+    ]
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1234",
+      "name": "Experts"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/1234/members", json=[
+      {"id": email} for email in users
+    ])
+
+    results = g.add_users_to_group(users, "Experts")
+
+    self.assertEqual(results, {
+      email: True for email in users
+    })
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/groups/1234/members",
+      "body": users
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_add_users_to_invalid_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[])
+    
+    g.add_users_to_group([], "Experts")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_add_users_to_group(self, g):
+    users = ["user%s@example.com" % i for i in range(105)]
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1234",
+      "name": "Experts"
+    }])
+
+    # make the call for the first page work and the second call fail.
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/1234/members", json=[
+      {"id": email} for email in users[0:100]
+    ], status=200)
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/1234/members", status=400)
+
+    results = g.add_users_to_group(users, "Experts")
+
+    # users 0..99 succeeded, 100..104 didn't.
+    for i in range(105):
+      self.assertEqual(results["user%s@example.com" % i], i < 100)
+    
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/groups/1234/members",
+      "body": users[0:100]
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/groups/1234/members",
+      "body": users[100:]
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_remove_user_from_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",

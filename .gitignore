@@ -2,3 +2,4 @@
 htmlcov/
 cache/
 .coverage
+internal/

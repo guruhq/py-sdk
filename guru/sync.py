@@ -283,8 +283,8 @@ def insert_nodes(node, parent, depth):
   # if a board group contains a card directly we need to move the card into a board.
   elif node.type == CARD and parent and parent.type == BOARD_GROUP:
     # add the card to the board group's "_content" board.
-    content_id = "%s_content_board" % node.id
-    content_title = "%s Content" % node.title
+    content_id = "%s_content_board" % parent.id
+    content_title = "%s Content" % parent.title
     content_board = sync.node(content_id, title=content_title, type=BOARD)
     node.move_to(content_board)
     parent.add_child(content_board, first=True)

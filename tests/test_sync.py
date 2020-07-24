@@ -230,7 +230,7 @@ class TestSync(unittest.TestCase):
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
-      "Boards": ["4_content_board", "2"]
+      "Boards": ["1_content_board", "2"]
     })
     self.assertEqual(read_yaml("/tmp/test_sync_where_a_board_group_contains_a_card/boards/2.yaml"), {
       "ExternalId": "2",
@@ -249,9 +249,9 @@ class TestSync(unittest.TestCase):
     self.assertEqual(read_html("/tmp/test_sync_where_a_board_group_contains_a_card/cards/3.html"), "card3 content")
 
     # this is a board that's inserted because node4 can't be directly on node1 because node1 is a board group.
-    self.assertEqual(read_yaml("/tmp/test_sync_where_a_board_group_contains_a_card/boards/4_content_board.yaml"), {
-      "ExternalId": "4_content_board",
-      "Title": "node 4 Content",
+    self.assertEqual(read_yaml("/tmp/test_sync_where_a_board_group_contains_a_card/boards/1_content_board.yaml"), {
+      "ExternalId": "1_content_board",
+      "Title": "node 1 Content",
       "Items": [{
         "ID": "4",
         "Type": "card"
