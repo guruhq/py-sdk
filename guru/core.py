@@ -6,7 +6,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 from guru.sync import Sync
-from guru.data_objects import Board, Card, CardComment, Collection, Group, HomeBoard, Tag, User
+from guru.data_objects import Board, BoardGroup, Card, CardComment, Collection, Group, HomeBoard, Tag, User
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -364,6 +364,7 @@ class Guru:
     if groups:
       self.add_user_to_groups(email, *groups)
     
+    # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
     return response.json(), response.status_code
   
   def add_users_to_group(self, emails, group):
@@ -387,23 +388,39 @@ class Guru:
     
     results = {}
 
-    # do it in batches of 100 users per call.
-    for index in range(0, len(emails), 100):
-      batch = emails[index:index + 100]
-      
-      url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
-      response = self.__post(url, batch)
+    # the largest possible batch size is 100.
+    batch_size = 100
 
-      if status_to_bool(response.status_code):
-        for obj in response.json():
-          email = obj.get("id")
-          if email:
-            results[email] = True
+    while len(emails) > 0:
+      failed_emails = []
+      for index in range(0, len(emails), batch_size):
+        batch = emails[index:index + batch_size]
+        
+        url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
+        response = self.__post(url, batch)
+
+        # either they were all successful or all failed.
+        if status_to_bool(response.status_code):
+          for obj in response.json():
+            email = obj.get("id")
+            if email:
+              results[email] = True
+        else:
+          failed_emails += batch
+          for email in batch:
+            results[email] = False
+      
+      # if we just tried with batch_size = 1 and some still didn't work, then we're done.
+      # otherwise make the batch size smaller and try again.
+      if batch_size == 1:
+        break
+      elif batch_size >= len(failed_emails):
+        batch_size = max(int(len(failed_emails) / 5), 1)
       else:
-        for email in batch:
-          results[email] = False
+        batch_size = max(int(batch_size / 2), 1)
+      
+      emails = failed_emails
     
-    # todo: do the ones who failed one at a time.
     return results
 
 
@@ -803,7 +820,7 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
-  def get_board(self, id):
+  def get_board(self, board, collection="", cache=True):
     """
     Loads a board.
 
@@ -813,10 +830,32 @@ class Guru:
     Returns:
       Board: An object representing the board.
     """
-    url = "%s/boards/%s" % (self.base_url, id)
-    response = self.__get(url)
-    return Board(response.json())
+    if isinstance(board, Board) or isinstance(board, HomeBoard):
+      return board
+
+    # this returns a list of 'lite' objects that don't have the lists of items on the board.
+    # once we find the matching board, then we can make the get call to get the complete object.
+    boards = self.get_boards(cache)
+    for b in boards:
+      # todo: handle the case where the name isn't unique.
+      # todo: also filter by collection if one is provided.
+      if b.title.lower() == board.lower():
+        url = "%s/boards/%s" % (self.base_url, b.id)
+        response = self.__get(url)
+        return Board(response.json(), guru=self)
   
+  def get_boards(self, cache=False):
+    url = "%s/boards" % self.base_url
+    response = self.__get(url, cache)
+    return [Board(b, guru=self) for b in response.json()]
+
+  def get_board_group(self, board_group, collection):
+    home_board_obj = self.get_home_board(collection)
+    
+    for item in home_board_obj.items:
+      if isinstance(item, BoardGroup) and item.title.lower() == board_group.lower():
+        return item
+
   def get_home_board(self, collection):
     """
     Loads a collection's "home board". The home board is the object
@@ -837,7 +876,7 @@ class Guru:
 
     url = "%s/boards/home?collection=%s" % (self.base_url, collection_obj.id)
     response = self.__get(url)
-    return HomeBoard(response.json())
+    return HomeBoard(response.json(), guru=self)
 
   def make_collection(self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True):
     """
@@ -992,3 +1031,40 @@ class Guru:
         ))
       else:
         return response.json()
+
+  def set_item_order(self, collection, board, *items):
+    collection_obj = self.get_collection(collection)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return
+    
+    if isinstance(board, BoardGroup):
+      board_obj = board
+    else:
+      board_obj = self.get_board(board, collection)
+      if not board_obj:
+        self.__log(make_red("could not find board:", board))
+        return
+    
+    def get_key(b):
+      for i in range(len(items)):
+        if b.title.lower().strip() == items[i].lower().strip():
+          return i
+      # if we couldn't find it, move it to the back.
+      return len(items)
+
+    board_obj.items.sort(key=get_key)
+    
+    # if it's a board group, we need to save the entire home board.
+    if isinstance(board_obj, BoardGroup):
+      self.save_board(board_obj.home_board)
+    else:
+      self.save_board(board_obj)
+
+  def save_board(self, board_obj):
+    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    response = self.__put(url, data=board_obj.json())
+
+    if status_to_bool(response.status_code):
+      # todo: update the board obj so the caller doesn't have to store this return value.
+      return board_obj

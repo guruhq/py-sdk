@@ -20,4 +20,4 @@ g = guru.Guru()
 # g.remove_user_from_team("rmiller+test2@getguru.com")
 # g.remove_user_from_team("rmiller+test3@getguru.com")
 
-g.delete_group("New Group")
+# g.delete_group("New Group")

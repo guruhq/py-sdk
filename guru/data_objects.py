@@ -6,42 +6,112 @@ class Section:
     self.type = "section"
     self.title = data.get("title")
     self.id = data.get("id")
+    self.item_id = data.get("itemId")
     self.items = [Card(i) for i in data.get("items") or []]
 
+  def json(self):
+    return {
+      "type": "section",
+      "id": self.id,
+      "itemId": self.item_id,
+      "items": [i.lite_json() for i in self.items]
+    }
+  
+  def lite_json(self):
+    return self.json()
+
 class Board:
-  def __init__(self, data):
+  def __init__(self, data, guru=None, home_board=None):
+    self.guru = guru
+    self.home_board = home_board
     self.last_modified = data.get("lastModified")
     self.title = data.get("title")
     self.slug = data.get("slug")
     self.id = data.get("id")
+    self.item_id = data.get("itemId")
     self.type = "board"
+    
+    if data.get("collection"):
+      self.collection = Collection(data.get("collection"))
+    else:
+      self.collection = None
+    
     self.items = []
     for item in data.get("items", []):
       if item.get("type") == "section":
         self.items.append(Section(item))
       else:
         self.items.append(Card(item))
+  
+  def set_item_order(self, *items):
+    return self.guru.set_item_order(self.collection, self, *items)
+
+  def json(self, include_items=True, include_collection=True):
+    data = {
+      "id": self.id,
+      "type": self.type,
+      "itemId": self.item_id,
+      "title": self.title,
+    }
+
+    if include_items:
+      data["items"] = [i.lite_json() for i in self.items]
+    if self.collection and include_collection:
+      data["collection"] = self.collection.json()
+    
+    return data
 
 class BoardGroup:
-  def __init__(self, data):
+  def __init__(self, data, guru=None, home_board=None):
+    self.guru = guru
+    self.home_board = home_board
     self.title = data.get("title")
     self.item_id = data.get("itemId")
     self.slug = data.get("slug")
     self.id = data.get("id")
     self.type = "board-group"
-    self.items = [Board(b) for b in data.get("items") or []]
+    self.items = [Board(b, guru) for b in data.get("items") or []]
+
+  def set_item_order(self, *items):
+    return self.guru.set_item_order(self.home_board.collection, self, *items)
+
+  def json(self, include_items=True, include_collection=True):
+    return {
+      "id": self.id,
+      "type": "section",
+      "itemId": self.item_id,
+      "title": self.title,
+      "items": [i.json(include_items=False, include_collection=False) for i in self.items]
+    }
 
 class HomeBoard:
-  def __init__(self, data):
+  def __init__(self, data, guru=None):
+    self.guru = guru
     self.last_modified = data.get("lastModified")
     self.slug = data.get("slug")
     self.id = data.get("id")
+    self.collection = Collection(data.get("collection"))
     self.items = []
     for item in data.get("items", []):
       if item.get("type") == "board":
-        self.items.append(Board(item))
+        self.items.append(Board(item, guru, home_board=self))
       elif item.get("type") == "section":
-        self.items.append(BoardGroup(item))
+        self.items.append(BoardGroup(item, guru, home_board=self))
+
+  def set_item_order(self, *items):
+    return self.guru.set_item_order(self.collection, self, *items)
+
+  def json(self):
+    return {
+      "id": self.id,
+      "collection": self.collection.json(),
+      "items": [
+        i.json(
+          include_items=isinstance(i, BoardGroup),
+          include_collection=False
+        ) for i in self.items
+      ]
+    }
 
 class Group:
   def __init__(self, data):
@@ -98,6 +168,7 @@ class Card:
     self.__content = data.get("content", "")
     self.created_date = data.get("dateCreated")
     self.id = data.get("id")
+    self.item_id = data.get("itemId")
     self.last_modified_date = data.get("lastModified")
     self.last_modified_by = User(data.get("lastModifiedBy")) if data.get("lastModifiedBy") else None
     self.last_verified_by = User(data.get("lastVerifiedBy")) if data.get("lastVerifiedBy") else None
@@ -114,7 +185,7 @@ class Card:
     self.verification_reason = data.get("verificationReason")
     self.verification_state = data.get("verificationState")
     self.version = data.get("version")
-    self.boards = [Board(b) for b in data.get("boards") or []]
+    self.boards = [Board(b, guru) for b in data.get("boards") or []]
     self.__doc = None
 
   @property
@@ -184,6 +255,13 @@ class Card:
       "tags": [tag.json() for tag in self.tags],
       # if verify is false then we do want to suppress verification.
       "suppressVerification": not verify
+    }
+
+  def lite_json(self):
+    return {
+      "type": "fact",
+      "id": self.id,
+      "itemId": self.item_id
     }
 
 class CardComment:
