@@ -291,7 +291,7 @@ def insert_nodes(node, parent, depth):
 
 
 class SyncNode:
-  def __init__(self, id, sync, url="", title="", desc="", content="", tags=None):
+  def __init__(self, id, sync, url="", title="", desc="", content="", tags=None, index=None):
     self.id = id
     self.sync = sync
 
@@ -303,6 +303,10 @@ class SyncNode:
     self.parents = []
     self.type = NONE
     self.tags = tags
+    if index is None:
+      self.index = 9999
+    else:
+      self.index = index
   
   def add_to(self, node):
     """Adds this object as a child of the given node."""
@@ -599,7 +603,7 @@ class Sync:
         return True
     return False
   
-  def node(self, id="", url="", title="", content="", desc="", tags=None, type=None, clean_html=True):
+  def node(self, id="", url="", title="", content="", desc="", tags=None, type=None, index=None, clean_html=True):
     """
     This method makes a node or updates one. Nodes may have content but some
     may just have titles -- nodes with just titles can be used to group the
@@ -633,7 +637,7 @@ class Sync:
         title = "%s..." % title[0:197]
     
     if not node:
-      node = SyncNode(id, sync=self, title=title, desc=desc, content=content, tags=tags)
+      node = SyncNode(id, sync=self, title=title, desc=desc, content=content, tags=tags, index=index)
       self.nodes.append(node)
     
     if url:
@@ -649,6 +653,8 @@ class Sync:
       node.type = type
     if tags:
       node.tags = tags
+    if index is not None:
+      node.index = index
     
     return node
   
@@ -669,7 +675,7 @@ class Sync:
   def get_resource_path(self, url):
     id = _url_to_id(url)
     return self.RESOURCE_PATH % (self.id, id)
-
+  
   def add_resource(self, filename):
     filename = filename.split("?")[0]
     resource_id = _url_to_id(filename)
@@ -709,7 +715,7 @@ class Sync:
 
     return to_yaml(data)
 
-  def zip(self, download_func=None, convert_links=True, compare_links=None, favor_boards=None, favor_sections=None):
+  def zip(self, download_func=None, convert_links=True, compare_links=None, favor_boards=None, favor_sections=None, clean_html=True):
     """
     This wraps up the sync process. Calling this lets us know you're
     done adding content so we can do these things:
@@ -720,21 +726,28 @@ class Sync:
     4. Write the .html and .yaml files.
     5. Make a .zip archive with all the content.
     """
+
+    # todo: sort all nodes children by their 'index'.
+    self.nodes.sort(key=lambda node: node.index)
+    for node in self.nodes:
+      node.children.sort(key=lambda id: self.node(id).index)
+
     # these are done as tree traversals so we have the parent/child
     # relationship and node depth as parameters.
     traverse_tree(self, assign_types, post=True, favor_boards=favor_boards, favor_sections=favor_sections)
     traverse_tree(self, insert_nodes)
 
     # these are done for all nodes, the tree structure doesn't matter.
-    count = 0
-    for node in self.nodes:
-      count += 1
-      self.log(message="post-processing node %s / %s" % (count, len(self.nodes)), node=node.id)
-      node.html_cleanup(
-        download_func=download_func,
-        convert_links=convert_links,
-        compare_links=compare_links
-      )
+    if clean_html:
+      count = 0
+      for node in self.nodes:
+        count += 1
+        self.log(message="post-processing node %s / %s" % (count, len(self.nodes)), node=node.id)
+        node.html_cleanup(
+          download_func=download_func,
+          convert_links=convert_links,
+          compare_links=compare_links
+        )
     for node in self.nodes:
       node.write_files()
     

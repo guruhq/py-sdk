@@ -127,7 +127,7 @@ class Guru:
       self.__log_response(response)
       return response
   
-  def __put(self, url, data):
+  def __put(self, url, data=None):
     if self.dry_run:
       self.__log(make_gray("  would make a put call:", url, data))
       return DummyResponse()
@@ -712,6 +712,34 @@ class Guru:
     else:
       return Card(response.json(), guru=self), status_to_bool(response.status_code)
 
+  def verify_card(self, card_obj):
+    """
+    Verifies a card.
+
+    Args:
+      card_obj (Card): The Card object for the card you're verifying.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    url = "%s/cards/%s/verify" % (self.base_url, card_obj.id)
+    response = self.__put(url)
+    return status_to_bool(response.status_code)
+  
+  def unverify_card(self, card_obj):
+    """
+    Unverifies a card.
+
+    Args:
+      card_obj (Card): The Card object for the card you're unverifying.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    url = "%s/cards/%s/unverify" % (self.base_url, card_obj.id)
+    response = self.__post(url)
+    return status_to_bool(response.status_code)
+
   def archive_card(self, card):
     """
     Archives a card. Archived cards can still be restored.
@@ -855,6 +883,38 @@ class Guru:
     for item in home_board_obj.items:
       if isinstance(item, BoardGroup) and item.title.lower() == board_group.lower():
         return item
+
+  def make_board_group(self, collection, title, desc=""):
+    """
+    Creates a new board group. It'll be added as the last item in the collection.
+
+    Args:
+      collection (str or Collection): A collection ID or a Collection object
+        the board group will be added to.
+      title (str): The title for the new board group.
+      desc (str, optional): The description of the new board group.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    # https://api.getguru.com/api/v1/boards/home/entries?collection=fac2ed4d-a2c0-4d47-b409-5a988fe8dcf7
+    collection_obj = self.get_collection(collection)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return
+    
+    data = {
+      "actionType": "add",
+      "boardEntries": [{
+        "entryType": "section",
+        "title": title,
+        "description": desc
+      }],
+      # "nextSiblingItem": "b93799c8-6fb7-467d-a8ea-9a6e62ff8e93"
+    }
+    url = "%s/boards/home/entries?collection=%s" % (self.base_url, collection_obj.id)
+    response = self.__put(url, data)
+    return status_to_bool(response.status_code)
 
   def get_home_board(self, collection):
     """

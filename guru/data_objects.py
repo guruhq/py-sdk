@@ -224,6 +224,12 @@ class Card:
     self.next_verification_date = saved_card.next_verification_date
     return saved_card
   
+  def verify(self):
+    return self.guru.verify_card(self)
+
+  def unverify(self):
+    return self.guru.unverify_card(self)
+
   def add_tag(self, tag, create=False):
     for t in self.tags:
       if t.value.lower() == tag.lower():

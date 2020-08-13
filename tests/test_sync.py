@@ -977,3 +977,152 @@ class TestSync(unittest.TestCase):
       "Title": "node 2"
     })
     self.assertEqual(read_html("/tmp/test_sync_with_verbose_true/cards/2.html"), "card content")
+
+  @use_guru()
+  def test_sync_without_sort_order(self, g):
+    # this test has no sort order. the next test will use these
+    # same nodes but give them a different order.
+    sync = g.sync("test_sync_without_sort_order")
+
+    # make two boards and one has four nodes.
+    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
+    node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2")
+    node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content")
+    node4 = sync.node(id="4", url="https://www.example.com/4", title="node 4", content="card content")
+    node5 = sync.node(id="5", url="https://www.example.com/5", title="node 5", content="card content")
+    node6 = sync.node(id="6", url="https://www.example.com/6", title="node 6", content="card content")
+    node3.add_to(node2)
+    node4.add_to(node2)
+    node5.add_to(node2)
+    node6.add_to(node2)
+    sync.zip()
+
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/collection.yaml"), {
+      "Title": "test",
+      "Tags": [],
+      "Items": [{
+        "ID": "1",
+        "Title": "node 1",
+        "Type": "board"
+      }, {
+        "ID": "2",
+        "Title": "node 2",
+        "Type": "board"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/boards/1.yaml"), {
+      "ExternalId": "1",
+      "ExternalUrl": "https://www.example.com/1",
+      "Title": "node 1",
+      "Items": []
+    })
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/boards/2.yaml"), {
+      "ExternalId": "2",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "node 2",
+      "Items": [
+        {"ID": "3", "Type": "card"},
+        {"ID": "4", "Type": "card"},
+        {"ID": "5", "Type": "card"},
+        {"ID": "6", "Type": "card"},
+      ]
+    })
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/cards/3.yaml"), {
+      "ExternalId": "3",
+      "ExternalUrl": "https://www.example.com/3",
+      "Title": "node 3"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_without_sort_order/cards/3.html"), "card content")
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/cards/4.yaml"), {
+      "ExternalId": "4",
+      "ExternalUrl": "https://www.example.com/4",
+      "Title": "node 4"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_without_sort_order/cards/4.html"), "card content")
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/cards/5.yaml"), {
+      "ExternalId": "5",
+      "ExternalUrl": "https://www.example.com/5",
+      "Title": "node 5"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_without_sort_order/cards/5.html"), "card content")
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/cards/6.yaml"), {
+      "ExternalId": "6",
+      "ExternalUrl": "https://www.example.com/6",
+      "Title": "node 6"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_without_sort_order/cards/6.html"), "card content")
+
+  @use_guru()
+  def test_sync_with_sort_order(self, g):
+    sync = g.sync("test_sync_with_sort_order")
+
+    # make two boards and one has four nodes.
+    # set the indexes so it goes: node 2, node 1.
+    # then inside node2, set the order has: node 6, node 3, node 4, node 5
+    # (if no index is provided, those come last and keep their relative order)
+    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", index=50)
+    node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2", index=1)
+    node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content", index=2)
+    node4 = sync.node(id="4", url="https://www.example.com/4", title="node 4", content="card content")
+    node5 = sync.node(id="5", url="https://www.example.com/5", title="node 5", content="card content")
+    node6 = sync.node(id="6", url="https://www.example.com/6", title="node 6", content="card content", index=1)
+    node3.add_to(node2)
+    node4.add_to(node2)
+    node5.add_to(node2)
+    node6.add_to(node2)
+    sync.zip()
+
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/collection.yaml"), {
+      "Title": "test",
+      "Tags": [],
+      "Items": [{
+        "ID": "2",
+        "Title": "node 2",
+        "Type": "board"
+      }, {
+        "ID": "1",
+        "Title": "node 1",
+        "Type": "board"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/boards/1.yaml"), {
+      "ExternalId": "1",
+      "ExternalUrl": "https://www.example.com/1",
+      "Title": "node 1",
+      "Items": []
+    })
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/boards/2.yaml"), {
+      "ExternalId": "2",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "node 2",
+      "Items": [
+        {"ID": "6", "Type": "card"},
+        {"ID": "3", "Type": "card"},
+        {"ID": "4", "Type": "card"},
+        {"ID": "5", "Type": "card"},
+      ]
+    })
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/cards/3.yaml"), {
+      "ExternalId": "3",
+      "ExternalUrl": "https://www.example.com/3",
+      "Title": "node 3"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_with_sort_order/cards/3.html"), "card content")
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/cards/4.yaml"), {
+      "ExternalId": "4",
+      "ExternalUrl": "https://www.example.com/4",
+      "Title": "node 4"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_with_sort_order/cards/4.html"), "card content")
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/cards/5.yaml"), {
+      "ExternalId": "5",
+      "ExternalUrl": "https://www.example.com/5",
+      "Title": "node 5"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_with_sort_order/cards/5.html"), "card content")
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/cards/6.yaml"), {
+      "ExternalId": "6",
+      "ExternalUrl": "https://www.example.com/6",
+      "Title": "node 6"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_with_sort_order/cards/6.html"), "card content")

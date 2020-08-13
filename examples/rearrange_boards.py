@@ -15,5 +15,5 @@ board_group.set_item_order("item 2", "item 0 Content", "item 1", "item 3")
 board_a = g.get_board("Board A")
 board_a.set_item_order("Card B", "Card A", "Card C")
 
-# todo: set the order of items in a section.
-# todo: move boards in and out of board groups.
+# make a new board group:
+g.make_board_group("General", "TEST")

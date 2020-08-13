@@ -491,3 +491,49 @@ class TestCore(unittest.TestCase):
   @use_guru()
   def test_get_invalid_tag(self, g):
     self.assertIsNone(g.get_tag(""))
+
+  @use_guru()
+  @responses.activate
+  def test_verify_card(self, g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+      "id": "1234"
+    })
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1234/verify", json={})
+
+    # this should trigger the GET call we're expecting.
+    card = g.get_card("1234")
+    result = card.verify()
+
+    # assert that the only API activity was the one call we expected to see.
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/cards/1234/verify"
+    }])
+    self.assertEqual(result, True)
+
+  @use_guru()
+  @responses.activate
+  def test_unverify_card(self, g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+      "id": "1234"
+    })
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/1234/unverify", json={})
+
+    # this should trigger the GET call we're expecting.
+    card = g.get_card("1234")
+    result = card.unverify()
+
+    # assert that the only API activity was the one call we expected to see.
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/cards/1234/unverify"
+    }])
+    self.assertEqual(result, True)
