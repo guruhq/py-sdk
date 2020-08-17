@@ -139,11 +139,13 @@ class Collection:
 
 class User:
   def __init__(self, data):
-    self.email = data.get("email")
-    self.first_name = data.get("firstName")
-    self.last_name = data.get("lastName")
-    self.image = data.get("profilePicUrl")
-    self.status = data.get("status")
+    user_obj = data.get("user") or {}
+    self.email = user_obj.get("email")
+    self.first_name = user_obj.get("firstName")
+    self.last_name = user_obj.get("lastName")
+    self.image = user_obj.get("profilePicUrl")
+    self.status = user_obj.get("status")
+    self.groups = [Group(group) for group in data.get("groups", [])]
 
 class Tag:
   def __init__(self, data):

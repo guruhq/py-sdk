@@ -46,6 +46,20 @@ def get_link_header(response):
   link_header = response.headers.get("Link", "")
   return link_header[1:link_header.find(">")]
 
+def find_by_email(lst, email):
+  def func(obj):
+    return (obj.email or "").strip().lower() == (email or "").strip().lower()
+  filtered = [x for x in lst if func(x)]
+  if filtered:
+    return filtered[0]
+
+def find_by_id(lst, id):
+  def func(obj):
+    return (obj.id or "").strip().lower() == (id or "").strip().lower()
+  filtered = [x for x in lst if func(x)]
+  if filtered:
+    return filtered[0]
+
 def status_to_bool(status_code):
   band = int(status_code / 100)
   return (band == 2 or band == 3)
@@ -152,7 +166,11 @@ class Guru:
       self.__log_response(response)
       return response
   
-  def __get_and_get_all(self, url):
+  def __get_and_get_all(self, url, cache=False):
+    if cache and self.__cache.get(url):
+      self.__log(make_gray("  using cached get call:", url))
+      return self.__cache[url]
+    
     results = []
     auth = self.__get_auth()
     page = 0
@@ -164,6 +182,7 @@ class Guru:
       results += response.json()
       url = get_link_header(response)
     
+    self.__cache[url] = results
     return results
 
   def __post_and_get_all(self, url, data):
@@ -190,7 +209,7 @@ class Guru:
     self.__log_response(response)
     return response
 
-  def get_members(self, search=""):
+  def get_members(self, search="", cache=False):
     """
     Gets a list of users on the team.
 
@@ -205,7 +224,7 @@ class Guru:
 
     members = []
     url = "%s/members?search=%s" % (self.base_url, search)
-    users = self.__get_and_get_all(url)
+    users = self.__get_and_get_all(url, cache)
     users = [User(u) for u in users]
     return users
 
@@ -442,6 +461,10 @@ class Guru:
     groups = list(groups)
     self.__log("add user", make_blue(email), "to groups", make_blue(groups))
 
+    # load the user list so we can check if any of these assignments were already made.
+    users = self.get_members(email, cache=True)
+    user = find_by_email(users, email)
+  
     # for each group, track whether the addition was successful or not.
     result = {}
     for group in groups:
@@ -452,9 +475,14 @@ class Guru:
         result[group] = False
         continue
       
-      url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
-      response = self.__post(url, [email])
-      result[group_obj.name] = status_to_bool(response.status_code)
+      # todo: check if the user is already assigned to this group.
+      if not find_by_id(user.groups, group_obj.id):
+        url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
+        response = self.__post(url, [email])
+        result[group_obj.name] = status_to_bool(response.status_code)
+      else:
+        self.__log(make_gray("  %s is already in the group %s" % (email, group_obj.name)))
+        result[group_obj.name] = True
     
     return result
   

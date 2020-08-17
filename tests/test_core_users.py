@@ -39,6 +39,10 @@ class TestCore(unittest.TestCase):
       "name": "other group"
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/members/invite", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "groups": []
+    }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/1234/members")
     responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/5678/members")
 
@@ -50,6 +54,9 @@ class TestCore(unittest.TestCase):
       "body": {
         "emails": "user@example.com"
       }
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
@@ -75,6 +82,10 @@ class TestCore(unittest.TestCase):
       "name": "Experts"
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/members/invite", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "groups": []
+    }])
 
     g.invite_user("user@example.com", "other group")
 
@@ -86,12 +97,19 @@ class TestCore(unittest.TestCase):
       }
     }, {
       "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+    }, {
+      "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }])
   
   @use_guru()
   @responses.activate
   def test_add_user_to_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "groups": []
+    }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",
       "name": "Experts"
@@ -101,6 +119,9 @@ class TestCore(unittest.TestCase):
     g.add_user_to_group("user@example.com", "Experts")
 
     self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+    }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
@@ -114,6 +135,10 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_invalid_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "groups": []
+    }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",
       "name": "Other Group"
@@ -123,12 +148,19 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+    }, {
+      "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }])
 
   @use_guru()
   @responses.activate
   def test_add_user_to_groups(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "groups": []
+    }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",
       "name": "Experts"
@@ -142,6 +174,9 @@ class TestCore(unittest.TestCase):
     g.add_user_to_groups("user@example.com", "Experts", "other group")
 
     self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+    }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
@@ -161,6 +196,10 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_groups_where_first_one_is_invalid(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "groups": []
+    }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "5678",
       "name": "other group"
@@ -176,6 +215,9 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+    }, {
+      "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
       "method": "POST",
@@ -188,6 +230,10 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_groups_where_second_one_is_invalid(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "groups": []
+    }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",
       "name": "Experts"
@@ -202,6 +248,9 @@ class TestCore(unittest.TestCase):
     })
 
     self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+    }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
