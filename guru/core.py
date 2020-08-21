@@ -252,8 +252,8 @@ class Guru:
       return Collection(response.json())
     else:
       for c in self.get_collections(cache):
-        # todo: handle the case where the name isn't unique.
-        if c.name.lower() == collection.lower():
+        # we compare the name and ID because of the name isn't unique, you'll need to pass an ID.
+        if c.name.lower() == collection.lower() or c.id.lower() == collection.lower():
           return c
 
   def get_collections(self, cache=False):
@@ -610,19 +610,36 @@ class Guru:
     return card.save()
 
   def get_tag(self, tag):
-    # todo: update this to work by ID or value.
+    """
+    Gets a tag.
+
+    Args:
+      tag (str): The tag's ID or text value (without the leading "#").
+    
+    Returns:
+      Tag: An object reprensenting the tag.
+    """
     if not tag:
       return
 
+    if isinstance(tag, Tag):
+      return tag
+
     tags = self.get_tags()
     for t in tags:
-      if t.value.lower() == tag.lower():
+      if t.value.lower() == tag.lower() or t.id.lower() == tag.lower():
         return t
 
+  def get_team_id(self, cache=True):
+    # todo: figure out a better way to do this because this returns all teams you belong to
+    #       and we really want to find the team your API token is connected to.
+    url = "%s/teams" % self.base_url
+    response = self.__get(url, cache=cache)
+    return response.json()[0]["id"]
+
   def get_tags(self):
-    # todo: update this api so it doesn't just get tags that are being used
-    #       but it gets the full list of all tags.
-    url = "%s/search/inuse?boardId=&tagIds=&categoryIds=" % self.base_url
+    # https://api.getguru.com/api/v1/teams/014dc5f6-9488-43fe-a892-206d276a7a9c/tagcategories/
+    url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
 
     # this returns a list of objects where each object represents a tag category
     # and looks like this:
@@ -637,6 +654,61 @@ class Guru:
     for tag_category in response.json():
       tags += [Tag(t) for t in tag_category.get("tags", [])]
     return tags
+
+  def delete_tag(self, tag):
+    """
+    Deletes a tag.
+
+    Args:
+      tags (str or Tag): Either a tag's name, ID, or the Tag object.
+    """
+    tag_object = self.get_tag(tag)
+    if not tag_object:
+      self.__log(make_red("could not find tag:", tag))
+      return False
+    
+    url = "%s/teams/%s/bulkop" % (self.base_url, self.get_team_id())
+    data = {
+      "action": {
+        "type": "delete-tag",
+        "tagId": tag_object.id
+      }
+    }
+    response = self.__post(url, data)
+    return status_to_bool(response.status_code)
+
+  def merge_tags(self, *tags):
+    """
+    Merge two or more tags. This is the same action you can
+    do through Tag Manager.
+
+    Args:
+      Any number of arguments where each is either a tag's value, ID, or a Tag object.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    tag_objects = []
+    for tag in tags:
+      tag_object = self.get_tag(tag)
+      if tag_object:
+        tag_objects.append(tag_object)
+      else:
+        self.__log(make_red("could not find tag:", tag))
+        return False
+    
+    url = "%s/teams/%s/bulkop" % (self.base_url, self.get_team_id())
+    data = {
+      "action": {
+        "type": "merge-tag",
+        "mergeSpec": {
+          "parentId": tag_objects[0].id,
+          "childIds": [t.id for t in tag_objects[1:]]
+        }
+      }
+    }
+    response = self.__post(url, data)
+    return status_to_bool(response.status_code)
 
   def find_card(self, **kwargs):
     cards = self.find_cards(**kwargs)

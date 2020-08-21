@@ -265,7 +265,10 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
       "id": "1234"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds=", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
+      "id": "abcd"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [{
         "id": "abcd",
         "value": "tag1"
@@ -285,7 +288,10 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/cards/1234"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds="
+      "url": "https://api.getguru.com/api/v1/teams"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
     }, {
       "method": "PUT",
       "url": "https://api.getguru.com/api/v1/cards/1234",
@@ -312,7 +318,10 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
       "id": "1234"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds=", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
+      "id": "abcd"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [],
       "id": "1234",
       "name": "category"
@@ -326,7 +335,10 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/cards/1234"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds="
+      "url": "https://api.getguru.com/api/v1/teams"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
     }])
 
   @use_guru()
@@ -381,7 +393,10 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_find_cards_by_tag(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds=", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
+      "id": "abcd"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [{
         "id": "abcd",
         "value": "tag1"
@@ -395,7 +410,10 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds="
+      "url": "https://api.getguru.com/api/v1/teams"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
     }, {
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/search/cardmgr",
@@ -421,7 +439,10 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_find_card_by_tag(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds=", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
+      "id": "abcd"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [{
         "id": "abcd",
         "value": "tag1"
@@ -435,7 +456,10 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds="
+      "url": "https://api.getguru.com/api/v1/teams"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
     }, {
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/search/cardmgr",
@@ -474,7 +498,10 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_find_cards_by_invalid_tag(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds=", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
+      "id": "abcd"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [],
       "id": "1234",
       "name": "category"
@@ -485,7 +512,10 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/search/inuse?boardId=&tagIds=&categoryIds="
+      "url": "https://api.getguru.com/api/v1/teams",
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
     }])
   
   @use_guru()

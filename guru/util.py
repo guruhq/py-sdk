@@ -15,6 +15,8 @@ else:
 
 # 250 MB
 # todo: figure out how to enforce this automatically.
+# ideally we could check this before downloading the whole file.
+# we also need to apply this to local files -- before copying them into resources/ check their size.
 MAX_FILE_SIZE = 250000000
 
 def load_html(url, cache=False, make_links_absolute=True, headers=None):

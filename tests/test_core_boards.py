@@ -358,3 +358,48 @@ class TestCore(unittest.TestCase):
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards"
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_make_board_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={
+      "collection": {
+        "id": "1234"
+      },
+      "items": [{
+        "type": "section",
+        "title": "A",
+        "items": [],
+      }, {
+        "type": "section",
+        "title": "My Board Group",
+        "items": [{
+          "type": "board"
+        }]
+      }, {
+        "type": "board"
+      }]
+    })
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home/entries?collection=1234", json={})
+
+    g.make_board_group("General", "my board group", "desc...")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/boards/home/entries?collection=1234",
+      "body": {
+        "actionType": "add",
+        "boardEntries": [{
+          "description": "desc...",
+          "entryType": "section",
+          "title": "my board group"
+        }]
+      }
+    }])
