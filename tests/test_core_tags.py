@@ -17,9 +17,11 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_get_tags(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "id": "0000",
       "tags": [{
@@ -36,7 +38,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -52,9 +54,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_delete_tag_by_id(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "id": "0000",
       "tags": [{
@@ -72,7 +76,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -90,9 +94,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_delete_tag_by_value(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "id": "0000",
       "tags": [{
@@ -110,7 +116,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -128,9 +134,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_delete_invalid_tag(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "id": "0000",
       "tags": [{
@@ -144,7 +152,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -154,9 +162,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_merge_tags(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "id": "0000",
       "tags": [{
@@ -175,7 +185,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -201,9 +211,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_merge_invalid_tag(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "id": "0000",
       "tags": [{
@@ -221,7 +233,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"

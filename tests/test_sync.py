@@ -25,10 +25,10 @@ def read_html(filename):
   with open(filename) as file_in:
     return file_in.read()
 
-class TestSync(unittest.TestCase):
+class TestBundle(unittest.TestCase):
   @use_guru()
   def test_sync_with_two_nodes(self, g):
-    sync = g.sync("test_sync_with_two_nodes")
+    sync = g.bundle("test_sync_with_two_nodes")
 
     # make two nodes, one with content, and add that one to the other.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -63,7 +63,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_a_node_on_two_boards(self, g):
-    sync = g.sync("test_sync_with_a_node_on_two_boards")
+    sync = g.bundle("test_sync_with_a_node_on_two_boards")
 
     # make two nodes, one with content, and add that one to the other.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -113,7 +113,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_move_to(self, g):
-    sync = g.sync("test_sync_move_to")
+    sync = g.bundle("test_sync_move_to")
 
     # make two nodes, one with content, and add that one to the other.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -160,7 +160,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_three_nodes(self, g):
-    sync = g.sync("test_sync_with_three_nodes")
+    sync = g.bundle("test_sync_with_three_nodes")
 
     # make three nodes in a vertical hierarchy (board-group -> board -> card)
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -203,7 +203,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_where_a_board_group_contains_a_card(self, g):
-    sync = g.sync("test_sync_where_a_board_group_contains_a_card")
+    sync = g.bundle("test_sync_where_a_board_group_contains_a_card")
 
     # make three nodes in a vertical hierarchy (board-group -> board -> card)
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -317,7 +317,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_three_nodes_favor_sections(self, g):
-    sync = g.sync("test_sync_with_three_nodes_favor_sections")
+    sync = g.bundle("test_sync_with_three_nodes_favor_sections")
 
     # make three nodes in a vertical hierarchy (board -> section -> card)
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -358,7 +358,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_three_nodes_that_all_have_content(self, g):
-    sync = g.sync("test_sync_with_three_nodes_that_all_have_content")
+    sync = g.bundle("test_sync_with_three_nodes_that_all_have_content")
 
     # make three nodes in a vertical hierarchy and all have content.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="card1 content")
@@ -429,7 +429,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_five_nodes(self, g):
-    sync = g.sync("test_sync_with_five_nodes")
+    sync = g.bundle("test_sync_with_five_nodes")
 
     # make five nodes in a vertical hierarchy.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -490,7 +490,7 @@ class TestSync(unittest.TestCase):
   
   @use_guru()
   def test_sync_with_five_nodes_and_favor_sections(self, g):
-    sync = g.sync("test_sync_with_five_nodes_and_favor_sections")
+    sync = g.bundle("test_sync_with_five_nodes_and_favor_sections")
 
     # make five nodes in a vertical hierarchy.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -553,7 +553,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_container_that_has_content(self, g):
-    sync = g.sync("test_sync_with_container_that_has_content")
+    sync = g.bundle("test_sync_with_container_that_has_content")
 
     # make parent and child nodes but both have content.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="parent content")
@@ -599,7 +599,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_image(self, g):
-    sync = g.sync("test_sync_with_image")
+    sync = g.bundle("test_sync_with_image")
 
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="""<p>
   <img src="https://www.example.com/test.png" />
@@ -622,7 +622,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_image_we_download(self, g):
-    sync = g.sync("test_sync_with_image_we_download")
+    sync = g.bundle("test_sync_with_image_we_download")
 
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="""<p>
   <img src="https://www.example.com/test.png" />
@@ -654,7 +654,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_image_we_dont_download(self, g):
-    sync = g.sync("test_sync_with_image_we_dont_download")
+    sync = g.bundle("test_sync_with_image_we_dont_download")
 
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="""<p>
   <img src="test.png" />
@@ -684,7 +684,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_attachment_we_download(self, g):
-    sync = g.sync("test_sync_with_attachment_we_download")
+    sync = g.bundle("test_sync_with_attachment_we_download")
 
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="""<p>
   <a href="test.pdf">test.pdf</a>
@@ -714,7 +714,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_card_to_card_link(self, g):
-    sync = g.sync("test_sync_with_card_to_card_link")
+    sync = g.bundle("test_sync_with_card_to_card_link")
 
     # make two nodes that have links to each other.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="""<p>
@@ -749,7 +749,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_complex_html(self, g):
-    sync = g.sync("test_sync_with_complex_html")
+    sync = g.bundle("test_sync_with_complex_html")
 
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="""<p>
   This <span>span tag</span> should be unwrapped.
@@ -804,7 +804,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_visualization(self, g):
-    sync = g.sync("test_sync_visualization")
+    sync = g.bundle("test_sync_visualization")
 
     # make five nodes in a vertical hierarchy.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -823,7 +823,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_local_files(self, g):
-    sync = g.sync("test_sync_with_local_files")
+    sync = g.bundle("test_sync_with_local_files")
 
     html_file = "./tests/test_sync_with_local_files_node1.html"
     node1 = sync.node(id="1", url=html_file, title="node 1", content=read_html(html_file))
@@ -836,7 +836,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_tags_and_board_descriptions(self, g):
-    sync = g.sync("test_sync_with_tags_and_board_descriptions")
+    sync = g.bundle("test_sync_with_tags_and_board_descriptions")
 
     # make two nodes, one with content, and add that one to the other.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", desc="board description")
@@ -898,7 +898,7 @@ class TestSync(unittest.TestCase):
       "id": "2222"
     })
 
-    sync = g.sync("test_sync_upload")
+    sync = g.bundle("test_sync_upload")
 
     # make two nodes, one with content, and add that one to the other.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", content="card content")
@@ -924,7 +924,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_node_edge_cases(self, g):
-    sync = g.sync("test_sync_node_edge_cases")
+    sync = g.bundle("test_sync_node_edge_cases")
 
     # make two nodes, one with content, and add that one to the other.
     title = "this title is longer than 200 characters so we can check that it gets truncated where we expect it to get truncated even though i'm not sure why we do this, maybe it's a guru limitation that card titles can't be longer than 200 characters."
@@ -982,7 +982,7 @@ class TestSync(unittest.TestCase):
   def test_sync_without_sort_order(self, g):
     # this test has no sort order. the next test will use these
     # same nodes but give them a different order.
-    sync = g.sync("test_sync_without_sort_order")
+    sync = g.bundle("test_sync_without_sort_order")
 
     # make two boards and one has four nodes.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -1054,7 +1054,7 @@ class TestSync(unittest.TestCase):
 
   @use_guru()
   def test_sync_with_sort_order(self, g):
-    sync = g.sync("test_sync_with_sort_order")
+    sync = g.bundle("test_sync_with_sort_order")
 
     # make two boards and one has four nodes.
     # set the indexes so it goes: node 2, node 1.

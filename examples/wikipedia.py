@@ -51,7 +51,7 @@ musicians = [
 ]
 
 g = guru.Guru()
-sync = g.sync("favorite_stuff", verbose=True)
+sync = g.bundle("favorite_stuff", verbose=True)
 
 # make a node called 'My Favorite Albums', we'll add the other nodes
 # as its children so it'll become a board in guru.

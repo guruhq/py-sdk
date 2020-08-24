@@ -265,9 +265,11 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
       "id": "1234"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [{
         "id": "abcd",
@@ -288,7 +290,7 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/cards/1234"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -318,9 +320,11 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
       "id": "1234"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [],
       "id": "1234",
@@ -335,7 +339,7 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/cards/1234"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -393,9 +397,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_find_cards_by_tag(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [{
         "id": "abcd",
@@ -410,7 +416,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -439,9 +445,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_find_card_by_tag(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [{
         "id": "abcd",
@@ -456,7 +464,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams"
+      "url": "https://api.getguru.com/api/v1/whoami"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
@@ -498,9 +506,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_find_cards_by_invalid_tag(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams", json=[{
-      "id": "abcd"
-    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
       "tags": [],
       "id": "1234",
@@ -512,7 +522,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/teams",
+      "url": "https://api.getguru.com/api/v1/whoami",
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"

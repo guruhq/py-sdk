@@ -290,7 +290,7 @@ def insert_nodes(node, parent, depth):
     parent.add_child(content_board, first=True)
 
 
-class SyncNode:
+class BundleNode:
   def __init__(self, id, sync, url="", title="", desc="", content="", tags=None, index=None):
     self.id = id
     self.sync = sync
@@ -548,7 +548,29 @@ class SyncNode:
       return to_yaml(data)
 
 
-class Sync:
+class Bundle:
+  """
+  The `Bundle` object has methods you can use to build a bundle to import
+  or sync into Guru. The main `Guru` object is used to create a bundle:
+
+  ```
+  import guru
+  g = guru.Guru()
+  bundle = g.bundle()
+  ```
+
+  Then you can use the `bundle` instance to add nodes and upload the content
+  to Guru:
+
+  ```
+  bundle.node(title="New Card", content="this card was imported")
+  bundle.zip()
+  bundle.upload(collection="Import Test")
+  ```
+
+  That'll create a bundle with one card and upload it to the collection
+  called "Import Test" -- if that collection doesn't exist, it'll be created.
+  """
   def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False):
     self.guru = guru
     self.id = slugify(id) if id else str(int(time.time()))
@@ -637,7 +659,7 @@ class Sync:
         title = "%s..." % title[0:197]
     
     if not node:
-      node = SyncNode(id, sync=self, title=title, desc=desc, content=content, tags=tags, index=index)
+      node = BundleNode(id, sync=self, title=title, desc=desc, content=content, tags=tags, index=index)
       self.nodes.append(node)
     
     if url:

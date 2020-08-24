@@ -5,7 +5,7 @@ import requests
 
 from requests.auth import HTTPBasicAuth
 
-from guru.sync import Sync
+from guru.bundle import Bundle
 from guru.data_objects import Board, BoardGroup, Card, CardComment, Collection, Group, HomeBoard, Tag, User
 
 # collection colors
@@ -73,9 +73,23 @@ class DummyResponse:
     return []
 
 class Guru:
+  """
+  The Guru object is the main wrapper around all API functionality.
+  You can create one like this, passing it your username and API token:
+
+  ```
+  import guru
+  g = guru.Guru("user@example.com", "abcd1234-abcd-abcd-abcd-abcdabcdabcd")
+  ```
+
+  You can also store these values in the `GURU_USER` and `GURU_TOKEN` environment
+  variables. If you're using environment variables you don't need to pass any parameters
+  to the `Guru()` constructor.
+  """
+
   def __init__(self, username="", api_token="", silent=False, dry_run=False):
-    self.username = username or os.environ.get("PYGURU_USER", "")
-    self.api_token = api_token or os.environ.get("PYGURU_TOKEN", "")
+    self.username = username or os.environ.get("PYGURU_USER", "") or os.environ.get("GURU_USER", "")
+    self.api_token = api_token or os.environ.get("PYGURU_TOKEN", "") or os.environ.get("GURU_TOKEN", "")
     self.base_url = "https://api.getguru.com/api/v1"
     self.dry_run = dry_run
     self.__cache = {}
@@ -96,18 +110,6 @@ class Guru:
   def __print(self, *args):
     print(" ".join([str(a) for a in args]))
 
-  def sync(self, id="", clear=True, folder="/tmp/", verbose=False):
-    """
-    Creates a Sync object that can be used to bulk import content.
-    """
-    return Sync(guru=self, id=id, clear=clear, folder=folder, verbose=verbose)
-  
-  def bundle(self, id="", clear=True, folder="/tmp/", verbose=False):
-    """
-    bundle() is an alias for sync().
-    """
-    return Sync(guru=self, id=id, clear=clear, folder=folder, verbose=verbose)
-  
   def __get_auth(self):
     return HTTPBasicAuth(self.username, self.api_token)
 
@@ -209,25 +211,6 @@ class Guru:
     self.__log_response(response)
     return response
 
-  def get_members(self, search="", cache=False):
-    """
-    Gets a list of users on the team.
-
-    Args:
-      search (str, optional): A text string to search for. This will be
-        matched against each user's first name, last name, or email address.
-        By default there's no filter and it'll return all users.
-    
-    Returns:
-      list of User: a list of users on the team.
-    """
-
-    members = []
-    url = "%s/members?search=%s" % (self.base_url, search)
-    users = self.__get_and_get_all(url, cache)
-    users = [User(u) for u in users]
-    return users
-
   def get_collection(self, collection, cache=False):
     """
     Loads a collection.
@@ -272,6 +255,160 @@ class Guru:
     url = "%s/collections" % self.base_url
     response = self.__get(url, cache)
     return [Collection(c) for c in response.json()]
+
+  def make_collection(self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True):
+    """
+    Creates a new collection.
+
+    Args:
+      name (str): The name of the new collection.
+      desc (str, optional): The description of the new collection.
+      color (str, optional): The color of the new collection. The guru module has
+        constants for all of the different colors:  MAROON, RED, ORANGE, AMBER,
+        SAPPHIRE, CORNFLOWER, TEAL, GREEN, MAGENTA, DODGER_BLUE, SALMON, GREEN_APPLE.
+        Defaults to GREEN. We like green.
+      is_sync (str, optional): True if you want this collection behave as a synced
+        collection and False otherwise. Defaults to False. For more information on
+        synced collection, go here: https://developer.getguru.com/docs/guru-sync-manual-api
+      group (str, optional): The name or ID of the group to have collection owner
+        access to this collection. Defaults to All Members.
+      public_cards (bool, optional): True if you want to allow cards in this collection
+        to be made public and False if you don't. Defaults to True.
+    
+    Returns:
+      Collection: an object representing the new collection.
+    """
+    self.__log("make collection", make_blue(name), "with ", make_blue(group), "as Collection Owner")
+
+    # if it's not a synced collection we need a group id for who'll be the author.
+    data = {
+      "name": name,
+      "color": color,
+      "description": desc,
+      "collectionType": "EXTERNAL" if is_sync else "INTERNAL",
+      "publicCardsEnabled": public_cards,
+      "syncVerificationEnabled": False
+    }
+
+    group_obj = self.get_group(group, cache=True)
+    if not group_obj:
+      self.__log(make_red("could not find group:", group))
+      return
+    data["initialAdminGroupId"] = group_obj.id
+
+    url = "%s/collections" % self.base_url
+    response = self.__post(url, data)
+    return Collection(response.json())
+
+  def add_group_to_collection(self, group, collection, role):
+    """
+    Adds a group to a collection and gives it the specified role.
+    If the group is already on the collection it'll update its role
+    to be what you specify here.
+
+    Args:
+      group (str): A group name or ID.
+      collection (str): A collection name or ID.
+      role (str): Either guru.READ_ONLY, guru.AUTHOR, or guru.COLLECTION_OWNER.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    self.__log("add group", make_blue(group), "to collection", make_blue(collection), "as", make_blue(role))
+    group_obj = self.get_group(group, cache=True)
+    collection_obj = self.get_collection(collection, cache=True)
+
+    if not group_obj or not collection_obj:
+      if not group_obj:
+        self.__log(make_red("could not find group:", group))
+      if not collection_obj:
+        self.__log(make_red("could not find collection:", collection))
+      return False
+
+    data = {
+      "groupId": group_obj.id,
+      "role": role
+    }
+    url = "%s/collections/%s/groups" % (self.base_url, collection_obj.id)
+    response = self.__post(url, data)
+
+    # a 400 response might mean the group is already assigned to the collection
+    # and we need to do this as a put call instead of a post.
+    if response.status_code == 400:
+      url = "%s/collections/%s/groups/%s" % (self.base_url, collection_obj.id, group_obj.id)
+      response = self.__put(url, data)
+
+    return status_to_bool(response.status_code)
+
+  def remove_group_from_collection(self, group, collection):
+    """
+    Removes a group's access to a collection.
+
+    Args:
+      group (str): The name or ID of the group to remove.
+      collection (str): The name or ID of the collection.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    self.__log("remove group", make_blue(group), "from collection", make_blue(collection))
+    group_obj = self.get_group(group, cache=True)
+    collection_obj = self.get_collection(collection, cache=True)
+
+    if not group_obj or not collection_obj:
+      if not group_obj:
+        self.__log(make_red("could not find group:", group))
+      if not collection_obj:
+        self.__log(make_red("could not find collection:", collection))
+      return False
+
+    url = "%s/collections/%s/groups/%s" % (self.base_url, collection_obj.id, group_obj.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
+  def delete_collection(self, collection):
+    """
+    Deletes a collection. You can't undo this using the API or SDK
+    so be sure you want to delete it.
+
+    Args:
+      collection (str): The name or ID of the collection to delete.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    collection_obj = self.get_collection(collection, cache=True)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return False
+    
+    url = "%s/collections/%s" % (self.base_url, collection_obj.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
+  def upload_content(self, collection, filename, zip_path, is_sync=False):
+    collection_obj = self.get_collection(collection)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return
+
+    with open(zip_path, "rb") as file_in:
+      file_key = "file" if is_sync else "contentFile"
+      files = {
+        file_key: (filename, file_in, "application/zip")
+      }
+
+      # there's a slightly different url for syncs vs. imports.
+      route = "contentsyncupload" if is_sync else "contentupload"
+      url = "https://api.getguru.com/app/%s?collectionId=%s" % (route, collection_obj.id)
+      response = self.__post(url, files=files)
+
+      if not status_to_bool(response.status_code):
+        raise BaseException("%s returned a %s response: %s" % (
+          route, response.status_code, response.text
+        ))
+      else:
+        return response.json()
 
   def get_group(self, group, cache=False):
     """
@@ -351,6 +488,25 @@ class Guru:
     url = "%s/groups/%s" % (self.base_url, group_obj.id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
+
+  def get_members(self, search="", cache=False):
+    """
+    Gets a list of users on the team.
+
+    Args:
+      search (str, optional): A text string to search for. This will be
+        matched against each user's first name, last name, or email address.
+        By default there's no filter and it'll return all users.
+    
+    Returns:
+      list of User: a list of users on the team.
+    """
+
+    members = []
+    url = "%s/members?search=%s" % (self.base_url, search)
+    users = self.__get_and_get_all(url, cache)
+    users = [User(u) for u in users]
+    return users
 
   def invite_user(self, email, *groups):
     """
@@ -441,7 +597,6 @@ class Guru:
       emails = failed_emails
     
     return results
-
 
   def add_user_to_groups(self, email, *groups):
     """
@@ -564,6 +719,7 @@ class Guru:
     response = self.__delete(url, data)
     return status_to_bool(response.status_code)
 
+
   def get_card(self, card):
     """
     Loads a single card by its ID.
@@ -608,107 +764,6 @@ class Guru:
         self.__log(make_red("could not find collection:", collection))
         return
     return card.save()
-
-  def get_tag(self, tag):
-    """
-    Gets a tag.
-
-    Args:
-      tag (str): The tag's ID or text value (without the leading "#").
-    
-    Returns:
-      Tag: An object reprensenting the tag.
-    """
-    if not tag:
-      return
-
-    if isinstance(tag, Tag):
-      return tag
-
-    tags = self.get_tags()
-    for t in tags:
-      if t.value.lower() == tag.lower() or t.id.lower() == tag.lower():
-        return t
-
-  def get_team_id(self, cache=True):
-    # todo: figure out a better way to do this because this returns all teams you belong to
-    #       and we really want to find the team your API token is connected to.
-    url = "%s/teams" % self.base_url
-    response = self.__get(url, cache=cache)
-    return response.json()[0]["id"]
-
-  def get_tags(self):
-    # https://api.getguru.com/api/v1/teams/014dc5f6-9488-43fe-a892-206d276a7a9c/tagcategories/
-    url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
-
-    # this returns a list of objects where each object represents a tag category
-    # and looks like this:
-    #   {
-    #     "tags": [ tags... ],
-    #     "id": "abcd1234",
-    #     "name": "category"
-    #   }
-    response = self.__get(url)
-
-    tags = []
-    for tag_category in response.json():
-      tags += [Tag(t) for t in tag_category.get("tags", [])]
-    return tags
-
-  def delete_tag(self, tag):
-    """
-    Deletes a tag.
-
-    Args:
-      tags (str or Tag): Either a tag's name, ID, or the Tag object.
-    """
-    tag_object = self.get_tag(tag)
-    if not tag_object:
-      self.__log(make_red("could not find tag:", tag))
-      return False
-    
-    url = "%s/teams/%s/bulkop" % (self.base_url, self.get_team_id())
-    data = {
-      "action": {
-        "type": "delete-tag",
-        "tagId": tag_object.id
-      }
-    }
-    response = self.__post(url, data)
-    return status_to_bool(response.status_code)
-
-  def merge_tags(self, *tags):
-    """
-    Merge two or more tags. This is the same action you can
-    do through Tag Manager.
-
-    Args:
-      Any number of arguments where each is either a tag's value, ID, or a Tag object.
-    
-    Returns:
-      bool: True if it was successful and False otherwise.
-    """
-    tag_objects = []
-    for tag in tags:
-      tag_object = self.get_tag(tag)
-      if tag_object:
-        tag_objects.append(tag_object)
-      else:
-        self.__log(make_red("could not find tag:", tag))
-        return False
-    
-    url = "%s/teams/%s/bulkop" % (self.base_url, self.get_team_id())
-    data = {
-      "action": {
-        "type": "merge-tag",
-        "mergeSpec": {
-          "parentId": tag_objects[0].id,
-          "childIds": [t.id for t in tag_objects[1:]]
-        }
-      }
-    }
-    response = self.__post(url, data)
-    return status_to_bool(response.status_code)
 
   def find_card(self, **kwargs):
     cards = self.find_cards(**kwargs)
@@ -948,6 +1003,105 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
+  def get_tag(self, tag):
+    """
+    Gets a tag.
+
+    Args:
+      tag (str): The tag's ID or text value (without the leading "#").
+    
+    Returns:
+      Tag: An object reprensenting the tag.
+    """
+    if not tag:
+      return
+
+    if isinstance(tag, Tag):
+      return tag
+
+    tags = self.get_tags()
+    for t in tags:
+      if t.value.lower() == tag.lower() or t.id.lower() == tag.lower():
+        return t
+
+  def get_team_id(self, cache=True):
+    url = "%s/whoami" % self.base_url
+    response = self.__get(url, cache=cache)
+    return response.json().get("team", {}).get("id")
+
+  def get_tags(self):
+    # https://api.getguru.com/api/v1/teams/014dc5f6-9488-43fe-a892-206d276a7a9c/tagcategories/
+    url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
+
+    # this returns a list of objects where each object represents a tag category
+    # and looks like this:
+    #   {
+    #     "tags": [ tags... ],
+    #     "id": "abcd1234",
+    #     "name": "category"
+    #   }
+    response = self.__get(url)
+
+    tags = []
+    for tag_category in response.json():
+      tags += [Tag(t) for t in tag_category.get("tags", [])]
+    return tags
+
+  def delete_tag(self, tag):
+    """
+    Deletes a tag.
+
+    Args:
+      tags (str or Tag): Either a tag's name, ID, or the Tag object.
+    """
+    tag_object = self.get_tag(tag)
+    if not tag_object:
+      self.__log(make_red("could not find tag:", tag))
+      return False
+    
+    url = "%s/teams/%s/bulkop" % (self.base_url, self.get_team_id())
+    data = {
+      "action": {
+        "type": "delete-tag",
+        "tagId": tag_object.id
+      }
+    }
+    response = self.__post(url, data)
+    return status_to_bool(response.status_code)
+
+  def merge_tags(self, *tags):
+    """
+    Merge two or more tags. This is the same action you can
+    do through Tag Manager.
+
+    Args:
+      Any number of arguments where each is either a tag's value, ID, or a Tag object.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    tag_objects = []
+    for tag in tags:
+      tag_object = self.get_tag(tag)
+      if tag_object:
+        tag_objects.append(tag_object)
+      else:
+        self.__log(make_red("could not find tag:", tag))
+        return False
+    
+    url = "%s/teams/%s/bulkop" % (self.base_url, self.get_team_id())
+    data = {
+      "action": {
+        "type": "merge-tag",
+        "mergeSpec": {
+          "parentId": tag_objects[0].id,
+          "childIds": [t.id for t in tag_objects[1:]]
+        }
+      }
+    }
+    response = self.__post(url, data)
+    return status_to_bool(response.status_code)
+
   def get_board(self, board, collection="", cache=True):
     """
     Loads a board.
@@ -1038,160 +1192,6 @@ class Guru:
     response = self.__get(url)
     return HomeBoard(response.json(), guru=self)
 
-  def make_collection(self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True):
-    """
-    Creates a new collection.
-
-    Args:
-      name (str): The name of the new collection.
-      desc (str, optional): The description of the new collection.
-      color (str, optional): The color of the new collection. The guru module has
-        constants for all of the different colors:  MAROON, RED, ORANGE, AMBER,
-        SAPPHIRE, CORNFLOWER, TEAL, GREEN, MAGENTA, DODGER_BLUE, SALMON, GREEN_APPLE.
-        Defaults to GREEN. We like green.
-      is_sync (str, optional): True if you want this collection behave as a synced
-        collection and False otherwise. Defaults to False. For more information on
-        synced collection, go here: https://developer.getguru.com/docs/guru-sync-manual-api
-      group (str, optional): The name or ID of the group to have collection owner
-        access to this collection. Defaults to All Members.
-      public_cards (bool, optional): True if you want to allow cards in this collection
-        to be made public and False if you don't. Defaults to True.
-    
-    Returns:
-      Collection: an object representing the new collection.
-    """
-    self.__log("make collection", make_blue(name), "with ", make_blue(group), "as Collection Owner")
-
-    # if it's not a synced collection we need a group id for who'll be the author.
-    data = {
-      "name": name,
-      "color": color,
-      "description": desc,
-      "collectionType": "EXTERNAL" if is_sync else "INTERNAL",
-      "publicCardsEnabled": public_cards,
-      "syncVerificationEnabled": False
-    }
-
-    group_obj = self.get_group(group, cache=True)
-    if not group_obj:
-      self.__log(make_red("could not find group:", group))
-      return
-    data["initialAdminGroupId"] = group_obj.id
-
-    url = "%s/collections" % self.base_url
-    response = self.__post(url, data)
-    return Collection(response.json())
-
-  def add_group_to_collection(self, group, collection, role):
-    """
-    Adds a group to a collection and gives it the specified role.
-    If the group is already on the collection it'll update its role
-    to be what you specify here.
-
-    Args:
-      group (str): A group name or ID.
-      collection (str): A collection name or ID.
-      role (str): Either guru.READ_ONLY, guru.AUTHOR, or guru.COLLECTION_OWNER.
-    
-    Returns:
-      bool: True if it was successful and False otherwise.
-    """
-    self.__log("add group", make_blue(group), "to collection", make_blue(collection), "as", make_blue(role))
-    group_obj = self.get_group(group, cache=True)
-    collection_obj = self.get_collection(collection, cache=True)
-
-    if not group_obj or not collection_obj:
-      if not group_obj:
-        self.__log(make_red("could not find group:", group))
-      if not collection_obj:
-        self.__log(make_red("could not find collection:", collection))
-      return False
-
-    data = {
-      "groupId": group_obj.id,
-      "role": role
-    }
-    url = "%s/collections/%s/groups" % (self.base_url, collection_obj.id)
-    response = self.__post(url, data)
-
-    # a 400 response might mean the group is already assigned to the collection
-    # and we need to do this as a put call instead of a post.
-    if response.status_code == 400:
-      url = "%s/collections/%s/groups/%s" % (self.base_url, collection_obj.id, group_obj.id)
-      response = self.__put(url, data)
-
-    return status_to_bool(response.status_code)
-
-  def remove_group_from_collection(self, group, collection):
-    """
-    Removes a group's access to a collection.
-
-    Args:
-      group (str): The name or ID of the group to remove.
-      collection (str): The name or ID of the collection.
-    
-    Returns:
-      bool: True if it was successful and False otherwise.
-    """
-    self.__log("remove group", make_blue(group), "from collection", make_blue(collection))
-    group_obj = self.get_group(group, cache=True)
-    collection_obj = self.get_collection(collection, cache=True)
-
-    if not group_obj or not collection_obj:
-      if not group_obj:
-        self.__log(make_red("could not find group:", group))
-      if not collection_obj:
-        self.__log(make_red("could not find collection:", collection))
-      return False
-
-    url = "%s/collections/%s/groups/%s" % (self.base_url, collection_obj.id, group_obj.id)
-    response = self.__delete(url)
-    return status_to_bool(response.status_code)
-
-  def delete_collection(self, collection):
-    """
-    Deletes a collection. You can't undo this using the API or SDK
-    so be sure you want to delete it.
-
-    Args:
-      collection (str): The name or ID of the collection to delete.
-    
-    Returns:
-      bool: True if it was successful and False otherwise.
-    """
-    collection_obj = self.get_collection(collection, cache=True)
-    if not collection_obj:
-      self.__log(make_red("could not find collection:", collection))
-      return False
-    
-    url = "%s/collections/%s" % (self.base_url, collection_obj.id)
-    response = self.__delete(url)
-    return status_to_bool(response.status_code)
-
-  def upload_content(self, collection, filename, zip_path, is_sync=False):
-    collection_obj = self.get_collection(collection)
-    if not collection_obj:
-      self.__log(make_red("could not find collection:", collection))
-      return
-
-    with open(zip_path, "rb") as file_in:
-      file_key = "file" if is_sync else "contentFile"
-      files = {
-        file_key: (filename, file_in, "application/zip")
-      }
-
-      # there's a slightly different url for syncs vs. imports.
-      route = "contentsyncupload" if is_sync else "contentupload"
-      url = "https://api.getguru.com/app/%s?collectionId=%s" % (route, collection_obj.id)
-      response = self.__post(url, files=files)
-
-      if not status_to_bool(response.status_code):
-        raise BaseException("%s returned a %s response: %s" % (
-          route, response.status_code, response.text
-        ))
-      else:
-        return response.json()
-
   def set_item_order(self, collection, board, *items):
     collection_obj = self.get_collection(collection)
     if not collection_obj:
@@ -1228,3 +1228,15 @@ class Guru:
     if status_to_bool(response.status_code):
       # todo: update the board obj so the caller doesn't have to store this return value.
       return board_obj
+
+  def bundle(self, id="default", clear=True, folder="/tmp/", verbose=False):
+    """
+    Creates a Bundle object that can be used to bulk import content.
+    """
+    return Bundle(guru=self, id=id, clear=clear, folder=folder, verbose=verbose)
+  
+  def sync(self, id="default", clear=True, folder="/tmp/", verbose=False):
+    """
+    sync() is an alias for bundle().
+    """
+    return Bundle(guru=self, id=id, clear=clear, folder=folder, verbose=verbose)
