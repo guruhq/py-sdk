@@ -43,6 +43,9 @@ class Board:
       else:
         self.items.append(Card(item))
   
+  def add_section(self, name):
+    self.guru.add_section_to_board(self, name)
+
   def set_item_order(self, *items):
     return self.guru.set_item_order(self.collection, self, *items)
 
@@ -139,7 +142,7 @@ class Collection:
 
 class User:
   def __init__(self, data):
-    user_obj = data.get("user") or {}
+    user_obj = data.get("user") or data or {}
     self.email = user_obj.get("email")
     self.first_name = user_obj.get("firstName")
     self.last_name = user_obj.get("lastName")
@@ -247,6 +250,9 @@ class Card:
 
   def comment(self, comment):
     return self.guru.add_comment_to_card(self, comment)
+
+  def add_to_board(self, board, section=None):
+    return self.guru.add_card_to_board(self, board, section)
 
   def json(self, verify=False):
     # if you accessed the doc object then we want to use its HTML so

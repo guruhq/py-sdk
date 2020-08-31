@@ -60,6 +60,19 @@ def find_by_id(lst, id):
   if filtered:
     return filtered[0]
 
+def find_by_name_or_id(lst, name_or_id):
+  # it says "name or id" but we really need to check the 'title' and 'slug' properties too.
+  name_or_id = name_or_id or ""
+  for obj in lst:
+    if hasattr(obj, "name") and obj.name.lower() == name_or_id.lower():
+      return obj
+    if hasattr(obj, "title") and obj.title.lower() == name_or_id.lower():
+      return obj
+    if obj.id.lower() == name_or_id.lower():
+      return obj
+    if hasattr(obj, "slug") and obj.slug and obj.slug.startswith(name_or_id + "/"):
+      return obj
+
 def status_to_bool(status_code):
   band = int(status_code / 100)
   return (band == 2 or band == 3)
@@ -181,7 +194,11 @@ class Guru:
       page += 1
       self.__log("loading page:", page)
       response = self.__get(url)
-      results += response.json()
+      if status_to_bool(response.status_code):
+        if response.status_code != 204:
+          results += response.json()
+      else:
+        raise BaseException("error response", response)
       url = get_link_header(response)
     
     self.__cache[url] = results
@@ -234,10 +251,9 @@ class Guru:
       response = self.__get(url, cache)
       return Collection(response.json())
     else:
-      for c in self.get_collections(cache):
-        # we compare the name and ID because of the name isn't unique, you'll need to pass an ID.
-        if c.name.lower() == collection.lower() or c.id.lower() == collection.lower():
-          return c
+      # we compare the name and ID because you can pass either.
+      # and if the names aren't unique, you'll need to pass an ID.
+      return find_by_name_or_id(self.get_collections(cache), collection)
 
   def get_collections(self, cache=False):
     """
@@ -537,6 +553,10 @@ class Guru:
 
     # if there are remaining groups, call add_user_to_groups() for that.
     if groups:
+      # todo: when we call this, it'll make a GET call to load this user to see if they're
+      #       already in any of the groups we're trying to add them to -- in this case, since
+      #       we _just_ invited them, we know they won't be. it'd be great to be able to skip
+      #       that GET call in this situation.
       self.add_user_to_groups(email, *groups)
     
     # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
@@ -619,6 +639,10 @@ class Guru:
     # load the user list so we can check if any of these assignments were already made.
     users = self.get_members(email, cache=True)
     user = find_by_email(users, email)
+
+    if not user:
+      self.__log(make_red("could not find user:", email))
+      return
   
     # for each group, track whether the addition was successful or not.
     result = {}
@@ -1117,14 +1141,16 @@ class Guru:
 
     # this returns a list of 'lite' objects that don't have the lists of items on the board.
     # once we find the matching board, then we can make the get call to get the complete object.
-    boards = self.get_boards(cache)
-    for b in boards:
-      # todo: handle the case where the name isn't unique.
-      # todo: also filter by collection if one is provided.
-      if b.title.lower() == board.lower():
-        url = "%s/boards/%s" % (self.base_url, b.id)
-        response = self.__get(url)
-        return Board(response.json(), guru=self)
+    board_obj = find_by_name_or_id(self.get_boards(cache), board)
+    
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+
+    # todo: also filter by collection if one is provided.
+    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    response = self.__get(url)
+    return Board(response.json(), guru=self)
   
   def get_boards(self, cache=False):
     url = "%s/boards" % self.base_url
@@ -1203,7 +1229,6 @@ class Guru:
     else:
       board_obj = self.get_board(board, collection)
       if not board_obj:
-        self.__log(make_red("could not find board:", board))
         return
     
     def get_key(b):
@@ -1228,6 +1253,59 @@ class Guru:
     if status_to_bool(response.status_code):
       # todo: update the board obj so the caller doesn't have to store this return value.
       return board_obj
+
+  def add_card_to_board(self, card, board, section=None, create_section_if_needed=False):
+    # get the card object.
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+    
+    # get the board object.
+    board_obj = self.get_board(board)
+    if not board_obj:
+      return
+    
+    if section:
+      # find the section (if applicable).
+      section_obj = find_by_name_or_id(board_obj.items, section)
+      if not section_obj:
+        if create_section_if_needed:
+          board_obj.add_section(section)
+          # load the objects again so we get the updated board and section.
+          board_obj = self.get_board(board, cache=False)
+          section_obj = find_by_name_or_id(board_obj.items, section)
+        else:
+          self.__log(make_red("could not find section:", section))
+          return
+      
+      # add the card to the section.
+      section_obj.items.append(card_obj)
+    else:
+      # add the card to the board.
+      board_obj.items.append(card_obj)
+    
+    self.save_board(board_obj)
+
+  def add_section_to_board(self, board, section):
+    # get the board object.
+    board_obj = self.get_board(board)
+    if not board_obj:
+      return
+    
+    url = "%s/boards/%s/entries" % (
+      self.base_url,
+      board_obj.id
+    )
+    data = {
+      "actionType": "add",
+      "boardEntries": [{
+        "entryType": "section",
+        "title": section
+      }]
+    }
+    response = self.__put(url, data)
+    return status_to_bool(response.status_code)
 
   def bundle(self, id="default", clear=True, folder="/tmp/", verbose=False):
     """

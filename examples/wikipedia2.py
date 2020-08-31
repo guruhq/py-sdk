@@ -5,10 +5,12 @@ import guru
 urls = [
   "https://en.wikipedia.org/wiki/Odessey_and_Oracle",
   "https://en.wikipedia.org/wiki/Pet_Sounds",
-  "https://en.wikipedia.org/wiki/London_Calling"
+  "https://en.wikipedia.org/wiki/London_Calling",
+  "https://en.wikipedia.org/wiki/24_Hour_Revenge_Therapy",
+  "https://en.wikipedia.org/wiki/...And_Out_Come_the_Wolves",
+  "https://en.wikipedia.org/wiki/Left_and_Leaving"
 ]
 
-# the 'g' object is our interface to guru's API.
 # the 'bundle' object helps us build out the set of .html and .yaml files
 # that we use to upload content to guru. our code doesn't have to deal with
 # the html/yaml files because that's all handled for us, but this doc has

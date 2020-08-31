@@ -13,11 +13,11 @@ if sys.version_info.major >= 3:
 else:
   from urlparse import urljoin
 
-# 250 MB
-# todo: figure out how to enforce this automatically.
-# ideally we could check this before downloading the whole file.
-# we also need to apply this to local files -- before copying them into resources/ check their size.
-MAX_FILE_SIZE = 250000000
+# the limit is now 5 GB
+# todo: figure out how to enforce this automatically, currently its up to your download_func to check this.
+# todo: check this before downloading the whole file.
+# todo: apply this to local files too (i.e. before copying them into resources/ we check their size).
+MAX_FILE_SIZE = 5000000000
 
 def load_html(url, cache=False, make_links_absolute=True, headers=None):
   """Fetches HTML from the given URL and returns it as a BeautifulSoup document object."""
