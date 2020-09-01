@@ -326,7 +326,6 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "General"
     }])
-
     g.set_item_order("invalid", "My Board", "a", "b", "c")
 
     self.assertEqual(get_calls(), [{
@@ -341,7 +340,8 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/invalid", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[{
       "id": "abcd",
       "title": "Board A",
     }, {
@@ -353,10 +353,13 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/collections"
+      "url": "https://api.getguru.com/api/v1/boards/invalid"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/collections",
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards?collection=1234"
     }])
 
   @use_guru()
@@ -410,33 +413,26 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
-      "id": "2222",
-      "title": "my board"
-    }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/2222", json={
-      "id": "2222",
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
       "title": "my board",
       "items": []
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={})
 
-    g.add_card_to_board("1111", "2222")
+    g.add_card_to_board("1111", "22222222-2222-2222-2222-222222222222")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/2222"
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/2222",
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222",
       "body": {
-        "id": "2222",
+        "id": "22222222-2222-2222-2222-222222222222",
         "itemId": None,
         "items": [{
           "id": "1111",
@@ -498,29 +494,21 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/abcde", json={
       "id": "2222",
-      "slug": "abcd/my-board",
+      "slug": "abcde/my-board",
       "title": "my board"
-    }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/2222", json={
-      "id": "2222",
-      "title": "my board",
-      "items": []
     })
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
 
-    g.add_card_to_board("1111", "abcd")
+    g.add_card_to_board("1111", "abcde")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/2222"
+      "url": "https://api.getguru.com/api/v1/boards/abcde"
     }, {
       "method": "PUT",
       "url": "https://api.getguru.com/api/v1/boards/2222",
@@ -582,12 +570,8 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
-      "id": "2222",
-      "title": "my board"
-    }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/2222", json={
-      "id": "2222",
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
       "title": "my board",
       "items": [{
         "type": "section",
@@ -595,24 +579,21 @@ class TestCore(unittest.TestCase):
         "id": "3333"
       }]
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={})
 
-    g.add_card_to_board("1111", "2222", "section 8")
+    g.add_card_to_board("1111", "22222222-2222-2222-2222-222222222222", "section 8")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/2222"
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/2222",
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222",
       "body": {
-        "id": "2222",
+        "id": "22222222-2222-2222-2222-222222222222",
         "type": "board",
         "itemId": None,
         "title": "my board",
@@ -635,28 +616,21 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
-      "id": "2222",
-      "title": "my board"
-    }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/2222", json={
-      "id": "2222",
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
       "title": "my board",
       "items": []
     })
-    # responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
+    # responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={})
 
-    g.add_card_to_board("1111", "2222", "section 8")
+    g.add_card_to_board("1111", "22222222-2222-2222-2222-222222222222", "section 8")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/2222"
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
     }])
   
   @use_guru()
@@ -665,18 +639,14 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
-      "id": "2222",
-      "title": "my board"
-    }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/2222", json={
-      "id": "2222",
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
       "title": "my board",
       "items": []
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222/entries", status=204)
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/2222", json={
-      "id": "2222",
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222/entries", status=204)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
       "title": "my board",
       "items": [{
         "type": "section",
@@ -684,22 +654,19 @@ class TestCore(unittest.TestCase):
         "id": "3333"
       }]
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={})
 
-    g.add_card_to_board("1111", "2222", "section 8", create_section_if_needed=True)
+    g.add_card_to_board("1111", "22222222-2222-2222-2222-222222222222", "section 8", create_section_if_needed=True)
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/2222"
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/2222/entries",
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222/entries",
       "body": {
         "actionType": "add",
         "boardEntries": [{
@@ -709,15 +676,12 @@ class TestCore(unittest.TestCase):
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/2222"
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/2222",
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222",
       "body": {
-        "id": "2222",
+        "id": "22222222-2222-2222-2222-222222222222",
         "type": "board",
         "itemId": None,
         "title": "my board",
@@ -732,4 +696,79 @@ class TestCore(unittest.TestCase):
           }]
         }]
       }
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_remove_card_from_board_by_card_id(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
+      "title": "my board",
+      "collection": {
+        "id": "3333"
+      },
+      "items": [{
+        "type": "fact",
+        "id": "1111",
+        "title": "my card"
+      }]
+    })
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222/entries", json={})
+    
+    g.remove_card_from_board("1111", "22222222-2222-2222-2222-222222222222")
+    
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222/entries",
+      "body": {
+        "actionType": "remove",
+        "collectionId": "3333",
+        "id": "22222222-2222-2222-2222-222222222222",
+        "boardEntries": [{
+          "entryType": "card",
+          "id": None
+        }]
+      }
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_remove_card_from_board_with_invalid_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
+      "title": "my board",
+      "collection": {
+        "id": "3333"
+      },
+      "items": [{
+        "type": "fact",
+        "id": "1111",
+        "title": "my card"
+      }]
+    })
+    
+    g.remove_card_from_board("invalid", "22222222-2222-2222-2222-222222222222")
+    
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_remove_card_from_board_with_invalid_board(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
+    
+    g.remove_card_from_board("1111", "22222222-2222-2222-2222-222222222222")
+    
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards"
     }])

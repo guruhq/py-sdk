@@ -61,6 +61,9 @@ def find_by_id(lst, id):
     return filtered[0]
 
 def find_by_name_or_id(lst, name_or_id):
+  if not lst:
+    return
+
   # it says "name or id" but we really need to check the 'title' and 'slug' properties too.
   name_or_id = name_or_id or ""
   for obj in lst:
@@ -76,6 +79,12 @@ def find_by_name_or_id(lst, name_or_id):
 def status_to_bool(status_code):
   band = int(status_code / 100)
   return (band == 2 or band == 3)
+
+def is_board_slug(value):
+  return re.fullmatch("[a-zA-Z0-9]{5,8}", value)
+
+def is_uuid(value):
+  return re.fullmatch("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", value, flags=re.IGNORECASE)
 
 class DummyResponse:
   def __init__(self, status_code=200):
@@ -1126,7 +1135,7 @@ class Guru:
     response = self.__post(url, data)
     return status_to_bool(response.status_code)
 
-  def get_board(self, board, collection="", cache=True):
+  def get_board(self, board, collection=None, cache=True):
     """
     Loads a board.
 
@@ -1139,21 +1148,41 @@ class Guru:
     if isinstance(board, Board) or isinstance(board, HomeBoard):
       return board
 
+    # if the value looks like a slug or uuid, try treating it like one and make the API call to
+    # load this board directly. if this fails, we fall back to loading a list of all boards and
+    # scanning it to match by title.
+    if is_board_slug(board) or is_uuid(board):
+      url = "%s/boards/%s" % (self.base_url, board)
+      response = self.__get(url)
+      if status_to_bool(response.status_code):
+        return Board(response.json(), guru=self)
+
+    # todo: use the 'collection' parameter as a way to also filter, in case the same board appears
+    #       in more than one collection (board titles still aren't unique within a collection though).
+
     # this returns a list of 'lite' objects that don't have the lists of items on the board.
     # once we find the matching board, then we can make the get call to get the complete object.
-    board_obj = find_by_name_or_id(self.get_boards(cache), board)
+    board_obj = find_by_name_or_id(self.get_boards(collection, cache), board)
     
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
 
-    # todo: also filter by collection if one is provided.
     url = "%s/boards/%s" % (self.base_url, board_obj.id)
     response = self.__get(url)
     return Board(response.json(), guru=self)
   
-  def get_boards(self, cache=False):
-    url = "%s/boards" % self.base_url
+  def get_boards(self, collection=None, cache=False):
+    # filtering by collection is optional.
+    if collection:
+      collection_obj = self.get_collection(collection)
+      if not collection_obj:
+        self.__log(make_red("could not find collection:", collection))
+        return
+      url = "%s/boards?collection=%s" % (self.base_url, collection_obj.id)
+    else:
+      url = "%s/boards" % self.base_url
+    
     response = self.__get(url, cache)
     return [Board(b, guru=self) for b in response.json()]
 
@@ -1219,11 +1248,35 @@ class Guru:
     return HomeBoard(response.json(), guru=self)
 
   def set_item_order(self, collection, board, *items):
-    collection_obj = self.get_collection(collection)
-    if not collection_obj:
-      self.__log(make_red("could not find collection:", collection))
-      return
+    """
+    Rearranges a board or board group's items based on the values provided.
+    This doesn't add or remove any items, it just rearranges the items that
+    are already there.
+
+    It also doesn't rearrange items inside sections on a board. If a board
+    has two sections each with 3 cards, this just rearranges the two sections.
+    There will be a separate way (or an update to this method) to let it
+    rearrange content inside sections.
+
+    This method is often not called directly. Instead you'd make the call to
+    load a board then call its set_item_order method, like this:
+
+    ```
+    board = g.get_board("My Board")
+    board.set_item_order("Card 1", "Card 2", "Card 3")
+    ```
+
+    Args:
+      collection (str or Collection): A collection to filter by if you're
+        specifying a board title.
+      board (str or Board or BoardGroup): Either a string that'll match a
+        board's name or the Board or BoardGroup object whose items you're
+        rearranging.
+      *items (str): The names of the objects in the order you want them to appear.
     
+    Returns:
+      None
+    """
     if isinstance(board, BoardGroup):
       board_obj = board
     else:
@@ -1254,7 +1307,34 @@ class Guru:
       # todo: update the board obj so the caller doesn't have to store this return value.
       return board_obj
 
-  def add_card_to_board(self, card, board, section=None, create_section_if_needed=False):
+  def add_card_to_board(self, card, board, section=None, collection=None, create_section_if_needed=False):
+    """
+    Adds a card to a board. You can optionally provide the name of a section
+    to add the card to. The card will be added to the end -- either to the
+    end of the board if no section is specified or to the end of the specified
+    section.
+
+    The board can be defined using its ID or slug, which uniquely identify it.
+    You can also use its title. If there are multiple boards with the same title
+    you can also provide a collection name, then it'll find the board with a
+    matching name in that collection.
+
+    Board names still don't have to be unique inside a collection. If you run
+    into this problem, you'll have to use the board's ID or slug.
+
+    Args:
+      card (str or Card): The card to be added to the board. Can either be the
+        card's title, ID, slug, or the Card object.
+      board (str or Board): The board you're adding the card to. Can either be
+        the board's title, ID, slug, or the Board object.
+      section (str, optional): The name of the section to add the card to.
+      collection (str or Collection, optional): The collection in which the board
+        resides. This is optional but might be necessary if you're identifying the
+        board by title and the same title is used by boards in different collections.
+    
+    Returns:
+      None
+    """
     # get the card object.
     card_obj = self.get_card(card)
     if not card_obj:
@@ -1262,7 +1342,7 @@ class Guru:
       return
     
     # get the board object.
-    board_obj = self.get_board(board)
+    board_obj = self.get_board(board, collection)
     if not board_obj:
       return
     
@@ -1273,7 +1353,7 @@ class Guru:
         if create_section_if_needed:
           board_obj.add_section(section)
           # load the objects again so we get the updated board and section.
-          board_obj = self.get_board(board, cache=False)
+          board_obj = self.get_board(board_obj.id, cache=False)
           section_obj = find_by_name_or_id(board_obj.items, section)
         else:
           self.__log(make_red("could not find section:", section))
@@ -1287,9 +1367,23 @@ class Guru:
     
     self.save_board(board_obj)
 
-  def add_section_to_board(self, board, section):
+  def add_section_to_board(self, board, section, collection=None):
+    """
+    Adds a section to a board.
+
+    Args:
+      board (str or Board): The board you're adding the section to. Can either
+        be the board's title, ID, slug, or the Board object.
+      section (str, optional): The name of the section you're adding.
+      collection (str or Collection, optional): The collection in which the board
+        resides. This is optional but might be necessary if you're identifying the
+        board by title and the same title is used by boards in different collections.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
     # get the board object.
-    board_obj = self.get_board(board)
+    board_obj = self.get_board(board, collection)
     if not board_obj:
       return
     
@@ -1302,6 +1396,44 @@ class Guru:
       "boardEntries": [{
         "entryType": "section",
         "title": section
+      }]
+    }
+    response = self.__put(url, data)
+    return status_to_bool(response.status_code)
+
+  def remove_card_from_board(self, card, board, collection=None):
+    """
+    Removes a card from a board.
+
+    Args:
+      card (str or Card): The card to be removed from the board. Can either be
+        the card's title, ID, slug, or the Card object.
+      board (str or Board): The board you're removing the card from. Can either
+        be the board's title, ID, slug, or the Board object.
+      collection (str or Collection, optional): The collection in which the board
+        resides. This is optional but might be necessary if you're identifying the
+        board by title and the same title is used by boards in different collections.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    board_obj = self.get_board(board, collection)
+    if not board_obj:
+      return
+    
+    card_obj = find_by_name_or_id(board_obj.flat_items, card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+    
+    url = "%s/boards/%s/entries" % (self.base_url, board_obj.id)
+    data = {
+      "actionType": "remove",
+      "collectionId": board_obj.collection.id,
+      "id": board_obj.id,
+      "boardEntries": [{
+        "entryType": "card",
+        "id": card_obj.item_id
       }]
     }
     response = self.__put(url, data)

@@ -37,11 +37,16 @@ class Board:
       self.collection = None
     
     self.items = []
+    self.flat_items = []
     for item in data.get("items", []):
       if item.get("type") == "section":
-        self.items.append(Section(item))
+        section = Section(item)
+        self.items.append(section)
+        self.flat_items.append(section)
       else:
-        self.items.append(Card(item))
+        card = Card(item)
+        self.items.append(card)
+        self.flat_items.append(card)
   
   def add_section(self, name):
     self.guru.add_section_to_board(self, name)
