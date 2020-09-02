@@ -129,3 +129,33 @@ def copy_file(src, dest):
 
 def to_yaml(data):
   return yaml.dump(data, allow_unicode=True).replace("!!python/unicode ", "").replace("!!python/str ", "")
+
+def find_by_name_or_id(lst, name_or_id):
+  if not lst:
+    return
+
+  # it says "name or id" but we really need to check the 'title' and 'slug' properties too.
+  name_or_id = (name_or_id or "").strip()
+  for obj in lst:
+    if hasattr(obj, "name") and obj.name.strip().lower() == name_or_id.lower():
+      return obj
+    if hasattr(obj, "title") and obj.title.strip().lower() == name_or_id.lower():
+      return obj
+    if obj.id.lower() == name_or_id.lower():
+      return obj
+    if hasattr(obj, "slug") and obj.slug and obj.slug.startswith(name_or_id + "/"):
+      return obj
+
+def find_by_email(lst, email):
+  def func(obj):
+    return (obj.email or "").strip().lower() == (email or "").strip().lower()
+  filtered = [x for x in lst if func(x)]
+  if filtered:
+    return filtered[0]
+
+def find_by_id(lst, id):
+  def func(obj):
+    return (obj.id or "").strip().lower() == (id or "").strip().lower()
+  filtered = [x for x in lst if func(x)]
+  if filtered:
+    return filtered[0]

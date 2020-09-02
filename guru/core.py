@@ -7,6 +7,7 @@ from requests.auth import HTTPBasicAuth
 
 from guru.bundle import Bundle
 from guru.data_objects import Board, BoardGroup, Card, CardComment, Collection, Group, HomeBoard, Tag, User
+from guru.util import find_by_name_or_id, find_by_email, find_by_id
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -46,45 +47,15 @@ def get_link_header(response):
   link_header = response.headers.get("Link", "")
   return link_header[1:link_header.find(">")]
 
-def find_by_email(lst, email):
-  def func(obj):
-    return (obj.email or "").strip().lower() == (email or "").strip().lower()
-  filtered = [x for x in lst if func(x)]
-  if filtered:
-    return filtered[0]
-
-def find_by_id(lst, id):
-  def func(obj):
-    return (obj.id or "").strip().lower() == (id or "").strip().lower()
-  filtered = [x for x in lst if func(x)]
-  if filtered:
-    return filtered[0]
-
-def find_by_name_or_id(lst, name_or_id):
-  if not lst:
-    return
-
-  # it says "name or id" but we really need to check the 'title' and 'slug' properties too.
-  name_or_id = name_or_id or ""
-  for obj in lst:
-    if hasattr(obj, "name") and obj.name.lower() == name_or_id.lower():
-      return obj
-    if hasattr(obj, "title") and obj.title.lower() == name_or_id.lower():
-      return obj
-    if obj.id.lower() == name_or_id.lower():
-      return obj
-    if hasattr(obj, "slug") and obj.slug and obj.slug.startswith(name_or_id + "/"):
-      return obj
-
 def status_to_bool(status_code):
   band = int(status_code / 100)
   return (band == 2 or band == 3)
 
 def is_board_slug(value):
-  return re.fullmatch("[a-zA-Z0-9]{5,8}", value)
+  return re.match("^[a-zA-Z0-9]{5,8}$", value)
 
 def is_uuid(value):
-  return re.fullmatch("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", value, flags=re.IGNORECASE)
+  return re.match("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", value, flags=re.IGNORECASE)
 
 class DummyResponse:
   def __init__(self, status_code=200):
@@ -1421,7 +1392,7 @@ class Guru:
     if not board_obj:
       return
     
-    card_obj = find_by_name_or_id(board_obj.flat_items, card)
+    card_obj = board_obj.get_card(card)
     if not card_obj:
       self.__log(make_red("could not find card:", card))
       return

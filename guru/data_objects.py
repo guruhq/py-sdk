@@ -1,4 +1,6 @@
 
+from guru.util import find_by_name_or_id
+
 from bs4 import BeautifulSoup
 
 class Section:
@@ -37,22 +39,33 @@ class Board:
       self.collection = None
     
     self.items = []
-    self.flat_items = []
+    self.__cards = []
+    self.__all_items = []
     for item in data.get("items", []):
       if item.get("type") == "section":
         section = Section(item)
         self.items.append(section)
-        self.flat_items.append(section)
+        self.__all_items.append(section)
+        self.__all_items += section.items
+        self.__cards += section.items
       else:
         card = Card(item)
         self.items.append(card)
-        self.flat_items.append(card)
+        self.__all_items.append(card)
+        self.__cards.append(card)
   
+  @property
+  def cards(self):
+    return tuple(self.__cards)
+
   def add_section(self, name):
     self.guru.add_section_to_board(self, name)
 
   def set_item_order(self, *items):
     return self.guru.set_item_order(self.collection, self, *items)
+
+  def get_card(self, card):
+    return find_by_name_or_id(self.__cards, card)
 
   def json(self, include_items=True, include_collection=True):
     data = {
@@ -240,10 +253,15 @@ class Card:
   def unverify(self):
     return self.guru.unverify_card(self)
 
-  def add_tag(self, tag, create=False):
+  def has_tag(self, tag):
     for t in self.tags:
       if t.value.lower() == tag.lower():
         return True
+    return False
+  
+  def add_tag(self, tag, create=False):
+    if self.has_tag(tag):
+      return True
     
     tag_object = self.guru.get_tag(tag)
     if tag_object:
