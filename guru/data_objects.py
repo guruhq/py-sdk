@@ -40,11 +40,13 @@ class Board:
     
     self.items = []
     self.__cards = []
+    self.__sections = []
     self.__all_items = []
     for item in data.get("items", []):
       if item.get("type") == "section":
         section = Section(item)
         self.items.append(section)
+        self.__sections.append(section)
         self.__all_items.append(section)
         self.__all_items += section.items
         self.__cards += section.items
@@ -57,6 +59,10 @@ class Board:
   @property
   def cards(self):
     return tuple(self.__cards)
+  
+  @property
+  def sections(self):
+    return tuple(self.__sections)
 
   def add_section(self, name):
     self.guru.add_section_to_board(self, name)
@@ -113,11 +119,26 @@ class HomeBoard:
     self.id = data.get("id")
     self.collection = Collection(data.get("collection"))
     self.items = []
+    self.__board_groups = []
+    self.__boards = []
     for item in data.get("items", []):
       if item.get("type") == "board":
-        self.items.append(Board(item, guru, home_board=self))
+        board = Board(item, guru, home_board=self)
+        self.items.append(board)
+        self.__boards.append(board)
       elif item.get("type") == "section":
-        self.items.append(BoardGroup(item, guru, home_board=self))
+        board_group = BoardGroup(item, guru, home_board=self)
+        self.items.append(board_group)
+        self.__board_groups.append(board_group)
+        self.__boards += board_group.items
+
+  @property
+  def boards(self):
+    return tuple(self.__boards)
+  
+  @property
+  def board_groups(self):
+    return tuple(self.__board_groups)
 
   def set_item_order(self, *items):
     return self.guru.set_item_order(self.collection, self, *items)
@@ -150,6 +171,14 @@ class Collection:
     self.slug = data.get("slug")
     self.color = data.get("color")
   
+  @property
+  def title(self):
+    return self.name
+
+  @title.setter
+  def title(self, title):
+    self.name = title
+
   def json(self):
     return {
       "id": self.id,
@@ -282,7 +311,7 @@ class Card:
     # any modifications you made are captured here.
     content = str(self.__doc) if self.__doc else self.content
 
-    return {
+    data = {
       "cardType": self.type,
       "collection": self.collection.json() if self.collection else None,
       "content": content,
@@ -293,6 +322,11 @@ class Card:
       # if verify is false then we do want to suppress verification.
       "suppressVerification": not verify
     }
+
+    if self.verification_interval:
+      data["verificationInterval"] = self.verification_interval
+
+    return data
 
   def lite_json(self):
     return {

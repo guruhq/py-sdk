@@ -18,6 +18,11 @@ from guru.core import (
   AUTHOR,
   COLLECTION_OWNER,
 )
+
+from guru.publish import (
+  Publisher
+)
+
 from guru.util import (
   MAX_FILE_SIZE,
   load_html,
