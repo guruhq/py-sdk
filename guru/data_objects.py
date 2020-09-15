@@ -55,7 +55,7 @@ class Board:
         self.items.append(card)
         self.__all_items.append(card)
         self.__cards.append(card)
-  
+
   @property
   def cards(self):
     return tuple(self.__cards)
@@ -63,6 +63,10 @@ class Board:
   @property
   def sections(self):
     return tuple(self.__sections)
+  
+  @property
+  def all_items(self):
+    return tuple(self.__all_items)
 
   def add_section(self, name):
     self.guru.add_section_to_board(self, name)
@@ -118,6 +122,7 @@ class HomeBoard:
     self.slug = data.get("slug")
     self.id = data.get("id")
     self.collection = Collection(data.get("collection"))
+    
     self.items = []
     self.__board_groups = []
     self.__boards = []
@@ -334,6 +339,18 @@ class Card:
       "id": self.id,
       "itemId": self.item_id
     }
+
+class Draft:
+  def __init__(self, data, guru=None):
+    self.guru = guru
+    self.last_modified = data.get("lastModified")
+    self.version = data.get("version")
+    self.content = data.get("content")
+    self.title = data.get("title")
+    self.id = data.get("id")
+    self.user = User(data.get("user") or {})
+    self.json_content = data.get("jsonContent")
+    self.save_type = data.get("saveType")
 
 class CardComment:
   def __init__(self, data, card=None, guru=None):

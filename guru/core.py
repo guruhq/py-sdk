@@ -6,7 +6,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, Card, CardComment, Collection, Group, HomeBoard, Tag, User
+from guru.data_objects import Board, BoardGroup, Card, CardComment, Collection, Draft, Group, HomeBoard, Tag, User
 from guru.util import find_by_name_or_id, find_by_email, find_by_id
 
 # collection colors
@@ -774,7 +774,6 @@ class Guru:
     if self.dry_run:
       return Card({}, guru=self)
     if cards:
-      print("cards", cards)
       return cards[0]
 
   def find_cards(self, title="", tag="", collection=""):
@@ -915,6 +914,26 @@ class Guru:
       return False
 
     url = "%s/cards/%s" % (self.base_url, card_obj.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
+  def get_drafts(self, card=None):
+    if card:
+      card_obj = self.get_card(card)
+      if not card_obj:
+        self.__log(make_red("could not find card:", card))
+        return
+      
+      url = "%s/drafts/%s" % (self.base_url, card_obj.id)
+    else:
+      url = "%s/drafts" % (self.base_url)
+    
+    drafts = self.__get_and_get_all(url)
+    drafts = [Draft(d, guru=self) for d in drafts]
+    return drafts
+
+  def delete_draft(self, draft):
+    url = "%s/drafts/%s" % (self.base_url, draft.id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
@@ -1158,6 +1177,9 @@ class Guru:
     return [Board(b, guru=self) for b in response.json()]
 
   def get_board_group(self, board_group, collection):
+    if isinstance(board_group, BoardGroup):
+      return board_group
+
     home_board_obj = self.get_home_board(collection)
     
     for item in home_board_obj.items:

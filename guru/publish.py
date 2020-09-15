@@ -5,17 +5,21 @@ from guru.util import read_file, write_file
 
 
 class Publisher:
-  def __init__(self, g, name=""):
+  def __init__(self, g, name="", metadata=None, silent=False):
     self.g = g
     self.name = name or self.__class__.__name__
 
     # manage the json config file.
-    self.__metadata = json.loads(
-      read_file("./%s.json" % self.name) or "{}"
-    )
-    if not self.__metadata:
-      self.__metadata = {}
+    if metadata is not None:
+      self.__metadata = metadata
+    else:
+      self.__metadata = json.loads(
+        read_file("./%s.json" % self.name) or "{}"
+      )
+      if not self.__metadata:
+        self.__metadata = {}
     
+    self.silent = silent
     self.__results = {}
 
   def get_external_url(self, external_id, card):
@@ -23,7 +27,7 @@ class Publisher:
 
   def process_deletions(self):
     # figure out what objects need to be deleted and delete them.
-    for guru_id in self.__metadata.keys():      
+    for guru_id in list(self.__metadata.keys()):
       # __results contains every object that was processed this time.
       # if we have metadata for an object but it wasn't processed, that means
       # it was removed from guru and needs to be deleted externally too.
@@ -132,7 +136,8 @@ class Publisher:
       write_file("./%s.json" % self.name, json.dumps(self.__metadata, indent=2))
 
   def __log(self, *args):
-    print(*args)
+    if not self.silent:
+      print(*args)
 
   def publish_collection(self, collection):
     collection = self.g.get_collection(collection)
@@ -144,18 +149,20 @@ class Publisher:
     if external_id:
       self.__results[collection.id] = "update"
       self.__log("update collection", external_id, collection.title)
-      self.update_collection(external_id, collection, collection)
+      self.update_collection(external_id, collection)
     else:
       self.__results[collection.id] = "create"
       self.__log("create collection", collection.title)
-      external_id = self.create_collection(collection, collection)
+      external_id = self.create_collection(collection)
     
     if external_id:
       self.__update_metadata(collection.id, external_id, type="collection")
     
     for item in home_board.items:
       if item.type == "board":
-        self.publish_board(item, collection, board_group)
+        # we load the board here because the data we have might be a 'lite' board.
+        board = self.g.get_board(item.id)
+        self.publish_board(board, collection, None)
       else:
         self.publish_board_group(item, collection)    
   
@@ -179,8 +186,10 @@ class Publisher:
     if external_id:
       self.__update_metadata(board_group.id, external_id, type="board_group")
 
-    for item in self.items:
-      self.publish_board(item, collection, board_group)
+    for item in board_group.items:
+      # we load the board here because the data we have might be a 'lite' board.
+      board = self.g.get_board(item.id)
+      self.publish_board(board, collection, board_group)
 
   def publish_board(self, board, collection=None, board_group=None):
     # this could be called where 'board' is an ID, slug, or Board object,
