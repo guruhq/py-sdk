@@ -680,8 +680,10 @@ class Bundle:
     
     return node
   
-  def print_tree(self, just_types=False):
-    if just_types:
+  def print_tree(self, print_func=None, just_types=False):
+    if print_func:
+      traverse_tree(self, print_func)
+    elif just_types:
       traverse_tree(self, print_type)
     else:
       traverse_tree(self, print_node)
