@@ -263,6 +263,57 @@ class TestCore(unittest.TestCase):
   
   @use_guru()
   @responses.activate
+  def test_add_user_to_groups_with_invalid_user(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=invalid@example.com", json=[])
+    result = g.add_user_to_groups("invalid@example.com", "Experts")
+
+    self.assertEqual(result, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=invalid@example.com"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_add_user_to_groups_where_the_user_is_already_in_one_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "groups": [{
+        "id": "1111",
+        "name": "Experts"
+      }]
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1111",
+      "name": "Experts"
+    }, {
+      "id": "2222",
+      "name": "other group"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/2222/members")
+
+    result = g.add_user_to_groups("user@example.com", "Experts", "other group")
+
+    self.assertEqual(result, {
+      "Experts": True,
+      "other group": True
+    })
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/groups/2222/members",
+      "body": [
+        "user@example.com"
+      ]
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_add_users_to_group(self, g):
     users = [
       "user1@example.com",
@@ -441,6 +492,32 @@ class TestCore(unittest.TestCase):
         "collectionVerifiers": {}
       }
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_email_validation(self, g):
+    invalid_emails = [
+      "username",
+      "@",
+      "a@",
+      "abc.def"
+    ]
+    for email in invalid_emails:
+      with self.assertRaises(ValueError):
+        g.add_user_to_group(email, "Experts")
+      with self.assertRaises(ValueError):
+        g.add_user_to_groups(email, "Experts")
+      with self.assertRaises(ValueError):
+        g.add_users_to_group([email], "Experts")
+      with self.assertRaises(ValueError):
+        g.remove_user_from_team(email)
+      with self.assertRaises(ValueError):
+        g.invite_user(email)
+      with self.assertRaises(ValueError):
+        g.remove_user_from_groups(email, "Experts")
+    
+    # all of these methods should error before making any API calls.
+    self.assertEqual(get_calls(), [])
 
   @use_guru()
   @responses.activate

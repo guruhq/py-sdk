@@ -57,6 +57,15 @@ def is_board_slug(value):
 def is_uuid(value):
   return re.match("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", value, flags=re.IGNORECASE)
 
+def is_color(color):
+  if re.match("^#[0-9a-fA-F]{6}$", color):
+    return True
+  return False
+
+def is_email(email):
+  return "@" in email and len(email) > 3
+
+
 class DummyResponse:
   def __init__(self, status_code=200):
     self.headers = {}
@@ -64,6 +73,7 @@ class DummyResponse:
   
   def json(self):
     return []
+
 
 class Guru:
   """
@@ -118,6 +128,10 @@ class Guru:
       self.__log(make_gray("  response status:", response.status_code))
     else:
       self.__log(make_gray("  response status:", response.status_code, "body:", response.content))
+
+  def __clear_cache(self, url):
+    if self.__cache.get(url):
+      del self.__cache[url]
 
   def __get(self, url, cache=False):
     if cache:
@@ -275,6 +289,12 @@ class Guru:
       Collection: an object representing the new collection.
     """
     self.__log("make collection", make_blue(name), "with ", make_blue(group), "as Collection Owner")
+
+    if not color:
+      color = GREEN
+    if not is_color(color):
+      raise ValueError("invalid color value '%s'" % color)
+    color = color.strip()
 
     # if it's not a synced collection we need a group id for who'll be the author.
     data = {
@@ -463,6 +483,7 @@ class Guru:
       "name": name
     }
     response = self.__post(url, data)
+    self.__clear_cache("%s/groups" % self.base_url)
     return Group(response.json())
 
   def delete_group(self, group):
@@ -521,6 +542,9 @@ class Guru:
       todo: fill this out.
     """
     groups = list(groups)
+
+    if not is_email(email):
+      raise ValueError("invalid email '%s'" % email)
     
     if groups:
       self.__log("invite user", make_blue(email), "and then add them to:", make_blue(groups))
@@ -556,11 +580,15 @@ class Guru:
       dict of str: bool: The keys are email addresses and the value is
         True if the user was added to the group and False otherwise.
     """
+    for email in emails:
+      if not is_email(email):
+        raise ValueError("invalid email '%s'" % email)
+    
     group_obj = self.get_group(group)
     if not group_obj:
       self.__log(make_red("could not find group:", group))
       return
-    
+
     results = {}
 
     # the largest possible batch size is 100.
@@ -613,11 +641,14 @@ class Guru:
       dict of str: bool: The keys are the group names and the values
         indicate whether the addition was successful (True) or not (False).
     """
+    if not is_email(email):
+      raise ValueError("invalid email '%s'" % email)
+      
     groups = list(groups)
     self.__log("add user", make_blue(email), "to groups", make_blue(groups))
 
     # load the user list so we can check if any of these assignments were already made.
-    users = self.get_members(email, cache=True)
+    users = self.get_members(email, cache=False)
     user = find_by_email(users, email)
 
     if not user:
@@ -634,7 +665,7 @@ class Guru:
         result[group] = False
         continue
       
-      # todo: check if the user is already assigned to this group.
+      # check if the user is already assigned to this group.
       if not find_by_id(user.groups, group_obj.id):
         url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
         response = self.__post(url, [email])
@@ -673,6 +704,9 @@ class Guru:
       dict of str: bool: The keys are the group names and the values
         indicate whether the removal was successful (True) or not (False).
     """
+    if not is_email(email):
+      raise ValueError("invalid email '%s'" % email)
+    
     groups = list(groups)
     self.__log("remove user", make_blue(email), "from groups", make_blue(groups))
 
@@ -715,6 +749,9 @@ class Guru:
     Returns:
       bool: True if it was successful and False otherwise.
     """
+    if not is_email(email):
+      raise ValueError("invalid email '%s'" % email)
+    
     self.__log("remove", make_blue(email), "from the team")
     data = {
       "collectionVerifiers": {}

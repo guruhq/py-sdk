@@ -17,22 +17,13 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_get_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[])
-    card = g.get_group("group name")
-    self.assertEqual(len(get_calls()), 1)
 
-    # this will trigger a second call because it's not cached.
-    card = g.get_group("group name")
+    g.get_group("group name")
+
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/groups"
     }])
-  
-    # caching means this doesn't trigger a third call.
-    card = g.get_group("group name", cache=True)
-    self.assertEqual(len(get_calls()), 2)
   
   @use_guru()
   @responses.activate
@@ -89,6 +80,16 @@ class TestCore(unittest.TestCase):
         }
       }
     ])
+
+  @use_guru()
+  @responses.activate
+  def test_make_collection_with_invalid_color(self, g):
+    with self.assertRaises(ValueError):
+      g.make_collection("General", color="abc")
+    with self.assertRaises(ValueError):
+      g.make_collection("General", color="#12345")
+    with self.assertRaises(ValueError):
+      g.make_collection("General", color="123456")
 
   @use_guru()
   @responses.activate

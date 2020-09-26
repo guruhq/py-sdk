@@ -38,48 +38,62 @@ class PublisherTest(guru.Publisher):
 
   # crud operations for sections.
   def create_section(self, section, board, board_group, collection):
+    super().create_section(section, board, board_group, collection)
     self.calls.append("create section %s" % section.title)
     return section.id[0:4]
   
   def update_section(self, external_id, section, board, board_group, collection):
+    super().update_section(external_id, section, board, board_group, collection)
     self.calls.append("update section %s" % section.title)
   
   def delete_section(self, external_id):
+    super().delete_section(external_id)
     self.calls.append("delete section %s" % external_id)
 
   # crud operations for boards.
   def create_board(self, board, board_group, collection):
+    super().create_board(board, board_group, collection)
     self.calls.append("create board %s" % board.title)
     return board.id[0:4]
   
   def update_board(self, external_id, board, board_group, collection):
+    super().update_board(external_id, board, board_group, collection)
     self.calls.append("update board %s" % board.title)
   
   def delete_board(self, external_id):
+    super().delete_board(external_id)
     self.calls.append("delete board %s" % external_id)
   
   # crud operations for board groups.
   def create_board_group(self, board_group, collection):
+    super().create_board_group(board_group, collection)
     self.calls.append("create board group %s" % board_group.title)
     return board_group.id[0:4]
   
   def update_board_group(self, external_id, board_group, collection):
+    super().update_board_group(external_id, board_group, collection)
     self.calls.append("update board group %s" % board_group.title)
   
   def delete_board_group(self, external_id):
+    super().delete_board_group(external_id)
     self.calls.append("delete board group %s" % external_id)
   
   # crud operations for collections.
   def create_collection(self, collection):
+    super().create_collection(collection)
     self.calls.append("create collection %s" % collection.title)
     return collection.id[0:4]
 
   def update_collection(self, external_id, collection):
+    super().update_collection(external_id, collection)
     self.calls.append("update collection %s" % collection.title)
   
   def delete_collection(self, external_id):
+    super().delete_collection(external_id)
     self.calls.append("delete collection %s" % external_id)
 
+
+@unittest.skipUnless(os.environ.get("E2E"), "end-to-end tests not enabled")
 class TestPublish(unittest.TestCase):
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_publishing_a_collection(self, g):
@@ -93,6 +107,7 @@ class TestPublish(unittest.TestCase):
       "create board group API Docs",
       "create board API",
       "create section General Information",
+      "get external url Pagination",
       "create card Authentication",
       "create card Pagination",
       "create section User & Groups",
@@ -110,6 +125,7 @@ class TestPublish(unittest.TestCase):
     self.assertEqual(publisher.calls, [
       "create board API",
       "create section General Information",
+      "get external url Pagination",
       "create card Authentication",
       "create card Pagination",
       "create section User & Groups",
@@ -217,6 +233,7 @@ class TestPublish(unittest.TestCase):
       "update board group API Docs",
       "update board API",
       "update section General Information",
+      "get external url Pagination",
       "update card Authentication",
       "update card Pagination",
       "create section User & Groups",

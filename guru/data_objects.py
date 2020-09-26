@@ -170,11 +170,25 @@ class Group:
 
 class Collection:
   def __init__(self, data):
+    # these are the properties you always get, like when a card has a nested
+    # collection object with just a few properties.
     self.id = data.get("id")
     self.name = data.get("name")
     self.type = data.get("collectionType")
     self.slug = data.get("slug")
     self.color = data.get("color")
+
+    # these are the expanded properties you get when loading a single collection
+    # or list of collections.
+    self.date_created = data.get("dateCreated")
+    self.description = data.get("description")
+
+    stats = data.get("collectionStats", {}).get("stats")
+    self.stats = CollectionStats(stats) if stats else None
+    
+    self.roi_enabled = data.get("roiEnabled")
+    self.public_cards_enabled = data.get("publicCardsEnabled")
+    self.roles = data.get("roles")
   
   @property
   def title(self):
@@ -191,6 +205,12 @@ class Collection:
       "type": self.type,
       "color": self.color,
     }
+
+class CollectionStats:
+  def __init__(self, data):
+    self.trusted = data.get("collection-trust-score", {}).get("trustedCount")
+    self.untrusted = data.get("collection-trust-score", {}).get("needsVerificationCount")
+    self.cards = data.get("card-count", {}).get("count")
 
 class User:
   def __init__(self, data):
@@ -242,6 +262,7 @@ class Card:
     self.verification_reason = data.get("verificationReason")
     self.verification_state = data.get("verificationState")
     self.version = data.get("version")
+    self.archived = data.get("archived")
     self.boards = [Board(b, guru) for b in data.get("boards") or []]
     self.__doc = None
 

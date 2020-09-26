@@ -239,6 +239,7 @@ class TestCore(unittest.TestCase):
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1234", json={})
 
     card = g.get_card("1234")
+    card.verification_interval = 90
     card.save()
 
     self.assertEqual(get_calls(), [{
@@ -255,6 +256,7 @@ class TestCore(unittest.TestCase):
         "preferredPhrase": "",
         "shareStatus": "TEAM",
         "suppressVerification": True,
+        "verificationInterval": 90,
         "tags": []
       },
     }])

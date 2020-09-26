@@ -1,5 +1,8 @@
 *.pyc
 htmlcov/
+tests/coverage/
 cache/
 .coverage
+.coveragerc
 internal/
+PublisherTest.json

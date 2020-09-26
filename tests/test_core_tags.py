@@ -28,8 +28,8 @@ class TestCore(unittest.TestCase):
         "id": "1111",
         "value": "case study"
       }, {
-        "id" : "2222",
-        "value" : "troubleshooting"
+        "id": "2222",
+        "value": "troubleshooting"
       }]
     }])
 
@@ -65,8 +65,8 @@ class TestCore(unittest.TestCase):
         "id": "1111",
         "value": "case study"
       }, {
-        "id" : "2222",
-        "value" : "troubleshooting"
+        "id": "2222",
+        "value": "troubleshooting"
       }]
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/teams/abcd/bulkop", json={})
@@ -105,8 +105,8 @@ class TestCore(unittest.TestCase):
         "id": "1111",
         "value": "case study"
       }, {
-        "id" : "2222",
-        "value" : "troubleshooting"
+        "id": "2222",
+        "value": "troubleshooting"
       }]
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/teams/abcd/bulkop", json={})
@@ -173,8 +173,8 @@ class TestCore(unittest.TestCase):
         "id": "1111",
         "value": "case study"
       }, {
-        "id" : "2222",
-        "value" : "troubleshooting"
+        "id": "2222",
+        "value": "troubleshooting"
       }]
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/teams/abcd/bulkop", json={})
@@ -222,8 +222,8 @@ class TestCore(unittest.TestCase):
         "id": "1111",
         "value": "case study"
       }, {
-        "id" : "2222",
-        "value" : "troubleshooting"
+        "id": "2222",
+        "value": "troubleshooting"
       }]
     }])
 

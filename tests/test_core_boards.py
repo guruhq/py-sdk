@@ -32,7 +32,12 @@ class TestCore(unittest.TestCase):
       }]
     })
 
-    g.get_board("test")
+    board = g.get_board("test")
+
+    self.assertEqual(len(board.items), 2)
+    self.assertEqual(len(board.cards), 2)
+    self.assertEqual(len(board.sections), 1)
+    self.assertEqual(len(board.all_items), 3)
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
