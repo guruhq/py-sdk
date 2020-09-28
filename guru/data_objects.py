@@ -292,6 +292,12 @@ class Card:
   def archive(self):
     return self.guru.archive_card(self)
 
+  def favorite(self):
+    return self.guru.favorite_card(self)
+  
+  def unfavorite(self):
+    return self.guru.unfavorite_card(self)
+
   def save(self, verify=False):
     saved_card, status = self.guru.save_card(self, verify)
     # todo: figure out what all the properties are that we'd need to update.

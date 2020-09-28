@@ -175,7 +175,7 @@ class Guru:
       self.__log_response(response)
       return response
   
-  def __get_and_get_all(self, url, cache=False):
+  def __get_and_get_all(self, url, cache=False, max_pages=500):
     if cache and self.__cache.get(url):
       self.__log(make_gray("  using cached get call:", url))
       return self.__cache[url]
@@ -194,6 +194,9 @@ class Guru:
       else:
         raise BaseException("error response", response)
       url = get_link_header(response)
+
+      if page >= max_pages:
+        break
     
     self.__cache[url] = results
     return results
@@ -760,7 +763,6 @@ class Guru:
     response = self.__delete(url, data)
     return status_to_bool(response.status_code)
 
-
   def get_card(self, card):
     """
     Loads a single card by its ID.
@@ -933,6 +935,48 @@ class Guru:
     """
     url = "%s/cards/%s/unverify" % (self.base_url, card_obj.id)
     response = self.__post(url)
+    return status_to_bool(response.status_code)
+
+  def get_favorite_lists(self):
+    url = "%s/favoritelists" % self.base_url
+    return [Board(b) for b in self.__get(url).json()]
+
+  def favorite_card(self, card):
+    # find the favorites list to add it to.
+    favorite_lists = self.get_favorite_lists()
+
+    if not favorite_lists:
+      self.__log(make_red("could not find any favorite lists"))
+      return
+    else:
+      favorite_list = favorite_lists[0]
+    
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return False
+    
+    data = {
+      "prevSiblingItem": "last",
+      "actionType": "add",
+      "boardEntries": [{
+        "cardId": card_obj.id,
+        "entryType": "card"
+      }]
+    }
+
+    url = "%s/favoritelists/%s/entries" % (self.base_url, favorite_list.id)
+    response = self.__put(url, data)
+    return status_to_bool(response.status_code)
+  
+  def unfavorite_card(self, card):
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return False
+    
+    url = "%s/cards/%s/favorite" % (self.base_url, card_obj.id)
+    response = self.__delete(url)
     return status_to_bool(response.status_code)
 
   def archive_card(self, card):
@@ -1480,3 +1524,17 @@ class Guru:
     sync() is an alias for bundle().
     """
     return Bundle(guru=self, id=id, clear=clear, folder=folder, verbose=verbose)
+
+  def get_events(self, start="", end="", max_pages=10):
+    team_id = self.get_team_id()
+    if not team_id:
+      self.__log(make_red("couldn't find your Team ID, are you authenticated?"))
+      return
+    
+    url = "%s/teams/%s/analytics?fromDate=%s&toDate=%s" % (
+      self.base_url,
+      team_id,
+      start,
+      end
+    )
+    return self.__get_and_get_all(url, max_pages=max_pages)

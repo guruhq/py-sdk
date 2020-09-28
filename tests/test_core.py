@@ -83,3 +83,41 @@ class TestCore(unittest.TestCase):
     card = g.find_card(title="1234")
     card.id = "1234"
     card.archive()
+
+  @use_guru()
+  @responses.activate
+  def test_analytics(self, g):
+    # it'll call this first to get your team ID to use as a path parameter.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
+
+    # these are the analytics responses.
+    # the second page has a header for a third page but we'll call it
+    # with max_pages=2 to make sure it doesn't try to load the third.
+    base_url = "https://api.getguru.com/api/v1/teams/abcd/analytics"
+    responses.add(responses.GET, "%s?fromDate=&toDate=" % base_url, json=[
+      {}, {}, {}, {}, {}
+    ], headers={
+      "Link": "< %s?token=1>" % base_url
+    })
+    responses.add(responses.GET, "%s?token=1" % base_url, json=[
+      {}, {}, {}, {}, {}
+    ], headers={
+      "Link": "< %s?token=2>" % base_url
+    })
+    
+    g.get_events(max_pages=2)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/whoami"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/analytics?fromDate=&toDate="
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/analytics?token=1"
+    }])

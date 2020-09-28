@@ -579,3 +579,102 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/cards/1234/unverify"
     }])
     self.assertEqual(result, True)
+  
+  @use_guru()
+  @responses.activate
+  def test_favorite_card(self, g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/favoritelists", json=[{
+      "id": "1111"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+      "id": "1234"
+    })
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/favoritelists/1111/entries", json={})
+
+    card = g.get_card("1234")
+    result = card.favorite()
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/favoritelists"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/favoritelists/1111/entries",
+      "body": {
+        "prevSiblingItem": "last",
+        "actionType": "add",
+        "boardEntries": [{
+          "cardId": "1234",
+          "entryType": "card"
+        }]
+      }
+    }])
+    self.assertEqual(result, True)
+
+  @use_guru()
+  @responses.activate
+  def test_unfavorite_card(self, g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+      "id": "1234"
+    })
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/cards/1234/favorite", json={})
+
+    card = g.get_card("1234")
+    result = card.unfavorite()
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234"
+    }, {
+      "method": "DELETE",
+      "url": "https://api.getguru.com/api/v1/cards/1234/favorite"
+    }])
+    self.assertEqual(result, True)
+
+  @use_guru()
+  @responses.activate
+  def test_favorite_invalid_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/favoritelists", json=[{
+      "id": "1234"
+    }])
+
+    g.favorite_card("1111")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/favoritelists"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_favorite_card_list_error(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/favoritelists", json=[])
+
+    g.favorite_card("1111")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/favoritelists"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_unfavorite_invalid_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
+    
+    g.unfavorite_card("1111")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }])
