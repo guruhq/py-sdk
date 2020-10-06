@@ -3,6 +3,7 @@ from guru.util import find_by_name_or_id
 
 from bs4 import BeautifulSoup
 
+
 class Section:
   def __init__(self, data):
     self.type = "section"
@@ -21,6 +22,7 @@ class Section:
   
   def lite_json(self):
     return self.json()
+
 
 class Board:
   def __init__(self, data, guru=None, home_board=None):
@@ -77,6 +79,15 @@ class Board:
   def get_card(self, card):
     return find_by_name_or_id(self.__cards, card)
 
+  def get_groups(self):
+    return self.guru.get_shared_groups(self)
+  
+  def add_group(self, group):
+    return self.guru.add_shared_group(self, group)
+  
+  def remove_group(self, group):
+    return self.guru.remove_shared_group(self, group)
+
   def json(self, include_items=True, include_collection=True):
     data = {
       "id": self.id,
@@ -91,6 +102,15 @@ class Board:
       data["collection"] = self.collection.json()
     
     return data
+
+
+class BoardPermission:
+  def __init__(self, data, guru=None, board=None):
+    self.guru = guru
+    self.board = board
+    self.id = data.get("id")
+    self.group = Group(data.get("group"))
+
 
 class BoardGroup:
   def __init__(self, data, guru=None, home_board=None):
@@ -114,6 +134,7 @@ class BoardGroup:
       "title": self.title,
       "items": [i.json(include_items=False, include_collection=False) for i in self.items]
     }
+
 
 class HomeBoard:
   def __init__(self, data, guru=None):
@@ -160,6 +181,7 @@ class HomeBoard:
       ]
     }
 
+
 class Group:
   def __init__(self, data):
     self.date_created = data.get("dateCreated")
@@ -167,6 +189,7 @@ class Group:
     self.id = data.get("id")
     self.identifier = data.get("groupIdentifier")
     self.name = data.get("name")
+
 
 class Collection:
   def __init__(self, data):
@@ -206,11 +229,13 @@ class Collection:
       "color": self.color,
     }
 
+
 class CollectionStats:
   def __init__(self, data):
     self.trusted = data.get("collection-trust-score", {}).get("trustedCount")
     self.untrusted = data.get("collection-trust-score", {}).get("needsVerificationCount")
     self.cards = data.get("card-count", {}).get("count")
+
 
 class User:
   def __init__(self, data):
@@ -221,6 +246,7 @@ class User:
     self.image = user_obj.get("profilePicUrl")
     self.status = user_obj.get("status")
     self.groups = [Group(group) for group in data.get("groups", [])]
+
 
 class Tag:
   def __init__(self, data):
@@ -236,6 +262,7 @@ class Tag:
       "categoryName": self.category,
       "categoryId": self.category_id,
     }
+
 
 class Card:
   def __init__(self, data, guru=None):
@@ -367,6 +394,7 @@ class Card:
       "itemId": self.item_id
     }
 
+
 class Draft:
   def __init__(self, data, guru=None):
     self.guru = guru
@@ -378,6 +406,7 @@ class Draft:
     self.user = User(data.get("user") or {})
     self.json_content = data.get("jsonContent")
     self.save_type = data.get("saveType")
+
 
 class CardComment:
   def __init__(self, data, card=None, guru=None):

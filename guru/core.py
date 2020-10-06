@@ -6,7 +6,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, Card, CardComment, Collection, Draft, Group, HomeBoard, Tag, User
+from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, Draft, Group, HomeBoard, Tag, User
 from guru.util import find_by_name_or_id, find_by_email, find_by_id
 
 # collection colors
@@ -1538,3 +1538,62 @@ class Guru:
       end
     )
     return self.__get_and_get_all(url, max_pages=max_pages)
+
+  def get_shared_groups(self, board):
+    board_obj = self.get_board(board)
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+    
+    url = "%s/boards/%s/permissions" % (self.base_url, board_obj.id)
+    response = self.__get(url)
+    return [BoardPermission(b) for b in response.json()]
+  
+  def add_shared_group(self, board, group):
+    group_obj = self.get_group(group)
+    if not group_obj:
+      self.__log(make_red("could not find group:", group))
+      return
+    
+    board_obj = self.get_board(board)
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+    
+    data = [{
+      "type": "group",
+      "role": "MEMBER",
+      "group": {
+        "id": group_obj.id
+      }
+    }]
+    
+    url = "%s/boards/%s/permissions" % (self.base_url, board_obj.id)
+    response = self.__post(url, data)
+    return status_to_bool(response.status_code)
+  
+  def remove_shared_group(self, board, group):
+    group_obj = self.get_group(group)
+    if not group_obj:
+      self.__log(make_red("could not find group:", group))
+      return
+    
+    board_obj = self.get_board(board)
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+    
+    # find the id of the permission assignment.
+    perm_obj = None
+    for perm in self.get_shared_groups(board_obj):
+      if perm.group.id == group_obj.id:
+        perm_obj = perm
+        break
+    
+    if not perm_obj:
+      self.__log(make_red("could not find assigned permission for group %s, maybe it's not assigned to this board" % group))
+      return
+
+    url = "%s/boards/%s/permissions/%s" % (self.base_url, board_obj.id, perm_obj.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)

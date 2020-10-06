@@ -777,3 +777,231 @@ class TestCore(unittest.TestCase):
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards"
     }])
+  
+  @use_guru()
+  @responses.activate
+  def test_get_board_permissions(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions", json=[{
+      "id": "1234",
+      "group": {
+        "id": "1111",
+        "name": "Experts"
+      }
+    }])
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    
+    groups = board.get_groups()
+    self.assertEqual(groups[0].id, "1234")
+    self.assertEqual(groups[0].group.id, "1111")
+    self.assertEqual(groups[0].group.name, "Experts")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_add_board_permission(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1111",
+      "name": "Experts"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions")
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    board.add_group("Experts")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions",
+      "body": [{
+        "type": "group",
+        "role": "MEMBER",
+        "group": {
+          "id": "1111"
+        }
+      }]
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_remove_board_permission(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions", json=[{
+      "id": "1234",
+      "group": {
+        "id": "1111",
+        "name": "Experts"
+      }
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1111",
+      "name": "Experts"
+    }])
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions/1234", status=204)
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    result = board.remove_group("Experts")
+
+    self.assertEqual(result, True)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions"
+    }, {
+      "method": "DELETE",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions/1234"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_get_board_permissions_with_invalid_board(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+      "id": "1234",
+      "title": "test"
+    }])
+
+    result = g.get_shared_groups("my board")
+    
+    self.assertEqual(result, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_add_board_permission_with_invalid_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[])
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    board.add_group("Experts")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_add_board_permission_with_invalid_board(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1111",
+      "name": "Experts"
+    }])
+
+    result = g.add_shared_group("my board", "Experts")
+
+    self.assertEqual(result, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_remove_board_permission_with_invalid_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1111",
+      "name": "other group"
+    }])
+    
+    result = g.remove_shared_group("my board", "Experts")
+
+    self.assertEqual(result, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_remove_board_permission_with_invalid_board(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1111",
+      "name": "Experts"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
+    
+    result = g.remove_shared_group("my board", "Experts")
+
+    self.assertEqual(result, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_remove_board_permission_with_unshared_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions", json=[{
+      "id": "1234",
+      "group": {
+        "id": "1111",
+        "name": "Experts"
+      }
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "2222",
+      "name": "other group"
+    }])
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    result = board.remove_group("other group")
+
+    self.assertEqual(result, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions"
+    }])
