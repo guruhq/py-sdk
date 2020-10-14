@@ -35,72 +35,87 @@ class Publisher:
         type = self.get_type(guru_id)
         external_id = self.get_external_id(guru_id)
         if type == "card":
-          self.delete_card(external_id)
+          self.delete_external_card(external_id)
         elif type == "section":
-          self.delete_section(external_id)
+          self.delete_external_section(external_id)
         elif type == "board":
-          self.delete_board(external_id)
+          self.delete_external_board(external_id)
         elif type == "board_group":
-          self.delete_board_group(external_id)
+          self.delete_external_board_group(external_id)
         elif type == "collection":
-          self.delete_collection(external_id)
+          self.delete_external_collection(external_id)
         
         # we hard delete this from the metadata so the next time this runs if
         # the object comes back, we treat it like a brand new object and call
         # the method to create it.
         self.__delete_metadata(guru_id, external_id)
 
+  def find_external_collection(self, collection):
+    pass
+  
+  def find_external_board_group(self, board_group):
+    pass
+  
+  def find_external_board(self, board):
+    pass
+  
+  def find_external_section(self, section):
+    pass
+  
+  def find_external_card(self, card):
+    pass
+  
   # crud operations for cards.
   # these have to be implemented because you're always publishing cards.
   # sections, boards, etc. may be unimplemented because it's possible
   # thoe don't have any meaning in the system you're publishing to.
-  def create_card(self, card, section, board, board_group, collection):
+  def create_external_card(self, card, section, board, board_group, collection):
     raise NotImplementedError()
   
-  def update_card(self, external_id, card, section, board, board_group, collection):
+  def update_external_card(self, external_id, card, section, board, board_group, collection):
     raise NotImplementedError()
   
-  def delete_card(self, external_id):
+  def delete_external_card(self, external_id):
     raise NotImplementedError()
 
   # crud operations for sections.
-  def create_section(self, section, board, board_group, collection):
+  def create_external_section(self, section, board, board_group, collection):
     pass
   
-  def update_section(self, external_id, section, board, board_group, collection):
+  def update_external_section(self, external_id, section, board, board_group, collection):
     pass
   
-  def delete_section(self, external_id):
+  def delete_external_section(self, external_id):
     pass
 
   # crud operations for boards.
-  def create_board(self, board, board_group, collection):
+  def create_external_board(self, board, board_group, collection):
     pass
   
-  def update_board(self, external_id, board, board_group, collection):
+  def update_external_board(self, external_id, board, board_group, collection):
     pass
   
-  def delete_board(self, external_id):
+  def delete_external_board(self, external_id):
     pass
   
   # crud operations for board groups.
-  def create_board_group(self, board_group, collection):
+  def create_external_board_group(self, board_group, collection):
     pass
   
-  def update_board_group(self, external_id, board_group, collection):
+  def update_external_board_group(self, external_id, board_group, collection):
     pass
   
-  def delete_board_group(self, external_id):
+  def delete_external_board_group(self, external_id):
     pass
   
   # crud operations for collections.
-  def create_collection(self, collection):
+  def create_external_collection(self, collection):
     pass
   
-  def update_collection(self, external_id, collection):
+  def update_external_collection(self, external_id, collection):
     pass
   
-  def delete_collection(self, external_id):
+  def delete_external_collection(self, external_id):
     pass
 
   def get_external_id(self, guru_id):
@@ -149,11 +164,11 @@ class Publisher:
     if external_id:
       self.__results[collection.id] = "update"
       self.__log("update collection", external_id, collection.title)
-      self.update_collection(external_id, collection)
+      self.update_external_collection(external_id, collection)
     else:
       self.__results[collection.id] = "create"
       self.__log("create collection", collection.title)
-      external_id = self.create_collection(collection)
+      external_id = self.create_external_collection(collection)
     
     if external_id:
       self.__update_metadata(collection.id, external_id, type="collection")
@@ -177,11 +192,11 @@ class Publisher:
     if external_id:
       self.__results[board_group.id] = "update"
       self.__log("update board group", external_id, board_group.title)
-      self.update_board_group(external_id, board_group, collection)
+      self.update_external_board_group(external_id, board_group, collection)
     else:
       self.__results[board_group.id] = "create"
       self.__log("create board group", board_group.title)
-      external_id = self.create_board_group(board_group, collection)
+      external_id = self.create_external_board_group(board_group, collection)
     
     if external_id:
       self.__update_metadata(board_group.id, external_id, type="board_group")
@@ -204,11 +219,11 @@ class Publisher:
     if external_id:
       self.__results[board.id] = "update"
       self.__log("update board", external_id, board.title)
-      self.update_board(external_id, board, board_group, collection)
+      self.update_external_board(external_id, board, board_group, collection)
     else:
       self.__results[board.id] = "create"
       self.__log("create board", board.title)
-      external_id = self.create_board(board, board_group, collection)
+      external_id = self.create_external_board(board, board_group, collection)
     
     if external_id:
       self.__update_metadata(board.id, external_id, type="board")
@@ -228,11 +243,11 @@ class Publisher:
     if external_id:
       self.__results[section.id] = "update"
       self.__log("update section", external_id, section.title)
-      self.update_section(external_id, section, board, board_group, collection)
+      self.update_external_section(external_id, section, board, board_group, collection)
     else:
       self.__results[section.id] = "create"
       self.__log("create section", section.title)
-      external_id = self.create_section(section, board, board_group, collection)
+      external_id = self.create_external_section(section, board, board_group, collection)
     
     if external_id:
       self.__update_metadata(section.id, external_id, type="section")
@@ -265,14 +280,25 @@ class Publisher:
         if new_url:
           link.attrs["href"] = new_url
 
+    # it's possible our json doesn't have a record of this card being published but it
+    # does already exist externally -- maybe it was created there separately, maybe you
+    # imported your content into guru and this is the first publish, etc.
+    # to help in this situation we can check to see if the article exists -- you'd likely
+    # make a call to get all articles and scan to see if there's one with this same title.
+    if not external_id:
+      self.__log("find card", card.title)
+      external_id = self.find_external_card(card)
+      if external_id:
+        self.__log("found card!", card.title, "->", external_id)
+    
     if external_id:
       self.__results[card.id] = "update"
       self.__log("update card", external_id, card.title)
-      self.update_card(external_id, card, section, board, board_group, collection)
+      self.update_external_card(external_id, card, section, board, board_group, collection)
     else:
       self.__results[card.id] = "create"
       self.__log("create card", card.title)
-      external_id = self.create_card(card, section, board, board_group, collection)
+      external_id = self.create_external_card(card, section, board, board_group, collection)
     
     if external_id:
       self.__update_metadata(

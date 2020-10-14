@@ -1297,6 +1297,36 @@ class Guru:
     }
     url = "%s/boards/home/entries?collection=%s" % (self.base_url, collection_obj.id)
     response = self.__put(url, data)
+    if status_to_bool(response.status_code):
+      return self.get_board_group(title, collection)
+
+  def add_board_to_board_group(self, board, board_group, collection=""):
+    board_obj = self.get_board(board, collection)
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+    
+    board_group_obj = self.get_board_group(board_group, collection)
+    if not board_group_obj:
+      self.__log(make_red("could not find board group:", board_group))
+      return
+    
+    # bug: board_obj doesn't have an item_id, we only get that when we load the home board.
+    data = {
+      "sectionId": board_group_obj.item_id,
+      "actionType": "move",
+      "boardEntries": [
+        {
+          "id": board_obj.item_id,
+          "entryType": "board"
+        }
+      ],
+      # this makes us insert it as the first item in the board group.
+      # if we omit this, we get a 500 error.
+      "prevSiblingItem": board_group_obj.item_id
+    }
+    url = "%s/boards/home/entries?collection=%s" % (self.base_url, board_obj.collection.id)
+    response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
   def get_home_board(self, collection):
@@ -1375,7 +1405,7 @@ class Guru:
 
   def save_board(self, board_obj):
     url = "%s/boards/%s" % (self.base_url, board_obj.id)
-    response = self.__put(url, data=board_obj.json())
+    response = self.__put(url, data=board_obj.json(include_item_id=False))
 
     if status_to_bool(response.status_code):
       # todo: update the board obj so the caller doesn't have to store this return value.

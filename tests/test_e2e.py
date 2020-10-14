@@ -236,3 +236,51 @@ class TestEndToEnd(unittest.TestCase):
 
     self.assertEqual(collection.json(), collection2.json())
     self.assertEqual(collection.json(), collection3.json())
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_home_board_item_order(self, g):
+    home_board = g.get_home_board("Engineering")
+    home_board.set_item_order("API Docs", "Other Docs")
+
+    # assert that this worked.
+    home_board = g.get_home_board("Engineering")
+    self.assertEqual(home_board.items[0].title, "API Docs")
+    self.assertEqual(home_board.items[1].title, "Other Docs")
+
+    # switch them back.
+    home_board.set_item_order("Other Docs", "API Docs")
+    home_board = g.get_home_board("Engineering")
+    self.assertEqual(home_board.items[0].title, "Other Docs")
+    self.assertEqual(home_board.items[1].title, "API Docs")
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_board_group_item_order(self, g):
+    board_group = g.get_board_group("API Docs", "Engineering")
+    board_group.set_item_order("SDK", "API")
+
+    # assert that this worked.
+    board_group = g.get_board_group("API Docs", "Engineering")
+    self.assertEqual(board_group.items[0].title, "SDK")
+    self.assertEqual(board_group.items[1].title, "API")
+
+    # switch them back.
+    board_group.set_item_order("API", "SDK")
+    board_group = g.get_board_group("API Docs", "Engineering")
+    self.assertEqual(board_group.items[0].title, "API")
+    self.assertEqual(board_group.items[1].title, "SDK")
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_board_item_order(self, g):
+    board = g.get_board("API", "Engineering")
+    board.set_item_order("User & Groups", "General Information")
+    
+    # assert that this worked.
+    board = g.get_board("API", "Engineering")
+    self.assertEqual(board.items[0].title, "User & Groups")
+    self.assertEqual(board.items[1].title, "General Information")
+
+    # switch them back.
+    board.set_item_order("General Information", "User & Groups")
+    board = g.get_board("API", "Engineering")
+    self.assertEqual(board.items[0].title, "General Information")
+    self.assertEqual(board.items[1].title, "User & Groups")

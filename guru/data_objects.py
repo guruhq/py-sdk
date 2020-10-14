@@ -1,5 +1,5 @@
 
-from guru.util import find_by_name_or_id
+from guru.util import find_by_name_or_id, find_by_id
 
 from bs4 import BeautifulSoup
 
@@ -32,7 +32,7 @@ class Board:
     self.title = data.get("title")
     self.slug = data.get("slug")
     self.id = data.get("id")
-    self.item_id = data.get("itemId")
+    self.__item_id = data.get("itemId")
     self.type = "board"
     
     if data.get("collection"):
@@ -57,6 +57,23 @@ class Board:
         self.items.append(card)
         self.__all_items.append(card)
         self.__cards.append(card)
+
+  @property
+  def item_id(self):
+    if self.__item_id:
+      return self.__item_id
+    
+    # load the home board (if necessary), find this board, and set its item_id.
+    if not self.home_board:
+      self.home_board = self.guru.get_home_board(self.collection)
+    
+    board_item = find_by_id(self.home_board.boards, self.id)
+    if not board_item:
+      print("could not find board on home board")
+    else:
+      self.__item_id = board_item.item_id
+    
+    return self.__item_id
 
   @property
   def cards(self):
@@ -88,16 +105,17 @@ class Board:
   def remove_group(self, group):
     return self.guru.remove_shared_group(self, group)
 
-  def json(self, include_items=True, include_collection=True):
+  def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {
       "id": self.id,
       "type": self.type,
-      "itemId": self.item_id,
       "title": self.title,
     }
 
     if include_items:
       data["items"] = [i.lite_json() for i in self.items]
+    if include_item_id:
+      data["itemId"] = self.item_id
     if self.collection and include_collection:
       data["collection"] = self.collection.json()
     
@@ -126,15 +144,24 @@ class BoardGroup:
   def set_item_order(self, *items):
     return self.guru.set_item_order(self.home_board.collection, self, *items)
 
-  def json(self, include_items=True, include_collection=True):
+  def json(self, include_items=True, include_item_id=True, include_collection=True):
     return {
       "id": self.id,
       "type": "section",
       "itemId": self.item_id,
       "title": self.title,
-      "items": [i.json(include_items=False, include_collection=False) for i in self.items]
+      "items": [i.json(
+        include_items=False,
+        include_item_id=False,
+        include_collection=False
+      ) for i in self.items]
     }
 
+  def add_board(self, board):
+    collection = None
+    if self.home_board:
+      collection = self.home_board.collection
+    return self.guru.add_board_to_board_group(board, self, collection=collection)
 
 class HomeBoard:
   def __init__(self, data, guru=None):
@@ -169,13 +196,14 @@ class HomeBoard:
   def set_item_order(self, *items):
     return self.guru.set_item_order(self.collection, self, *items)
 
-  def json(self):
+  def json(self, include_item_id=True):
     return {
       "id": self.id,
       "collection": self.collection.json(),
       "items": [
         i.json(
           include_items=isinstance(i, BoardGroup),
+          include_item_id=include_item_id,
           include_collection=False
         ) for i in self.items
       ]

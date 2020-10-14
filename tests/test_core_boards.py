@@ -177,10 +177,10 @@ class TestCore(unittest.TestCase):
         "id": "home",
         "collection": {"id": "1234", "name": None, "type": None, "color": None},
         "items": [
-          {"id": "3", "type": "board", "itemId": "i3", "title": "Board B"},
-          {"id": "1", "type": "board", "itemId": "i1", "title": "Board A"},
+          {"id": "3", "type": "board", "title": "Board B"}, # "itemId": "i3",
+          {"id": "1", "type": "board", "title": "Board A"}, # "itemId": "i1",
           {"id": "2", "type": "section", "itemId": "i2", "title": "Board Group", "items": [
-            {"id": None, "type": "board", "itemId": None, "title": None}
+            {"id": None, "type": "board", "title": None}
           ]}
         ]
       }
@@ -237,7 +237,7 @@ class TestCore(unittest.TestCase):
       "method": "PUT",
       "url": "https://api.getguru.com/api/v1/boards/1234",
       "body": {
-        "id": "1234", "type": "board", "itemId": None, "title": None,
+        "id": "1234", "type": "board", "title": None,
         "collection": {"id": "abcd", "name": "General", "type": None, "color": None},
         "items": [
           {"type": "section", "id": "1", "itemId": "i1", "items": [
@@ -314,12 +314,12 @@ class TestCore(unittest.TestCase):
             "itemId": None,
             "title": "My Board Group",
             "items": [
-              {"id": "3", "type": "board", "itemId": "i3", "title": "Board C"},
-              {"id": "2", "type": "board", "itemId": "i2", "title": "Board B"},
-              {"id": "1", "type": "board", "itemId": "i1", "title": "Board A"}
+              {"id": "3", "type": "board", "title": "Board C"}, # "itemId": "i3"
+              {"id": "2", "type": "board", "title": "Board B"}, # "itemId": "i2"
+              {"id": "1", "type": "board", "title": "Board A"}  # "itemId": "i1"
             ]
           },
-          {"id": None, "type": "board", "itemId": None, "title": None}
+          {"id": None, "type": "board", "title": None} # "itemId": None,
         ]
       }
     }])
@@ -410,6 +410,12 @@ class TestCore(unittest.TestCase):
           "title": "my board group"
         }]
       }
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
     }])
   
   @use_guru()
@@ -438,7 +444,6 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222",
       "body": {
         "id": "22222222-2222-2222-2222-222222222222",
-        "itemId": None,
         "items": [{
           "id": "1111",
           "itemId": None,
@@ -482,7 +487,6 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/boards/2222",
       "body": {
         "id": "2222",
-        "itemId": None,
         "items": [{
           "id": "1111",
           "itemId": None,
@@ -519,7 +523,6 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/boards/2222",
       "body": {
         "id": "2222",
-        "itemId": None,
         "items": [{
           "id": "1111",
           "itemId": None,
@@ -600,7 +603,6 @@ class TestCore(unittest.TestCase):
       "body": {
         "id": "22222222-2222-2222-2222-222222222222",
         "type": "board",
-        "itemId": None,
         "title": "my board",
         "items": [{
           "type": "section",
@@ -688,7 +690,6 @@ class TestCore(unittest.TestCase):
       "body": {
         "id": "22222222-2222-2222-2222-222222222222",
         "type": "board",
-        "itemId": None,
         "title": "my board",
         "items": [{
           "type": "section",
@@ -1005,3 +1006,72 @@ class TestCore(unittest.TestCase):
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions"
     }])
+  
+  @use_guru()
+  @responses.activate
+  def test_add_board_to_board_group_by_uuid(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={
+      "collection": {
+        "id": "1234"
+      },
+      "items": [{
+        "type": "section",
+        "title": "Test",
+        "itemId": "bg1",
+        "items": [{
+          "type": "board",
+          "id": "22222222-2222-2222-2222-222222222222",
+          "itemId": "i2",
+          "title": "board 2" 
+        }],
+      }, {
+        "type": "board",
+        "id": "11111111-1111-1111-1111-111111111111",
+        "itemId": "i1",
+        "title": "board 1"
+      }]
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "title": "board 2",
+      "collection": {
+        "id": "1234"
+      }
+    })
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home/entries?collection=1234", json={})
+
+    board_group = g.get_board_group("Test", collection="General")
+    board_group.add_board("11111111-1111-1111-1111-111111111111")
+    
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/boards/home/entries?collection=1234",
+      "body": {
+        "sectionId": "bg1",
+        "actionType": "move",
+        "boardEntries": [
+          {
+            "id": "i1",
+            "entryType": "board"
+          }
+        ],
+        "prevSiblingItem": "bg1"
+      }
+    }
+  ])

@@ -25,71 +25,74 @@ class PublisherTest(guru.Publisher):
     self.calls.append("get external url %s" % card.title)
     return "https://www.example.com/%s" % external_id
 
+  def find_external_card(self, card):
+    self.calls.append("find card %s" % card.title)
+
   # crud operations for cards
-  def create_card(self, card, section, board, board_group, collection):
+  def create_external_card(self, card, section, board, board_group, collection):
     self.calls.append("create card %s" % card.title)
     return card.id[0:4]
   
-  def update_card(self, external_id, card, section, board, board_group, collection):
+  def update_external_card(self, external_id, card, section, board, board_group, collection):
     self.calls.append("update card %s" % card.title)
   
-  def delete_card(self, external_id):
+  def delete_external_card(self, external_id):
     self.calls.append("delete card %s" % external_id)
 
   # crud operations for sections.
-  def create_section(self, section, board, board_group, collection):
-    super().create_section(section, board, board_group, collection)
+  def create_external_section(self, section, board, board_group, collection):
+    super().create_external_section(section, board, board_group, collection)
     self.calls.append("create section %s" % section.title)
     return section.id[0:4]
   
-  def update_section(self, external_id, section, board, board_group, collection):
-    super().update_section(external_id, section, board, board_group, collection)
+  def update_external_section(self, external_id, section, board, board_group, collection):
+    super().update_external_section(external_id, section, board, board_group, collection)
     self.calls.append("update section %s" % section.title)
   
-  def delete_section(self, external_id):
-    super().delete_section(external_id)
+  def delete_external_section(self, external_id):
+    super().delete_external_section(external_id)
     self.calls.append("delete section %s" % external_id)
 
   # crud operations for boards.
-  def create_board(self, board, board_group, collection):
-    super().create_board(board, board_group, collection)
+  def create_external_board(self, board, board_group, collection):
+    super().create_external_board(board, board_group, collection)
     self.calls.append("create board %s" % board.title)
     return board.id[0:4]
   
-  def update_board(self, external_id, board, board_group, collection):
-    super().update_board(external_id, board, board_group, collection)
+  def update_external_board(self, external_id, board, board_group, collection):
+    super().update_external_board(external_id, board, board_group, collection)
     self.calls.append("update board %s" % board.title)
   
-  def delete_board(self, external_id):
-    super().delete_board(external_id)
+  def delete_external_board(self, external_id):
+    super().delete_external_board(external_id)
     self.calls.append("delete board %s" % external_id)
   
   # crud operations for board groups.
-  def create_board_group(self, board_group, collection):
-    super().create_board_group(board_group, collection)
+  def create_external_board_group(self, board_group, collection):
+    super().create_external_board_group(board_group, collection)
     self.calls.append("create board group %s" % board_group.title)
     return board_group.id[0:4]
   
-  def update_board_group(self, external_id, board_group, collection):
-    super().update_board_group(external_id, board_group, collection)
+  def update_external_board_group(self, external_id, board_group, collection):
+    super().update_external_board_group(external_id, board_group, collection)
     self.calls.append("update board group %s" % board_group.title)
   
-  def delete_board_group(self, external_id):
-    super().delete_board_group(external_id)
+  def delete_external_board_group(self, external_id):
+    super().delete_external_board_group(external_id)
     self.calls.append("delete board group %s" % external_id)
   
   # crud operations for collections.
-  def create_collection(self, collection):
-    super().create_collection(collection)
+  def create_external_collection(self, collection):
+    super().create_external_collection(collection)
     self.calls.append("create collection %s" % collection.title)
     return collection.id[0:4]
 
-  def update_collection(self, external_id, collection):
-    super().update_collection(external_id, collection)
+  def update_external_collection(self, external_id, collection):
+    super().update_external_collection(external_id, collection)
     self.calls.append("update collection %s" % collection.title)
   
-  def delete_collection(self, external_id):
-    super().delete_collection(external_id)
+  def delete_external_collection(self, external_id):
+    super().delete_external_collection(external_id)
     self.calls.append("delete collection %s" % external_id)
 
 
@@ -103,17 +106,22 @@ class TestPublish(unittest.TestCase):
     self.assertEqual(publisher.calls, [
       "create collection Engineering",
       "create board Other Docs",
+      "find card Onboarding",
       "create card Onboarding",
       "create board group API Docs",
       "create board API",
       "create section General Information",
       "get external url Pagination",
+      "find card Authentication",
       "create card Authentication",
+      "find card Pagination",
       "create card Pagination",
       "create section User & Groups",
+      "find card Inviting Users",
       "create card Inviting Users",
       "create board SDK",
       "get external url Authentication",
+      "find card Getting Started with the SDK",
       "create card Getting Started with the SDK"
     ])
 
@@ -126,9 +134,12 @@ class TestPublish(unittest.TestCase):
       "create board API",
       "create section General Information",
       "get external url Pagination",
+      "find card Authentication",
       "create card Authentication",
+      "find card Pagination",
       "create card Pagination",
       "create section User & Groups",
+      "find card Inviting Users",
       "create card Inviting Users"
     ])
 
@@ -229,6 +240,7 @@ class TestPublish(unittest.TestCase):
     self.assertEqual(publisher.calls, [
       "update collection Engineering",
       "update board Other Docs",
+      "find card Onboarding",
       "create card Onboarding",
       "update board group API Docs",
       "update board API",
@@ -237,6 +249,7 @@ class TestPublish(unittest.TestCase):
       "update card Authentication",
       "update card Pagination",
       "create section User & Groups",
+      "find card Inviting Users",
       "create card Inviting Users",
       "update board SDK",
       "get external url Authentication",
@@ -283,6 +296,7 @@ class TestPublish(unittest.TestCase):
     self.assertEqual(publisher.calls, [
       "create board SDK",
       "get external url Authentication",
+      "find card Getting Started with the SDK",
       "create card Getting Started with the SDK",
       "delete card aaaa",
       "delete section bbbb",
@@ -298,8 +312,8 @@ class TestPublish(unittest.TestCase):
     with self.assertRaises(NotImplementedError):
       publisher.get_external_url(None, None)
     with self.assertRaises(NotImplementedError):
-      publisher.create_card(None, None, None, None, None)
+      publisher.create_external_card(None, None, None, None, None)
     with self.assertRaises(NotImplementedError):
-      publisher.update_card(None, None, None, None, None, None)
+      publisher.update_external_card(None, None, None, None, None, None)
     with self.assertRaises(NotImplementedError):
-      publisher.delete_card(None)
+      publisher.delete_external_card(None)
