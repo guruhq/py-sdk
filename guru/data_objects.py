@@ -275,6 +275,15 @@ class User:
     self.status = user_obj.get("status")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
+class UserGroup:
+  def __init__(self, data):
+    user_group_obj = data.get("userGroup") or data or {}
+    self.email = user_group_obj.get("id")
+    self.email = user_group_obj.get("modifiable")
+    self.email = user_group_obj.get("name")
+    self.email = user_group_obj.get("numberOfCardsAsVerifier")
+    self.email = user_group_obj.get("numberOfMembers")
+
 
 class Tag:
   def __init__(self, data):
@@ -291,11 +300,27 @@ class Tag:
       "categoryId": self.category_id,
     }
 
+class Verifier:
+  def __init__(self, data):
+    self.id = data.get("id")
+    self.type = data.get("type")
+    self.user = User(data.get("user")) if data.get("user") else None
+    self.user_group = UserGroup(data.get("userGroup")) if data.get("userGroup") else None
+
+class CardInfo:
+  def __init__(self, data):
+    card_info_obj = data.get("analytics") or data or {}
+    self.email = card_info_obj.get("boards")
+    self.email = card_info_obj.get("copies")
+    self.email = card_info_obj.get("favorites")
+    self.email = card_info_obj.get("unverifiedCopies")
+    self.email = card_info_obj.get("unverifiedViews")
+    self.email = card_info_obj.get("views")
 
 class Card:
   def __init__(self, data, guru=None):
     self.guru = guru
-    self.card_info = data.get("cardInfo")
+    self.card_info = CardInfo(data.get("cardInfo")) if data.get("cardInfo") else None
     self.type = data.get("cardType") or "CARD"
     self.collection = Collection(data.get("collection")) if data.get("collection") else None
     self.__content = data.get("content", "")
@@ -319,6 +344,7 @@ class Card:
     self.verification_reason = data.get("verificationReason")
     self.verification_state = data.get("verificationState")
     self.verification_type = data.get("verificationType")
+    self.verifiers = [Verifier(v, guru) for v in data.get("verifiers") or []]
     self.version = data.get("version")
     self.archived = data.get("archived")
     self.boards = [Board(b, guru) for b in data.get("boards") or []]
