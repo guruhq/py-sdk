@@ -295,6 +295,7 @@ class Tag:
 class Card:
   def __init__(self, data, guru=None):
     self.guru = guru
+    self.card_info = data.get("cardInfo")
     self.type = data.get("cardType") or "CARD"
     self.collection = Collection(data.get("collection")) if data.get("collection") else None
     self.__content = data.get("content", "")
@@ -306,6 +307,7 @@ class Card:
     self.last_verified_by = User(data.get("lastVerifiedBy")) if data.get("lastVerifiedBy") else None
     self.next_verification_date = data.get("nextVerificationDate")
     self.owner = User(data.get("owner")) if data.get("owner") else None
+    self.original_owner = User(data.get("originalOwner")) if data.get("originalOwner") else None
     self.title = data.get("preferredPhrase", "")
     self.share_status = data.get("shareStatus", "TEAM")
     self.slug = data.get("slug")
@@ -316,6 +318,7 @@ class Card:
     self.verification_interval = data.get("verificationInterval")
     self.verification_reason = data.get("verificationReason")
     self.verification_state = data.get("verificationState")
+    self.verification_type = data.get("verificationType")
     self.version = data.get("version")
     self.archived = data.get("archived")
     self.boards = [Board(b, guru) for b in data.get("boards") or []]
