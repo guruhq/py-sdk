@@ -275,16 +275,6 @@ class User:
     self.status = user_obj.get("status")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
-class UserGroup:
-  def __init__(self, data):
-    user_group_obj = data.get("userGroup") or data or {}
-    self.email = user_group_obj.get("id")
-    self.email = user_group_obj.get("modifiable")
-    self.email = user_group_obj.get("name")
-    self.email = user_group_obj.get("numberOfCardsAsVerifier")
-    self.email = user_group_obj.get("numberOfMembers")
-
-
 class Tag:
   def __init__(self, data):
     self.id = data.get("id")
@@ -305,17 +295,17 @@ class Verifier:
     self.id = data.get("id")
     self.type = data.get("type")
     self.user = User(data.get("user")) if data.get("user") else None
-    self.user_group = UserGroup(data.get("userGroup")) if data.get("userGroup") else None
+    self.user_group = Group(data.get("userGroup")) if data.get("userGroup") else None
 
 class CardInfo:
   def __init__(self, data):
     card_info_obj = data.get("analytics") or data or {}
-    self.email = card_info_obj.get("boards")
-    self.email = card_info_obj.get("copies")
-    self.email = card_info_obj.get("favorites")
-    self.email = card_info_obj.get("unverifiedCopies")
-    self.email = card_info_obj.get("unverifiedViews")
-    self.email = card_info_obj.get("views")
+    self.boards = card_info_obj.get("boards")
+    self.copies = card_info_obj.get("copies")
+    self.favorites = card_info_obj.get("favorites")
+    self.unverified_copies = card_info_obj.get("unverifiedCopies")
+    self.unverified_views = card_info_obj.get("unverifiedViews")
+    self.views = card_info_obj.get("views")
 
 class Card:
   def __init__(self, data, guru=None):
