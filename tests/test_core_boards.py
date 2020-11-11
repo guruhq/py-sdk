@@ -1075,3 +1075,202 @@ class TestCore(unittest.TestCase):
       }
     }
   ])
+
+  @use_guru()
+  @responses.activate
+  def test_move_board_to_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
+      "id": "2222"
+    })
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    board.move_to_collection("General")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/boards/bulkop",
+      "body": {
+        "action": {
+          "collectionId": "1234",
+          "type": "move-board"
+        },
+        "items": {
+          "itemIds": ["11111111-1111-1111-1111-111111111111"],
+          "type": "id"
+        }
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_move_board_to_collection_and_wait(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
+      "id": "2222"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", json={})
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    board.move_to_collection("General", timeout=0.1, interval=0.2)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/boards/bulkop",
+      "body": {
+        "action": {
+          "collectionId": "1234",
+          "type": "move-board"
+        },
+        "items": {
+          "itemIds": ["11111111-1111-1111-1111-111111111111"],
+          "type": "id"
+        }
+      }
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/bulkop/2222"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_move_board_to_invalid_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[])
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    result = board.move_to_collection("General")
+
+    self.assertEqual(result, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_move_invalid_board_to_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[])
+
+    result = g.move_board_to_collection("11111", "General")
+
+    self.assertEqual(result, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards?collection=1234"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_move_board_to_its_current_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "collection": {
+        "id": "1234"
+      },
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    board.move_to_collection("General")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_move_board_to_collection_and_it_times_out(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+      "id": "11111111-1111-1111-1111-111111111111",
+      "items": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
+      "id": "2222"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", status=204)
+
+    board = g.get_board("11111111-1111-1111-1111-111111111111")
+    board.move_to_collection("General", timeout=0.3, interval=0.2)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/boards/bulkop",
+      "body": {
+        "action": {
+          "collectionId": "1234",
+          "type": "move-board"
+        },
+        "items": {
+          "itemIds": ["11111111-1111-1111-1111-111111111111"],
+          "type": "id"
+        }
+      }
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/bulkop/2222"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/bulkop/2222"
+    }])

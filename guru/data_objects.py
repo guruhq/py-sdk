@@ -105,6 +105,9 @@ class Board:
   def remove_group(self, group):
     return self.guru.remove_shared_group(self, group)
 
+  def move_to_collection(self, collection, timeout=0, interval=2):
+    self.guru.move_board_to_collection(self, collection, timeout, interval)
+
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {
       "id": self.id,
@@ -136,6 +139,7 @@ class BoardGroup:
     self.home_board = home_board
     self.title = data.get("title")
     self.item_id = data.get("itemId")
+    self.description = data.get("description") or ""
     self.slug = data.get("slug")
     self.id = data.get("id")
     self.type = "board-group"
