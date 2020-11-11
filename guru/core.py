@@ -816,7 +816,7 @@ class Guru:
     if cards:
       return cards[0]
 
-  def find_cards(self, title="", tag="", collection="", archived=False):
+  def find_cards(self, title="", tag="", collection=""):
     """
     Gets a list of cards that match the criteria defined by the parameters.
     You can include any combination of title, tag, and collection to
