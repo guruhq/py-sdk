@@ -1629,7 +1629,7 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
-  def move_board_to_collection(self, board, collection, timeout=0, interval=2):
+  def move_board_to_collection(self, board, collection, timeout=0):
     """
     Moves a board from one collection to another.
 
@@ -1689,12 +1689,12 @@ class Guru:
 
     elapsed = 0
     while True:
-      time.sleep(interval)
+      time.sleep(2)
       response = self.__get(url)
       if response.status_code == 200:
         return True
 
-      elapsed += interval
+      elapsed += 2
       if elapsed >= timeout:
         break
 

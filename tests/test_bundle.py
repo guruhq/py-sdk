@@ -4,8 +4,7 @@ import yaml
 import unittest
 import responses
 
-from unittest.mock import Mock, patch
-from requests.auth import HTTPBasicAuth
+from unittest.mock import Mock
 
 import guru
 

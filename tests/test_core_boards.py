@@ -1,11 +1,11 @@
 
 import json
 import yaml
+import time
 import unittest
 import responses
 
 from unittest.mock import Mock, patch
-from requests.auth import HTTPBasicAuth
 
 from tests.util import use_guru, get_calls
 
@@ -1131,8 +1131,9 @@ class TestCore(unittest.TestCase):
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", json={})
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    board.move_to_collection("General", timeout=0.1, interval=0.2)
+    with patch("time.sleep", Mock(return_value=None)):
+      board = g.get_board("11111111-1111-1111-1111-111111111111")
+      board.move_to_collection("General", timeout=1)
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
@@ -1245,8 +1246,9 @@ class TestCore(unittest.TestCase):
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", status=204)
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    board.move_to_collection("General", timeout=0.3, interval=0.2)
+    with patch("time.sleep", Mock(return_value=None)):
+      board = g.get_board("11111111-1111-1111-1111-111111111111")
+      board.move_to_collection("General", timeout=3)
 
     self.assertEqual(get_calls(), [{
       "method": "GET",

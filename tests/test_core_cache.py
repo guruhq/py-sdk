@@ -4,9 +4,6 @@ import yaml
 import unittest
 import responses
 
-from unittest.mock import Mock, patch
-from requests.auth import HTTPBasicAuth
-
 from tests.util import use_guru, get_calls
 
 import guru
