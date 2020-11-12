@@ -295,22 +295,19 @@ class Verifier:
     self.id = data.get("id")
     self.type = data.get("type")
     self.user = User(data.get("user")) if data.get("user") else None
-    self.user_group = Group(data.get("userGroup")) if data.get("userGroup") else None
+    self.group = Group(data.get("userGroup")) if data.get("userGroup") else None
 
-class CardInfo:
-  def __init__(self, data):
-    card_info_obj = data.get("analytics") or data or {}
-    self.boards = card_info_obj.get("boards")
-    self.copies = card_info_obj.get("copies")
-    self.favorites = card_info_obj.get("favorites")
-    self.unverified_copies = card_info_obj.get("unverifiedCopies")
-    self.unverified_views = card_info_obj.get("unverifiedViews")
-    self.views = card_info_obj.get("views")
 
 class Card:
   def __init__(self, data, guru=None):
+    analytics = data.get("cardInfo", {}).get("analytics", {})
     self.guru = guru
-    self.card_info = CardInfo(data.get("cardInfo")) if data.get("cardInfo") else None
+    self.board_count = analytics.get("boards")
+    self.copies = analytics.get("copies")
+    self.favorites = analytics.get("favorites")
+    self.unverified_copies = analytics.get("unverifiedCopies")
+    self.unverified_views = analytics.get("unverifiedViews")
+    self.views = analytics.get("views")
     self.type = data.get("cardType") or "CARD"
     self.collection = Collection(data.get("collection")) if data.get("collection") else None
     self.__content = data.get("content", "")

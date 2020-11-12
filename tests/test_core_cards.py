@@ -114,7 +114,7 @@ class TestCore(unittest.TestCase):
     self.assertEqual(card1.verifiers[0].user.email, "jchappelle@getguru.com")
 
     self.assertEqual(card2.verifiers[0].type, "user-group")
-    self.assertEqual(card2.verifiers[0].user_group.name, "Customer Experience")
+    self.assertEqual(card2.verifiers[0].group.name, "Customer Experience")
 
   @use_guru()
   @responses.activate
@@ -136,8 +136,8 @@ class TestCore(unittest.TestCase):
 
     card = g.get_card("mycard")
 
-    self.assertEqual(card.card_info.copies, 5)
-    self.assertEqual(card.card_info.views, 36)
+    self.assertEqual(card.copies, 5)
+    self.assertEqual(card.views, 36)
 
   @use_guru()
   @responses.activate
