@@ -334,7 +334,7 @@ class Card:
     self.verification_reason = data.get("verificationReason")
     self.verification_state = data.get("verificationState")
     self.verification_type = data.get("verificationType")
-    self.verifiers = [Verifier(v, guru) for v in data.get("verifiers") or []]
+    self.verifiers = [Verifier(v) for v in data.get("verifiers") or []]
     self.version = data.get("version")
     self.archived = data.get("archived")
     self.boards = [Board(b, guru) for b in data.get("boards") or []]
