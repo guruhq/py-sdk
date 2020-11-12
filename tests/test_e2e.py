@@ -47,6 +47,8 @@ class TestEndToEnd(unittest.TestCase):
       "verification_reason": "",
       "verification_state": "",
       "version": "",
+      "archived": False,
+      "favorited": False,
       "boards": ""
     }
 
@@ -65,7 +67,74 @@ class TestEndToEnd(unittest.TestCase):
       # for some reason the HTML content comes back with attributes in a different order.
       if key != "content":
         self.assertEqual(json1[key], json2[key])
+
+    # test favoriting and unfavoriting.
+    card.favorite()
+    card = g.get_card(card.id)
+    self.assertEqual(card.favorited, True)
+    card.unfavorite()
+    card = g.get_card(card.id)
+    self.assertEqual(card.favorited, False)
   
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_card_comments(self, g):
+    card = g.get_card("cddaekgi")
+    comments = g.get_card_comments(card)
+
+    # there should be 2 comments and they're returned in reverse order.
+    self.assertEqual(len(comments), 2)
+    self.check_attrs(comments[0], {
+      "content": "and there's a second comment.",
+      "owner": "",
+      "last_modified_date": "",
+      "id": "",
+      "created_date": "",
+      "card": ""
+    })
+    self.check_attrs(comments[1], {
+      "content": "here's the first comment",
+      "owner": "",
+      "last_modified_date": "",
+      "id": "",
+      "created_date": "",
+      "card": ""
+    })
+
+    # test create/update/delete for comments:
+    # add a comment.
+    comment = card.comment("new comment")
+
+    # check that it was added.
+    comments = g.get_card_comments(card)
+    self.assertEqual(len(comments), 3)
+    self.assertEqual(comments[0].content, "new comment")
+
+    # update it.
+    comment.content = "updated comment"
+    g.update_card_comment(comment)
+
+    # check that it was updated.
+    comments = g.get_card_comments(card)
+    self.assertEqual(len(comments), 3)
+    self.assertEqual(comments[0].content, "updated comment")
+
+    # delete it.
+    g.delete_card_comment(card, comment.id)
+
+    # check that it was deleted.
+    comments = g.get_card_comments(card)
+    self.assertEqual(len(comments), 2)
+    self.assertEqual(comments[0].content, "and there's a second comment.")
+    self.assertEqual(comments[1].content, "here's the first comment")
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_find_card(self, g):
+    cards = g.find_cards(tag="api")
+    self.assertEqual(len(cards), 3)
+
+    card = g.find_card(title="Onboarding", collection="Engineering")
+    self.assertEqual(card.id, "09643e16-0794-4550-9bb9-25e65014dfe1")
+
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_card_creation(self, g):
     title = "end to end test card"
@@ -238,6 +307,42 @@ class TestEndToEnd(unittest.TestCase):
     self.assertEqual(collection.json(), collection3.json())
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_creating_collections(self, g):
+    # check that a collection doesn't exist.
+    collection = g.get_collection("New Collection")
+    self.assertIsNone(collection)
+
+    # make a collection.
+    # (self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True):
+    g.make_collection("New Collection", desc="test", group="Experts")
+    collection = g.get_collection("New Collection")
+    self.assertEqual(collection.description, "test")
+
+    # add a group to it.
+    collection.add_group("Support", guru.READ_ONLY)
+
+    # check the groups on it.
+    groups = collection.get_groups()
+    self.assertEqual(len(groups), 2)
+    self.assertEqual(groups[0].group_name, "Experts")
+    self.assertEqual(groups[0].role, guru.COLLECTION_OWNER)
+    self.assertEqual(groups[1].group_name, "Support")
+    self.assertEqual(groups[1].role, guru.READ_ONLY)
+
+    # promote one group and remove another.
+    collection.add_group("Support", guru.COLLECTION_OWNER)
+    collection.remove_group("Experts")
+
+    # check the groups on it.
+    groups = collection.get_groups()
+    self.assertEqual(len(groups), 1)
+    self.assertEqual(groups[0].group_name, "Support")
+    self.assertEqual(groups[0].role, guru.COLLECTION_OWNER)
+
+    # delete the collection.
+    g.delete_collection(collection)
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_home_board_item_order(self, g):
     home_board = g.get_home_board("Engineering")
     home_board.set_item_order("API Docs", "Other Docs")
@@ -284,3 +389,118 @@ class TestEndToEnd(unittest.TestCase):
     board = g.get_board("API", "Engineering")
     self.assertEqual(board.items[0].title, "General Information")
     self.assertEqual(board.items[1].title, "User & Groups")
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_board_permissions(self, g):
+    board = g.get_board("zTBG4GbT")
+
+    # make sure it's not shared with any groups.
+    groups1 = board.get_groups()
+    self.assertEqual(groups1, [])
+
+    # add a group and check that it worked.
+    board.add_group("Support")
+    groups2 = board.get_groups()
+    self.assertEqual(groups2[0].group.name, "Support")
+
+    # remove the group and make sure that worked too.
+    board.remove_group("Support")
+    groups3 = board.get_groups()
+    self.assertEqual(groups3, [])
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_adding_card_to_board(self, g):
+    # make sure the card is not on the 'Other Docs' board.
+    board = g.get_board("zTBG4GbT")
+    self.assertIsNone(board.get_card("Getting Started with the SDK"))
+
+    # add the SDK card to the 'Other Docs' board.
+    # https://app.getguru.com/card/TbbGKLac/Getting-Started-with-the-SDK
+    card = g.get_card("TbbGKLac")
+    board.add_card(card)
+
+    # make sure the card got added.
+    board = g.get_board("zTBG4GbT")
+    card2 = board.get_card("Getting Started with the SDK")
+    self.assertEqual(card.id, card2.id)
+
+    # remove the SDK card from 'Other Docs' and make sure it worked.
+    board.remove_card(card)
+    board = g.get_board("zTBG4GbT")
+    self.assertIsNone(board.get_card("Getting Started with the SDK"))
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_groups(self, g):
+    # make sure loading a group works.
+    experts = g.get_group("Experts")
+    experts2 = g.get_group(experts)
+
+    self.assertEqual(experts.id, "f2a04eea-615b-41d5-8e2e-641ce5fc3728")
+    self.assertEqual(experts, experts2)
+
+    # try loading a 'managed' group, like All Members.
+    # also, make sure its name matching is _not_ case sensitive.
+    all_members = g.get_group("all members")
+    self.assertEqual(all_members.id, "471fd096-2027-4366-bfdc-b8613992545f")
+
+    # try loading a group that doesn't exist.
+    doesnt_exist = g.get_group("doesn't exist")
+    self.assertIsNone(doesnt_exist)
+
+    # make a group and check that it exists.
+    g.make_group("test group")
+    self.assertIsNotNone(g.get_group("test group"))
+
+    # delete the group and check that it got deleted.
+    g.delete_group("test group")
+    self.assertIsNone(g.get_group("test group"))
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_invite_user(self, g):
+    users = g.get_members("sdk_test")
+    self.assertEqual(len(users), 0)
+
+    # invite the user and make sure they are on the team and in the correct groups.
+    g.invite_user("rmiller+sdk_test@getguru.com", "Experts", "Support")
+    users = g.get_members("sdk_test")
+    self.assertEqual(len(users), 1)
+    self.assertEqual(users[0].has_group("Experts"), True)
+    self.assertEqual(users[0].has_group("Support"), True)
+    self.assertEqual(users[0].has_group("Other Group"), False)
+
+    # remove the user from a group.
+    g.remove_user_from_group("rmiller+sdk_test@getguru.com", "Support")
+    users = g.get_members("sdk_test")
+    self.assertEqual(len(users), 1)
+    self.assertEqual(users[0].has_group("Experts"), True)
+    self.assertEqual(users[0].has_group("Support"), False)
+
+    # remove the user from the team.
+    g.remove_user_from_team("rmiller+sdk_test@getguru.com")
+    users = g.get_members("sdk_test")
+    self.assertEqual(len(users), 0)
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_drafts(self, g):
+    drafts = g.get_drafts()
+    self.assertEqual(drafts, [])
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_analytics(self, g):
+    events = g.get_events(max_pages=1)
+    self.assertEqual(len(events), 500)
+    self.assertEqual(events[0], {
+      "properties": {"source": "UI"},
+      "type": "login",
+      "eventType": "login",
+      "user": "rmiller@getguru.com",
+      "eventDate": "2020-09-14T19:54:44.096+0000"
+    })
+
+# these are the methods that aren't tested yet:
+# add_users_to_group
+# make_board_group (there is no 'delete_board_group' yet)
+# add_board_to_board_group (there is no 'remove_board_from_board_group' yet)
+# add_section_to_board (there is no 'remove_section_from_board' yet)
+# merge_tags, delete_tag (there is no 'make_tag' yet)
+# upload_content

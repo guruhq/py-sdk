@@ -94,7 +94,15 @@ class Board:
     return self.guru.set_item_order(self.collection, self, *items)
 
   def get_card(self, card):
+    if isinstance(card, Card):
+      card = card.id
     return find_by_name_or_id(self.__cards, card)
+
+  def add_card(self, card, section=None):
+    return self.guru.add_card_to_board(card, self, section=section)
+
+  def remove_card(self, card):
+    return self.guru.remove_card_from_board(card, self)
 
   def get_groups(self):
     return self.guru.get_shared_groups(self)
@@ -220,7 +228,9 @@ class Group:
 
 
 class Collection:
-  def __init__(self, data):
+  def __init__(self, data, guru=None):
+    self.guru = guru
+
     # these are the properties you always get, like when a card has a nested
     # collection object with just a few properties.
     self.id = data.get("id")
@@ -249,6 +259,15 @@ class Collection:
   def title(self, title):
     self.name = title
 
+  def add_group(self, group, role):
+    return self.guru.add_group_to_collection(group, self, role)
+
+  def remove_group(self, group):
+    return self.guru.remove_group_from_collection(group, self)
+
+  def get_groups(self):
+    return self.guru.get_groups_on_collection(self)
+
   def json(self):
     return {
       "id": self.id,
@@ -256,6 +275,13 @@ class Collection:
       "type": self.type,
       "color": self.color,
     }
+
+
+class CollectionAccess:
+  def __init__(self, data):
+    self.group_name = data.get("groupName")
+    self.group_id = data.get("groupId")
+    self.role = data.get("role")
 
 
 class CollectionStats:
@@ -275,6 +301,8 @@ class User:
     self.status = user_obj.get("status")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
+  def has_group(self, group):
+    return True if find_by_name_or_id(self.groups, group) else False
 
 class Tag:
   def __init__(self, data):
@@ -317,7 +345,8 @@ class Card:
     self.verification_reason = data.get("verificationReason")
     self.verification_state = data.get("verificationState")
     self.version = data.get("version")
-    self.archived = data.get("archived")
+    self.archived = data.get("archived", False)
+    self.favorited = data.get("favorited", False)
     self.boards = [Board(b, guru) for b in data.get("boards") or []]
     self.__doc = None
 
