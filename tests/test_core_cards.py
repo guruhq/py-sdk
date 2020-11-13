@@ -74,6 +74,73 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_get_card_and_check_verifier(self, g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard1", json={
+      "verifiers": [
+        {
+          "type": "user",
+          "user": {
+            "status": "ACTIVE",
+            "email": "jchappelle@getguru.com",
+            "firstName": "John",
+            "lastName": "Chappelle",
+            "profilePicUrl": "/assets/common/images/default-user-pic.png"
+          },
+          "id": "jchappelle@getguru.com"
+        }
+      ]
+    })
+
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard2", json={
+      "verifiers": [
+        {
+          "type": "user-group",
+          "userGroup": {
+            "name": "Customer Experience",
+            "id": "123472f8-a1e7-4b99-8849-7a7186323203",
+            "modifiable": False
+          },
+          "id": "123472f8-a1e7-4b99-8849-7a7186323203"
+        }
+      ]
+    })
+
+    # this should trigger the GET call we're expecting.
+    card1 = g.get_card("mycard1")
+    card2 = g.get_card("mycard2")
+
+    self.assertEqual(card1.verifiers[0].type, "user")
+    self.assertEqual(card1.verifiers[0].user.email, "jchappelle@getguru.com")
+
+    self.assertEqual(card2.verifiers[0].type, "user-group")
+    self.assertEqual(card2.verifiers[0].group.name, "Customer Experience")
+
+  @use_guru()
+  @responses.activate
+  def test_get_card_and_check_card_info(self, g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard", json={
+      "id": "aaaabbbb-cccc-dddd-eeee-ffffffffffff",
+      "cardInfo": {
+        "analytics": {
+          "boards": 1,
+          "copies": 5,
+          "favorites": 2,
+          "unverifiedCopies": 0,
+          "unverifiedViews": 0,
+          "views": 36,
+        }
+      }
+    })
+
+    card = g.get_card("mycard")
+
+    self.assertEqual(card.copies, 5)
+    self.assertEqual(card.views, 36)
+
+  @use_guru()
+  @responses.activate
   def test_make_card(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
