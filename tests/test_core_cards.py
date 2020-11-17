@@ -434,6 +434,24 @@ class TestCore(unittest.TestCase):
         "collectionIds": []
       }
     }])
+  
+  @use_guru()
+  @responses.activate
+  def test_find_archived_cards(self, g):
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/search/cardmgr", json=[])
+
+    g.find_cards(archived=True)
+
+    self.assertEqual(get_calls(), [{
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": {
+        "queryType": "archived",
+        "sorts": None,
+        "query": None,
+        "collectionIds": []
+      }
+    }])
 
   @use_guru()
   @responses.activate

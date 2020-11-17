@@ -815,7 +815,7 @@ class Guru:
     if cards:
       return cards[0]
 
-  def find_cards(self, title="", tag="", collection=""):
+  def find_cards(self, title="", tag="", collection="", archived=False):
     """
     Gets a list of cards that match the criteria defined by the parameters.
     You can include any combination of title, tag, and collection to
@@ -826,6 +826,8 @@ class Guru:
         is not case sensitive.
       tag (str, optional): The name or ID of a tag.
       collection (str, optional): The name or ID of a collection.
+      archived (bool, optional): Sets the query to search archived cards. 
+        Can be mixed with title, tag, and/ or collection.
     
     Returns:
       list of Card: The cards that matched the parameters you provided.
@@ -834,17 +836,25 @@ class Guru:
     url = "%s/search/cardmgr" % self.base_url
     # look up the tag and include its id here.
 
-    data = {
-      "queryType": None,
-      "sorts": [
-        {
-          "type": "verificationState",
-          "dir": "ASC"
-        }
-      ],
-      "query": None,
-      "collectionIds": []
-    }
+    if archived == True:
+      data = {
+        "queryType": "archived",
+        "sorts": None,
+        "query": None,
+        "collectionIds": []
+      }
+    else:
+      data = {
+        "queryType": None,
+        "sorts": [
+          {
+            "type": "verificationState",
+            "dir": "ASC"
+          }
+        ],
+        "query": None,
+        "collectionIds": []
+      }
 
     # if a collection name was provided, look it up.
     if collection:
