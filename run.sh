@@ -22,4 +22,18 @@ e2e)
 docs)
   pydoc -p 9000 guru
   ;;
+*)
+  echo ""
+  echo "usage: sh run.sh <command> [-v]"
+  echo ""
+  echo "where <command> is one of the following:"
+  echo ""
+  echo "  test -- to run only unit tests"
+  echo "  e2e -- to run only end-to-end tests"
+  echo "  all -- to run unit and end-to-end tests"
+  echo "  docs -- to generate documentation"
+  echo ""
+  echo "When running tests, use -v to open the coverage report in your browser."
+  echo ""
+  ;;
 esac
