@@ -161,6 +161,8 @@ class Publisher:
     # call create/update/delete_collection as needed.
     external_id = self.get_external_id(collection.id)
 
+    # todo: if we don't have an external_id, call find_external_collection to try to find it.
+
     if external_id:
       self.__results[collection.id] = "update"
       self.__log("update collection", external_id, collection.title)
@@ -189,6 +191,8 @@ class Publisher:
     # call create/update/delete_board_group as needed.
     external_id = self.get_external_id(board_group.id)
 
+    # todo: if we don't have an external_id, call find_external_board_group to try to find it.
+
     if external_id:
       self.__results[board_group.id] = "update"
       self.__log("update board group", external_id, board_group.title)
@@ -216,6 +220,8 @@ class Publisher:
     # call create/update/delete_board as needed.
     external_id = self.get_external_id(board.id)
 
+    # todo: if we don't have an external_id, call find_external_board to try to find it.
+
     if external_id:
       self.__results[board.id] = "update"
       self.__log("update board", external_id, board.title)
@@ -239,6 +245,8 @@ class Publisher:
     
     # call create/update/delete_section as needed.
     external_id = self.get_external_id(section.id)
+
+    # todo: if we don't have an external_id, call find_external_section to try to find it.
 
     if external_id:
       self.__results[section.id] = "update"

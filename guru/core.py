@@ -1,13 +1,19 @@
 
 import os
 import re
+import sys
 import time
 import requests
 
 from requests.auth import HTTPBasicAuth
 
+if sys.version_info.major >= 3:
+  from urllib.parse import quote
+else:
+  from urlparse import quote
+
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, Draft, Group, HomeBoard, Tag, User
+from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User
 from guru.util import find_by_name_or_id, find_by_email, find_by_id
 
 # collection colors
@@ -247,7 +253,7 @@ class Guru:
     elif self.__is_id(collection):
       url = "%s/collections/%s" % (self.base_url, collection)
       response = self.__get(url, cache)
-      return Collection(response.json())
+      return Collection(response.json(), guru=self)
     else:
       # we compare the name and ID because you can pass either.
       # and if the names aren't unique, you'll need to pass an ID.
@@ -268,7 +274,7 @@ class Guru:
     """
     url = "%s/collections" % self.base_url
     response = self.__get(url, cache)
-    return [Collection(c) for c in response.json()]
+    return [Collection(c, guru=self) for c in response.json()]
 
   def make_collection(self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True):
     """
@@ -318,7 +324,17 @@ class Guru:
 
     url = "%s/collections" % self.base_url
     response = self.__post(url, data)
-    return Collection(response.json())
+    return Collection(response.json(), guru=self)
+
+  def get_groups_on_collection(self, collection):
+    collection_obj = self.get_collection(collection, cache=True)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return
+
+    url = "%s/collections/%s/groups" % (self.base_url, collection_obj.id)
+    response = self.__get(url)
+    return [CollectionAccess(ca) for ca in response.json()]
 
   def add_group_to_collection(self, group, collection, role):
     """
@@ -524,7 +540,7 @@ class Guru:
     """
 
     members = []
-    url = "%s/members?search=%s" % (self.base_url, search)
+    url = "%s/members?search=%s" % (self.base_url, quote(search))
     users = self.__get_and_get_all(url, cache)
     users = [User(u) for u in users]
     return users
