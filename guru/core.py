@@ -2,6 +2,7 @@
 import os
 import re
 import sys
+import time
 import requests
 
 from requests.auth import HTTPBasicAuth
@@ -864,16 +865,16 @@ class Guru:
 
     # if a collection name was provided, look it up.
     if collection:
-      c = self.get_collection(collection, cache=True)
-      if not c:
+      collection_obj = self.get_collection(collection, cache=True)
+      if not collection_obj:
         raise BaseException("collection '%s' not found" % collection)
 
-      data["collectionIds"] = [c.id]
+      data["collectionIds"] = [collection_obj.id]
 
     # if no tag value was passed in, get_tag() will return nothing.
     if tag:
-      tag_object = self.get_tag(tag)
-      if not tag_object:
+      tag_obj = self.get_tag(tag)
+      if not tag_obj:
         self.__log(make_red("could not find tag:", tag))
         return []
       
@@ -882,7 +883,7 @@ class Guru:
           {
             "type": "tag",
             "ids": [
-              tag_object.id
+              tag_obj.id
             ],
             "op": "EXISTS"
           }
@@ -1643,3 +1644,74 @@ class Guru:
     url = "%s/boards/%s/permissions/%s" % (self.base_url, board_obj.id, perm_obj.id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
+
+  def move_board_to_collection(self, board, collection, timeout=0):
+    """
+    Moves a board from one collection to another.
+
+    Args:
+      board (str or Board): The board to be moved. Can either be the board's title,
+        ID, slug, or the Board object.
+      collection (str or Collection): The collection you're moving the board to. Can
+        either be the collection's title, ID, or the Collection object.
+      timeout (int, optional): The API call to move a board just queues up the operation.
+        This parameter is used if you want to wait until Guru is done moving the board to
+        its new collection. This helpful if you want to do multiple operations, like move
+        a board to a new collection then add it to a board group there. By default this is
+        0 so it doesn't wait. If you set a timeout of 10, we'll wait up to 10 seconds to
+        see if the move completes.
+
+    Returns:
+      bool: True if it was successful and False otherwise. False could mean that there was
+        an error or that you were waiting for the operation to finish and it timed out.
+    """
+    board_obj = self.get_board(board, collection=collection)
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+
+    collection_obj = self.get_collection(collection)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return
+
+    # if the board is already in that collection, do nothing.
+    if board_obj.collection and board_obj.collection.id == collection_obj.id:
+      self.__log(make_red("board", board_obj.title, "is already in collection", collection_obj.name))
+      return
+
+    # make the bulk op call to move the board to the other collection.
+    data = {
+      "action": {
+        "type": "move-board",
+        "collectionId": collection_obj.id
+      },
+      "items": {
+        "type": "id",
+        "itemIds": [board_obj.id]
+      }
+    }
+
+    url = "%s/boards/bulkop" % self.base_url
+    response = self.__post(url, data)
+
+    # if there's no timeout we're done once we submit the bulk operation.
+    if not timeout:
+      return status_to_bool(response.status_code)
+
+    # poll and wait for the bulk operation to finish.
+    bulk_op_id = response.json().get("id")
+    url = "%s/boards/bulkop/%s" % (self.base_url, bulk_op_id)
+
+    elapsed = 0
+    while True:
+      time.sleep(2)
+      response = self.__get(url)
+      if response.status_code == 200:
+        return True
+
+      elapsed += 2
+      if elapsed >= timeout:
+        break
+
+    return False

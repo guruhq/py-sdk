@@ -113,6 +113,9 @@ class Board:
   def remove_group(self, group):
     return self.guru.remove_shared_group(self, group)
 
+  def move_to_collection(self, collection, timeout=0):
+    self.guru.move_board_to_collection(self, collection, timeout)
+
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {
       "id": self.id,
@@ -144,6 +147,7 @@ class BoardGroup:
     self.home_board = home_board
     self.title = data.get("title")
     self.item_id = data.get("itemId")
+    self.description = data.get("description") or ""
     self.slug = data.get("slug")
     self.id = data.get("id")
     self.type = "board-group"
@@ -304,6 +308,7 @@ class User:
   def has_group(self, group):
     return True if find_by_name_or_id(self.groups, group) else False
 
+
 class Tag:
   def __init__(self, data):
     self.id = data.get("id")
@@ -320,9 +325,24 @@ class Tag:
     }
 
 
+class Verifier:
+  def __init__(self, data):
+    self.id = data.get("id")
+    self.type = data.get("type")
+    self.user = User(data.get("user")) if data.get("user") else None
+    self.group = Group(data.get("userGroup")) if data.get("userGroup") else None
+
+
 class Card:
   def __init__(self, data, guru=None):
+    analytics = data.get("cardInfo", {}).get("analytics", {})
     self.guru = guru
+    self.board_count = analytics.get("boards")
+    self.copies = analytics.get("copies")
+    self.favorites = analytics.get("favorites")
+    self.unverified_copies = analytics.get("unverifiedCopies")
+    self.unverified_views = analytics.get("unverifiedViews")
+    self.views = analytics.get("views")
     self.type = data.get("cardType") or "CARD"
     self.collection = Collection(data.get("collection")) if data.get("collection") else None
     self.__content = data.get("content", "")
@@ -334,6 +354,7 @@ class Card:
     self.last_verified_by = User(data.get("lastVerifiedBy")) if data.get("lastVerifiedBy") else None
     self.next_verification_date = data.get("nextVerificationDate")
     self.owner = User(data.get("owner")) if data.get("owner") else None
+    self.original_owner = User(data.get("originalOwner")) if data.get("originalOwner") else None
     self.title = data.get("preferredPhrase", "")
     self.share_status = data.get("shareStatus", "TEAM")
     self.slug = data.get("slug")
@@ -344,6 +365,8 @@ class Card:
     self.verification_interval = data.get("verificationInterval")
     self.verification_reason = data.get("verificationReason")
     self.verification_state = data.get("verificationState")
+    self.verification_type = data.get("verificationType")
+    self.verifiers = [Verifier(v) for v in data.get("verifiers") or []]
     self.version = data.get("version")
     self.archived = data.get("archived", False)
     self.favorited = data.get("favorited", False)
