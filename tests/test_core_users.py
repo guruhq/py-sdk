@@ -4,9 +4,6 @@ import yaml
 import unittest
 import responses
 
-from unittest.mock import Mock, patch
-from requests.auth import HTTPBasicAuth
-
 from tests.util import use_guru, get_calls
 
 import guru
@@ -39,7 +36,7 @@ class TestCore(unittest.TestCase):
       "name": "other group"
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/members/invite", json={})
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": []
     }])
@@ -56,7 +53,7 @@ class TestCore(unittest.TestCase):
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
@@ -82,7 +79,7 @@ class TestCore(unittest.TestCase):
       "name": "Experts"
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/members/invite", json={})
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": []
     }])
@@ -97,7 +94,7 @@ class TestCore(unittest.TestCase):
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
@@ -106,7 +103,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_group(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": []
     }])
@@ -120,7 +117,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
@@ -135,7 +132,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_invalid_group(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": []
     }])
@@ -148,7 +145,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
@@ -157,7 +154,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_groups(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": []
     }])
@@ -175,7 +172,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
@@ -196,7 +193,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_groups_where_first_one_is_invalid(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": []
     }])
@@ -215,7 +212,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
@@ -230,7 +227,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_groups_where_second_one_is_invalid(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": []
     }])
@@ -249,7 +246,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
@@ -264,19 +261,19 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_user_to_groups_with_invalid_user(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=invalid@example.com", json=[])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=invalid%40example.com", json=[])
     result = g.add_user_to_groups("invalid@example.com", "Experts")
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=invalid@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=invalid%40example.com"
     }])
 
   @use_guru()
   @responses.activate
   def test_add_user_to_groups_where_the_user_is_already_in_one_group(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": [{
         "id": "1111",
@@ -300,7 +297,7 @@ class TestCore(unittest.TestCase):
     })
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"

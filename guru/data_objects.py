@@ -94,7 +94,15 @@ class Board:
     return self.guru.set_item_order(self.collection, self, *items)
 
   def get_card(self, card):
+    if isinstance(card, Card):
+      card = card.id
     return find_by_name_or_id(self.__cards, card)
+
+  def add_card(self, card, section=None):
+    return self.guru.add_card_to_board(card, self, section=section)
+
+  def remove_card(self, card):
+    return self.guru.remove_card_from_board(card, self)
 
   def get_groups(self):
     return self.guru.get_shared_groups(self)
@@ -104,6 +112,9 @@ class Board:
   
   def remove_group(self, group):
     return self.guru.remove_shared_group(self, group)
+
+  def move_to_collection(self, collection, timeout=0):
+    self.guru.move_board_to_collection(self, collection, timeout)
 
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {
@@ -136,6 +147,7 @@ class BoardGroup:
     self.home_board = home_board
     self.title = data.get("title")
     self.item_id = data.get("itemId")
+    self.description = data.get("description") or ""
     self.slug = data.get("slug")
     self.id = data.get("id")
     self.type = "board-group"
@@ -220,7 +232,9 @@ class Group:
 
 
 class Collection:
-  def __init__(self, data):
+  def __init__(self, data, guru=None):
+    self.guru = guru
+
     # these are the properties you always get, like when a card has a nested
     # collection object with just a few properties.
     self.id = data.get("id")
@@ -249,6 +263,15 @@ class Collection:
   def title(self, title):
     self.name = title
 
+  def add_group(self, group, role):
+    return self.guru.add_group_to_collection(group, self, role)
+
+  def remove_group(self, group):
+    return self.guru.remove_group_from_collection(group, self)
+
+  def get_groups(self):
+    return self.guru.get_groups_on_collection(self)
+
   def json(self):
     return {
       "id": self.id,
@@ -256,6 +279,13 @@ class Collection:
       "type": self.type,
       "color": self.color,
     }
+
+
+class CollectionAccess:
+  def __init__(self, data):
+    self.group_name = data.get("groupName")
+    self.group_id = data.get("groupId")
+    self.role = data.get("role")
 
 
 class CollectionStats:
@@ -275,6 +305,10 @@ class User:
     self.status = user_obj.get("status")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
+  def has_group(self, group):
+    return True if find_by_name_or_id(self.groups, group) else False
+
+
 class Tag:
   def __init__(self, data):
     self.id = data.get("id")
@@ -289,6 +323,7 @@ class Tag:
       "categoryName": self.category,
       "categoryId": self.category_id,
     }
+
 
 class Verifier:
   def __init__(self, data):
@@ -333,7 +368,8 @@ class Card:
     self.verification_type = data.get("verificationType")
     self.verifiers = [Verifier(v) for v in data.get("verifiers") or []]
     self.version = data.get("version")
-    self.archived = data.get("archived")
+    self.archived = data.get("archived", False)
+    self.favorited = data.get("favorited", False)
     self.boards = [Board(b, guru) for b in data.get("boards") or []]
     self.__doc = None
 
