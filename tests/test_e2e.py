@@ -51,6 +51,7 @@ class TestEndToEnd(unittest.TestCase):
     }
 
     self.check_attrs(card, expected)
+    self.assertEqual(len(card.boards), 1)
 
     # use the doc to check some things.
     self.assertEqual(len(card.doc.select("a[href]")), 3)

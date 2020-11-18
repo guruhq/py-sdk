@@ -777,7 +777,7 @@ class Guru:
     if isinstance(card, Card):
       return card
 
-    url = "%s/cards/%s" % (self.base_url, card)
+    url = "%s/cards/%s/extended" % (self.base_url, card)
     response = self.__get(url)
     if status_to_bool(response.status_code):
       try:
