@@ -721,7 +721,6 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_favorite_card_list_error(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/favoritelists", json=[])
 
     g.favorite_card("1111")
