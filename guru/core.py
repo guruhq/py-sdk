@@ -853,7 +853,7 @@ class Guru:
     url = "%s/search/cardmgr" % self.base_url
     # look up the tag and include its id here.
 
-    if archived == True:
+    if archived:
       data = {
         "queryType": "archived",
         "sorts": None,
