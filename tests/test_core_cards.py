@@ -14,7 +14,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_get_card(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/cardid", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/cardid/extended", json={})
 
     # this should trigger the GET call we're expecting.
     card = g.get_card("cardid")
@@ -22,14 +22,14 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/cardid"
+      "url": "https://api.getguru.com/api/v1/cards/cardid/extended"
     }])
 
   @use_guru()
   @responses.activate
   def test_get_card_and_use_doc(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/cardid", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/cardid/extended", json={
       "content": "<p>test</p>"
     })
 
@@ -48,8 +48,8 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_get_card_and_check_url(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={})
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222/extended", json={
       "slug": "abcd"
     })
 
@@ -60,10 +60,10 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/2222"
+      "url": "https://api.getguru.com/api/v1/cards/2222/extended"
     }])
 
     self.assertEqual(card1.url, "")
@@ -73,7 +73,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_get_card_and_check_verifier(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard1", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard1/extended", json={
       "verifiers": [
         {
           "type": "user",
@@ -89,7 +89,7 @@ class TestCore(unittest.TestCase):
       ]
     })
 
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard2", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard2/extended", json={
       "verifiers": [
         {
           "type": "user-group",
@@ -117,7 +117,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_get_card_and_check_card_info(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard/extended", json={
       "id": "aaaabbbb-cccc-dddd-eeee-ffffffffffff",
       "cardInfo": {
         "analytics": {
@@ -173,7 +173,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_comment_to_card(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/1111/comments", json={
@@ -188,7 +188,7 @@ class TestCore(unittest.TestCase):
     self.assertEqual(comment.content, "comment text")
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/cards/1111/comments",
@@ -198,7 +198,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_update_card_comment(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/comments", json=[{
@@ -216,7 +216,7 @@ class TestCore(unittest.TestCase):
     self.assertEqual(comment.content, "updated content")
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/comments"
@@ -229,10 +229,10 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_card_comment_edge_cases(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222", json=None)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222/extended", json=None)
 
     card = g.get_card("1111")
     card.comment("")
@@ -244,7 +244,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_delete_card_comment(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/comments", json=[{
@@ -257,13 +257,13 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/comments"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "DELETE",
       "url": "https://api.getguru.com/api/v1/cards/1111/comments/2222"
@@ -272,13 +272,13 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_archive_invalid_card(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json=None, status=404)
 
     g.archive_card("1111")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }])
 
   @use_guru()
@@ -297,7 +297,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_save_card(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
       "id": "1234"
     })
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1234", json={})
@@ -308,7 +308,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1234"
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
     }, {
       "method": "PUT",
       "url": "https://api.getguru.com/api/v1/cards/1234",
@@ -328,7 +328,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_tag_to_card(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
       "id": "1234"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
@@ -353,7 +353,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1234"
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/whoami"
@@ -383,7 +383,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_invalid_tag_to_card(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
       "id": "1234"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
@@ -402,7 +402,7 @@ class TestCore(unittest.TestCase):
     
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1234"
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/whoami"
@@ -602,7 +602,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_verify_card(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
       "id": "1234"
     })
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1234/verify", json={})
@@ -614,7 +614,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1234"
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
     }, {
       "method": "PUT",
       "url": "https://api.getguru.com/api/v1/cards/1234/verify"
@@ -625,7 +625,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_unverify_card(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
       "id": "1234"
     })
     responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/1234/unverify", json={})
@@ -637,7 +637,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1234"
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
     }, {
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/cards/1234/unverify"
@@ -651,7 +651,7 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/favoritelists", json=[{
       "id": "1111"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
       "id": "1234"
     })
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/favoritelists/1111/entries", json={})
@@ -661,7 +661,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1234"
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/favoritelists"
@@ -683,7 +683,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_unfavorite_card(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
       "id": "1234"
     })
     responses.add(responses.DELETE, "https://api.getguru.com/api/v1/cards/1234/favorite", json={})
@@ -693,7 +693,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1234"
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
     }, {
       "method": "DELETE",
       "url": "https://api.getguru.com/api/v1/cards/1234/favorite"
@@ -703,7 +703,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_favorite_invalid_card(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json=None, status=404)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/favoritelists", json=[{
       "id": "1234"
     }])
@@ -715,13 +715,12 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/favoritelists"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }])
 
   @use_guru()
   @responses.activate
   def test_favorite_card_list_error(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/favoritelists", json=[])
 
     g.favorite_card("1111")
@@ -734,11 +733,11 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_unfavorite_invalid_card(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json=None, status=404)
     
     g.unfavorite_card("1111")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }])

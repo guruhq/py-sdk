@@ -36,7 +36,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_get_drafts_for_one_card(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/drafts/1111", json=[{
@@ -54,7 +54,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended",
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/drafts/1111"
@@ -64,7 +64,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_get_drafts_for_invalid(self, g):
     # register the response for the API call we'll make.
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", status=404)
 
     # this should trigger the GET call we're expecting.
     g.get_drafts(card="1111")
@@ -72,7 +72,7 @@ class TestCore(unittest.TestCase):
     # assert that the only API activity was the one call we expected to see.
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended",
     }])
 
   @use_guru()
