@@ -421,7 +421,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_card_to_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
@@ -435,7 +435,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
@@ -457,7 +457,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_card_to_board_by_board_name(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
@@ -475,7 +475,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards"
@@ -500,7 +500,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_card_to_board_by_board_slug(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/abcde", json={
@@ -514,7 +514,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards/abcde"
@@ -536,7 +536,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_card_to_invalid_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
@@ -554,7 +554,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards"
@@ -563,19 +563,19 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_invalid_card_to_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", status=404)
     
     g.add_card_to_board("1111", "2222")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }])
 
   @use_guru()
   @responses.activate
   def test_add_card_to_board_and_existing_section(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
@@ -593,7 +593,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
@@ -620,7 +620,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_card_to_board_and_invalid_section(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
@@ -634,7 +634,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
@@ -643,7 +643,7 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_add_card_to_board_and_new_section(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
@@ -667,7 +667,7 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111"
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
