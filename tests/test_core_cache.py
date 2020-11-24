@@ -43,7 +43,7 @@ class TestCoreCache(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_that_the_cache_is_cleared_after_creating_a_group(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user@example.com", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
       "groups": []
     }])
@@ -73,7 +73,7 @@ class TestCoreCache(unittest.TestCase):
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups",
@@ -86,7 +86,7 @@ class TestCoreCache(unittest.TestCase):
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user@example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
