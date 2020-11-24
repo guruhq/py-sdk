@@ -524,7 +524,10 @@ class BundleNode:
     """Generates the yaml content for this node."""
     if self.type == CARD:
       data = {
-        "Title": self.title,
+        # card titles cannot contain html.
+        # we don't handle it well if we escape < as &lt; but if there's a space after the < then it's
+        # not interpreted as html so we do that by adding a non-printed space after it.
+        "Title": self.title.replace("<", "<\u200E"),
         "ExternalId": self.id
       }
       if self.url:

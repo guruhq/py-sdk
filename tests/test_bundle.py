@@ -61,6 +61,21 @@ class TestBundle(unittest.TestCase):
     self.assertEqual(read_html("/tmp/test_sync_with_two_nodes/cards/2.html"), "card content")
 
   @use_guru()
+  def test_sync_with_html_in_card_title(self, g):
+    sync = g.bundle("test_sync_with_html_in_card_title")
+
+    # make one node with <a> in its title.
+    node1 = sync.node(id="a", url="https://www.example.com/a", title="node <a>", content="card content")
+    sync.zip()
+
+    self.assertEqual(read_yaml("/tmp/test_sync_with_html_in_card_title/cards/a.yaml"), {
+      "ExternalId": "a",
+      "ExternalUrl": "https://www.example.com/a",
+      "Title": "node <\u200Ea>"
+    })
+    self.assertEqual(read_html("/tmp/test_sync_with_html_in_card_title/cards/a.html"), "card content")
+
+  @use_guru()
   def test_sync_with_a_node_on_two_boards(self, g):
     sync = g.bundle("test_sync_with_a_node_on_two_boards")
 
