@@ -925,6 +925,15 @@ class Guru:
   def patch_card(self, card, keep_verification=True):
     """
     Patches a card, updating its content, title, and verification interval.
+
+    Args:
+      card (Card): The card object you're saving.
+      keep_verification (bool, optional): True if you want to save the card without
+        triggering Guru's default business logic of unverifying a card when the user
+        editing the card is not its verifier. This defaults to true.
+
+    Returns:
+      Card: An updated card object.
     """
 
     # todo: maybe just use card.json() here because we will have more complete
