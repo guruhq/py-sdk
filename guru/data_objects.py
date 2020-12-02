@@ -405,6 +405,10 @@ class Card:
   def unfavorite(self):
     return self.guru.unfavorite_card(self)
 
+  def patch(self, keep_verification=True):
+    saved_card, status = self.guru.patch_card(self, keep_verification)
+    return saved_card
+
   def save(self, verify=False):
     saved_card, status = self.guru.save_card(self, verify)
     # todo: figure out what all the properties are that we'd need to update.

@@ -166,7 +166,17 @@ class Guru:
     response = requests.put(url, json=data, auth=self.__get_auth())
     self.__log_response(response)
     return response
-    
+
+  def __patch(self, url, data=None):
+    if self.dry_run:
+      self.__log(make_gray("  would make a patch call:", url, data))
+      return DummyResponse()
+
+    self.__log(make_gray("  making a patch call:", url, data))
+    response = requests.patch(url, json=data, auth=self.__get_auth())
+    self.__log_response(response)
+    return response
+
   def __post(self, url, data=None, files=None):
     if self.dry_run:
       self.__log(make_gray("  would make a post call:", url, data))
@@ -911,6 +921,29 @@ class Guru:
           filtered_cards.append(c)
       cards = filtered_cards
     return cards
+
+  def patch_card(self, card, keep_verification=True):
+    """
+    Patches a card, updating its content, title, and verification interval.
+    """
+
+    # todo: maybe just use card.json() here because we will have more complete
+    #       objects and passing in extra fields is not a problem.
+    data = {
+      "preferredPhrase": card.title,
+      "content": card.content
+    }
+    # todo: add 'verifiers' to the fields we patch.
+    if card.verification_interval:
+      data["verificationInterval"] = card.verification_interval
+
+    url = "%s/cards/%s?keepVerificationState=%s" % (
+      self.base_url,
+      card.id,
+      "true" if keep_verification else "false"
+    )
+    response = self.__patch(url, data)
+    return Card(response.json()), status_to_bool(response.status_code)
 
   def save_card(self, card, verify=False):
     """

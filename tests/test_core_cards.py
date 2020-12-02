@@ -759,3 +759,29 @@ class TestCore(unittest.TestCase):
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_patch_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
+      "id": "1234"
+    })
+    responses.add(responses.PATCH, "https://api.getguru.com/api/v1/cards/1234?keepVerificationState=true", json={})
+
+    card = g.get_card("1234")
+    card.verification_interval = 90
+    card.title = "test"
+    card.patch()
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
+    }, {
+      "method": "PATCH",
+      "url": "https://api.getguru.com/api/v1/cards/1234?keepVerificationState=true",
+      "body": {
+        "content": "",
+        "preferredPhrase": "test",
+        "verificationInterval": 90
+      },
+    }])
