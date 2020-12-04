@@ -51,4 +51,4 @@ bundle.view_in_browser()
 
 # uncommenting this will make it upload the content to guru.
 # if the 'Favorite Albums' collection doesn't exist, it'll create it.
-# bundle.upload(name="Favorite Albums", color=guru.CORNFLOWER)
+# bundle.upload(name="Favorite Albums", color=guru.CORNFLOWER, is_sync=True)
