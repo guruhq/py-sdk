@@ -785,3 +785,65 @@ class TestCore(unittest.TestCase):
         "verificationInterval": 90
       },
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_get_card_version(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
+      "id": "1234",
+      "version": 2,
+      "content": "version 2"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/versions/1", json={
+      "id": "1234",
+      "version": 1,
+      "content": "version 1"
+    })
+
+    card = g.get_card("1234")
+    card_v1 = g.get_card_version(card, 1)
+
+    self.assertEqual(card.content, "version 2")
+    self.assertEqual(card_v1.content, "version 1")
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/versions/1"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_get_card_version_with_invalid_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", status=404)
+
+    card = g.get_card_version("1234", 1)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_get_card_version_with_invalid_version(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
+      "id": "1234"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/versions/3", status=404, json={
+      "description" : "HTTP 404 Not Found"
+    })
+
+    card = g.get_card("1234")
+    card_v3 = g.get_card_version(card, 3)
+
+    self.assertEqual(card.id, "1234")
+    self.assertEqual(card_v3, None)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/versions/3"
+    }])

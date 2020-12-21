@@ -806,10 +806,31 @@ class Guru:
     url = "%s/cards/%s/extended" % (self.base_url, card)
     response = self.__get(url)
     if status_to_bool(response.status_code):
+      # todo: figure out why this is inside a 'try'.
       try:
         return Card(response.json(), guru=self)
       except:
         return None
+
+  def get_card_version(self, card, version):
+    """
+    Loads a previous version of a card.
+
+    Args:
+      card (str or Card): The card's ID, slug, or the full Card object.
+      version (int): The version number to retrieve.
+    """
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+
+    url = "%s/cards/%s/versions/%s" % (
+      self.base_url, card_obj.id, version
+    )
+    response = self.__get(url)
+    if status_to_bool(response.status_code):
+      return Card(response.json(), guru=self)
 
   def make_card(self, title, content, collection):
     """
