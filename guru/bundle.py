@@ -152,7 +152,7 @@ def make_html_tree(node, parent, depth, html_pieces):
   if node.type == CARD:
     url = node.sync.CARD_HTML_PATH % (node.sync.id, node.id)
     html_pieces.append(
-      '<a href="%s" target="iframe">%s%s (%s)</a>' % (url, indent, node.title, node.type)
+      '<a href="%s" data-original-url="%s" target="iframe">%s%s (%s)</a>' % (url, node.url, indent, node.title, node.type)
     )
   else:
     html_pieces.append(
@@ -197,7 +197,10 @@ def assign_types(node, parent, depth, post=False, favor_boards=None, favor_secti
       elif node.children and depth == 0:
         node.type = BOARD
       elif not node.children:
-        node.type = CARD
+        if parent and parent.type == BOARD and not node.content:
+          node.type = SECTION
+        else:
+          node.type = CARD
       elif depth > 2:
         node.type = CARD
       elif parent.type == BOARD and depth == 1:
@@ -307,12 +310,15 @@ class BundleNode:
       self.index = 9999
     else:
       self.index = index
-  
+
   def add_to(self, node):
     """Adds this object as a child of the given node."""
     node.add_child(self)
     return self
   
+  def remove(self):
+    self.sync.remove_node(self)
+
   def detach(self):
     """Removes a node from all of its parents."""
     # for node in self.sync.nodes:
@@ -337,7 +343,7 @@ class BundleNode:
       index += 1
     return result
 
-  def add_child(self, child, first=False):
+  def add_child(self, child, first=False, after=None):
     """
     Adds the given node as a child of this one.
     
@@ -359,6 +365,10 @@ class BundleNode:
     child.parents.append(self)
     if first:
       self.children.insert(0, child.id)
+    elif after:
+      # 'after' is the node we're inserting the new child after.
+      index = self.children.index(after.id)
+      self.children.insert(index, child.id)
     else:
       self.children.append(child.id)
     
@@ -628,6 +638,11 @@ class Bundle:
         return True
     return False
   
+  def remove_node(self, node):
+    node.detach()
+    if node in self.nodes:
+      self.nodes.remove(node)
+
   def node(self, id="", url="", title="", content="", desc="", tags=None, type=None, index=None, clean_html=True):
     """
     This method makes a node or updates one. Nodes may have content but some
@@ -649,6 +664,9 @@ class Bundle:
     id = str(id)
     if url and not id:
       id = _url_to_id(url, False)
+    elif id:
+      # some characters aren't allowed in IDs, like `/`
+      id = id.replace("/", "_")
     
     node = None
     for n in self.nodes:
@@ -873,6 +891,7 @@ class Bundle:
         overflow: auto;
         box-sizing: border-box;
         padding-bottom: 30px;
+        max-width: 400px;
       }
       #tree > * {
         display: block;
@@ -881,7 +900,7 @@ class Bundle:
       iframe {
         flex-grow: 1;
         max-width: 734px;
-        margin: 20px auto;
+        margin: 20px;
         box-shadow: rgba(0, 0, 0, 0.15) 0 3px 10px;
         padding: 20px 60px;
         border: 1px solid #ccc;
@@ -906,9 +925,11 @@ class Bundle:
   </head>
   <body>
     <div id="tree">%s</div>
-      <iframe name="iframe" src=""></iframe>
+    <iframe name="iframe" src=""></iframe>
+    <iframe id="source" style="display: none" src=""></iframe>
     <script>
 
+      var sourceIframe = document.getElementById("source");
       var links = document.querySelectorAll("#tree a");
       var currentIndex = -1;
 
@@ -917,6 +938,14 @@ class Bundle:
           links[currentIndex].classList.remove("selected");
           currentIndex = index;
           link.classList.add("selected");
+
+          var originalUrl = link.getAttribute("data-original-url");
+          if (originalUrl) {
+            sourceIframe.src = originalUrl.startsWith("/") ? "file://" + originalUrl : originalUrl;
+            sourceIframe.style.display = "block";
+          } else {
+            sourceIframe.style.display = "none";
+          }
         }
       });
       function next() {

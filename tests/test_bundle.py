@@ -61,6 +61,41 @@ class TestBundle(unittest.TestCase):
     self.assertEqual(read_html("/tmp/test_sync_with_two_nodes/cards/2.html"), "card content")
 
   @use_guru()
+  def test_sync_where_the_child_has_no_content(self, g):
+    sync = g.bundle("test_sync_where_the_child_has_no_content")
+
+    # make two nodes, one with content, and add that one to the other.
+    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
+    node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2")
+    node2.add_to(node1)
+    sync.zip(favor_sections=True)
+
+    self.assertEqual(read_yaml("/tmp/test_sync_where_the_child_has_no_content/collection.yaml"), {
+      "Title": "test",
+      "Tags": [],
+      "Items": [{
+        "ID": "1",
+        "Title": "node 1",
+        "Type": "board"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_sync_where_the_child_has_no_content/boards/1.yaml"), {
+      "ExternalId": "1",
+      "ExternalUrl": "https://www.example.com/1",
+      "Title": "node 1",
+      "Items": [{
+        "Title": "node 2",
+        "Type": "section",
+        "Items": []
+      }]
+    })
+    # make sure cards/2.html and cards/2.yaml don't exist.
+    with self.assertRaises(FileNotFoundError):
+      read_html("/tmp/test_sync_where_the_child_has_no_content/cards/2.html")
+    with self.assertRaises(FileNotFoundError):
+      read_html("/tmp/test_sync_where_the_child_has_no_content/cards/2.yaml")
+
+  @use_guru()
   def test_sync_with_html_in_card_title(self, g):
     sync = g.bundle("test_sync_with_html_in_card_title")
 
