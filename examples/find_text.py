@@ -4,6 +4,8 @@ import guru
 
 g = guru.Guru()
 
+# this is the list of terms we're looking for.
+# we'll list every card that contains at least one of these terms.
 terms = [
   "test",
   "guru link",
@@ -11,7 +13,8 @@ terms = [
 ]
 
 # this will check all cards you can see in guru.
-# to check a single collection you can use: g.find_cards(collection="General")
+# to check a single collection you can switch it to this:
+# for card in g.find_cards(collection="General"):
 for card in g.find_cards():
   terms_found = []
   for term in terms:
