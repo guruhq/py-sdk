@@ -847,3 +847,31 @@ class TestCore(unittest.TestCase):
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1234/versions/3"
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_card_has_text(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
+      "id": "1234",
+      "content": """<p class="p">here's a guru <a href="url">link</a> in the card's content.</p>""",
+      "preferredPhrase": "has_text test card title"
+    })
+
+    card = g.get_card("1234")
+
+    # the word "content" is found only in the content and "title" is found only in its title.
+    self.assertEqual(card.has_text("content", case_sensitive=False, include_title=False), True)
+    self.assertEqual(card.has_text("title", case_sensitive=False, include_title=False), False)
+
+    # test case sensitivity and including the title.
+    self.assertEqual(card.has_text("CONTENT", case_sensitive=True, include_title=False), False)
+    self.assertEqual(card.has_text("content", case_sensitive=True, include_title=False), True)
+    self.assertEqual(card.has_text("TITLE", case_sensitive=True, include_title=True), False)
+    self.assertEqual(card.has_text("title", case_sensitive=True, include_title=True), True)
+
+    # test words that cross html tag boundaries.
+    self.assertEqual(card.has_text("guru link", case_sensitive=False), True)
+
+    # check for html attributes.
+    self.assertEqual(card.has_text("class", case_sensitive=False), False)
+    self.assertEqual(card.has_text("href", case_sensitive=False), False)

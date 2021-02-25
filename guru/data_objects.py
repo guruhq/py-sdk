@@ -431,6 +431,16 @@ class Card:
         return True
     return False
   
+  def has_text(self, text, case_sensitive=False, include_title=True):
+    card_title = self.title if case_sensitive else self.title.lower()
+    card_content = self.doc.text if case_sensitive else self.doc.text.lower()
+    text = text if case_sensitive else text.lower()
+
+    if include_title and text in card_title:
+      return True
+
+    return text in card_content
+
   def add_tag(self, tag, create=False):
     if self.has_tag(tag):
       return True
