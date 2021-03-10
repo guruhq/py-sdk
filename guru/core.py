@@ -97,10 +97,10 @@ class Guru:
   to the `Guru()` constructor.
   """
 
-  def __init__(self, username="", api_token="", silent=False, dry_run=False):
+  def __init__(self, username="", api_token="", silent=False, dry_run=False, qa=False):
     self.username = username or os.environ.get("PYGURU_USER", "") or os.environ.get("GURU_USER", "")
     self.api_token = api_token or os.environ.get("PYGURU_TOKEN", "") or os.environ.get("GURU_TOKEN", "")
-    self.base_url = "https://api.getguru.com/api/v1"
+    self.base_url = "https://qaapi.getguru.com/api/v1" if qa else "https://api.getguru.com/api/v1"
     self.dry_run = dry_run
     self.__cache = {}
 

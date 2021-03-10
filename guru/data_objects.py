@@ -396,6 +396,17 @@ class Card:
     else:
       return ""
 
+  @property
+  def verifier_label(self):
+    if not self.verifiers:
+      return "no verifier"
+
+    verifier = self.verifiers[0]
+    if verifier.group:
+      return verifier.group.name
+    else:
+      return verifier.user.email
+
   def archive(self):
     return self.guru.archive_card(self)
 
