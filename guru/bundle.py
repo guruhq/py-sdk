@@ -243,7 +243,7 @@ def insert_nodes(node, parent, depth):
   # if a board has content, make a sectionless "content" card as the first child.
   # if a board group has content, make a content board as the first child.
   
-  bunle = node.bundle
+  bundle = node.bundle
 
   # board groups that have content require two new nodes -- one for the
   # card and one to be the board that contains that card.
