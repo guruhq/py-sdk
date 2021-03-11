@@ -130,27 +130,27 @@ def clean_up_html(html):
   
   return str(doc).replace("\\n", "\n").replace("\\'", "'")
 
-def traverse_tree(sync, func, node=None, parent=None, depth=0, post=False, **kwargs):
+def traverse_tree(bundle, func, node=None, parent=None, depth=0, post=False, **kwargs):
   """Does a tree traversal on the nodes and calls the provided callback (func) on each node."""
   if node:
     func(node, parent, depth, **kwargs)
     for id in node.children[0:]:
-      child = sync.node(id)
+      child = bundle.node(id)
       if child:
-        traverse_tree(sync, func, child, node, depth + 1, post, **kwargs)
+        traverse_tree(bundle, func, child, node, depth + 1, post, **kwargs)
     if post:
       func(node, parent, depth, post=True, **kwargs)
   else:
     # traverse the subtree for every node that doesn't have a parent.
-    for node in sync.nodes:
+    for node in bundle.nodes:
       if not node.parents:
-        traverse_tree(sync, func, node, post=post, **kwargs)
+        traverse_tree(bundle, func, node, post=post, **kwargs)
 
 def make_html_tree(node, parent, depth, html_pieces):
   """This builds the board/card tree in the HTML preview page."""
   indent = "&nbsp;&nbsp;" * min(3, depth)
   if node.type == CARD:
-    url = node.sync.CARD_HTML_PATH % (node.sync.id, node.id)
+    url = node.bundle.CARD_HTML_PATH % (node.bundle.id, node.id)
     html_pieces.append(
       '<a href="%s" data-original-url="%s" target="iframe">%s%s (%s)</a>' % (url, node.url, indent, node.title, node.type)
     )
@@ -172,7 +172,7 @@ def print_type(node, parent, depth):
 
 def assign_types(node, parent, depth, post=False, favor_boards=None, favor_sections=None):
   """
-  When you're done adding content to a sync we call this for every
+  When you're done adding content to a bundle we call this for every
   node to figure out which nodes become board groups, boards, cards,
   or sections.
 
@@ -187,7 +187,7 @@ def assign_types(node, parent, depth, post=False, favor_boards=None, favor_secti
       # that means the node should actually be a board group.
       if node.type == BOARD:
         for id in node.children:
-          child = node.sync.node(id)
+          child = node.bundle.node(id)
           if child.type == BOARD:
             node.type = BOARD_GROUP
             break
@@ -243,7 +243,7 @@ def insert_nodes(node, parent, depth):
   # if a board has content, make a sectionless "content" card as the first child.
   # if a board group has content, make a content board as the first child.
   
-  sync = node.sync
+  bunle = node.bundle
 
   # board groups that have content require two new nodes -- one for the
   # card and one to be the board that contains that card.
@@ -251,7 +251,7 @@ def insert_nodes(node, parent, depth):
     # insert a board and add a card to it.
     board_id = "%s_content_board" % node.id
     content_id = "%s_content" % node.id
-    board_node = sync.node(
+    board_node = bundle.node(
       id=board_id,
       url=node.url,
       title="%s Content" % node.title,
@@ -259,21 +259,21 @@ def insert_nodes(node, parent, depth):
     )
     node.add_child(board_node, first=True)
 
-    content_node = sync.node(
+    content_node = bundle.node(
       id=content_id,
       url=node.url,
       title=node.title,
       content=node.content,
       type=CARD
     )
-    sync.node(board_id).add_child(content_node)
+    bundle.node(board_id).add_child(content_node)
 
   # if the node has content and is a board or section we just make
   # a new node (as the card) inside this node.
   elif node.content and (node.type == BOARD or node.type == SECTION):
     # add a card as the first item inside this node.
     content_id = "%s_content" % node.id
-    content_node = sync.node(
+    content_node = bundle.node(
       id=content_id,
       url=node.url,
       title=node.title,
@@ -288,16 +288,15 @@ def insert_nodes(node, parent, depth):
     # add the card to the board group's "_content" board.
     content_id = "%s_content_board" % parent.id
     content_title = "%s Content" % parent.title
-    content_board = sync.node(content_id, title=content_title, type=BOARD)
+    content_board = bundle.node(content_id, title=content_title, type=BOARD)
     node.move_to(content_board)
     parent.add_child(content_board, first=True)
 
 
 class BundleNode:
-  def __init__(self, id, sync, url="", title="", desc="", content="", tags=None, index=None):
+  def __init__(self, id, bundle, url="", title="", desc="", content="", tags=None, index=None):
     self.id = id
-    self.sync = sync
-
+    self.bundle = bundle
     self.url = ""
     self.desc = desc
     self.title = title
@@ -317,11 +316,11 @@ class BundleNode:
     return self
   
   def remove(self):
-    self.sync.remove_node(self)
+    self.bundle.remove_node(self)
 
   def detach(self):
     """Removes a node from all of its parents."""
-    # for node in self.sync.nodes:
+    # for node in self.bundle.nodes:
     #   if self.id in node.children:
     #     node.children.remove(self.id)
     for node in self.parents:
@@ -368,7 +367,7 @@ class BundleNode:
     elif after:
       # 'after' is the node we're inserting the new child after.
       index = self.children.index(after.id)
-      self.children.insert(index, child.id)
+      self.children.insert(index + 1, child.id)
     else:
       self.children.append(child.id)
     
@@ -378,7 +377,7 @@ class BundleNode:
     """This is used internally when we're building the .yaml files."""
     items = []
     for id in self.children:
-      node = self.sync.node(id)
+      node = self.bundle.node(id)
       if node.type == CARD:
         items.append({
           "ID": node.id,
@@ -396,6 +395,49 @@ class BundleNode:
         items.append(node.id)
     
     return items
+
+  def split(self, *args):
+    """
+    The arguments are pairs of strings where the first string is a
+    CSS selector indicating where to make a split and the second string
+    is the title that should be applied to the new card.
+
+    If you're not sure what the title should be you can pass empty strings
+    and we'll name the new cards the same as the card you're splitting.
+    """
+    doc = BeautifulSoup(self.content, "html.parser")
+
+    selectors = [args[i] for i in range(0, len(args), 2)]
+    titles = [args[i] for i in range(1, len(args), 2)]
+
+    for selector in selectors:
+      elements = doc.select(selector)
+      if elements:
+        element = elements[0]
+        element.insert_before("[GURU_SDK_BREAKPOINT]")
+
+    # we split the html in two parts, the first part is the new content for this node
+    # and the second part becomes the content of a new node.
+    html = str(doc)
+    parts = html.split("[GURU_SDK_BREAKPOINT]")
+
+    # todo: we might need to run each half of the HTML through beautifulsoup, otherwise guru
+    #       might be unhappy about the lack of closing tags.
+
+    self.content = parts[0]
+
+    # we go backwards so the parts end up in the correct order.
+    for index in range(len(selectors) - 1, -1, -1):
+      new_node = self.bundle.node(
+        id="%s_part%s" % (self.id, index + 1),
+        url=self.url,
+        title=titles[index] or self.title,
+        content=parts[index + 1]
+      )
+
+      # add the new node after this existing node so it's on all the same boards.
+      for parent_node in self.parents:
+        parent_node.add_child(new_node, after=self)
 
   def html_cleanup(self, download_func=None, convert_links=True, compare_links=None):
     """
@@ -439,20 +481,20 @@ class BundleNode:
       if download_func:
 
         # if we've already downloaded this file, update the src/href.
-        if resource_id in self.sync.resources:
-          element.attrs[attr] = self.sync.resources[resource_id]
+        if resource_id in self.bundle.resources:
+          element.attrs[attr] = self.bundle.resources[resource_id]
         else:
-          filename = self.sync.RESOURCE_PATH % (self.sync.id, resource_id)
-          self.sync.log(message="checking if we should download attachment", url=absolute_url, file=filename)
+          filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
+          self.bundle.log(message="checking if we should download attachment", url=absolute_url, file=filename)
 
           # returning True means the file was downloaded so we need to update the src/href.
           if download_func(absolute_url, filename):
-            self.sync.log(message="download successful", url=absolute_url, file=filename)
-            self.sync.resources[resource_id] = filename
+            self.bundle.log(message="download successful", url=absolute_url, file=filename)
+            self.bundle.resources[resource_id] = filename
             element.attrs[attr] = "resources/%s" % resource_id
           else:
             # returning False means it didn't download so we make the url absolute.
-            self.sync.log(message="did not download", url=absolute_url, file=filename)
+            self.bundle.log(message="did not download", url=absolute_url, file=filename)
             element.attrs[attr] = absolute_url
       else:
         # if we're not downloading files we still need to do some cleanup.
@@ -466,9 +508,9 @@ class BundleNode:
           # and url is:           images/bullet.gif
           # then absolute_url is: /Users/rmiller/export/images/bullet.gif
           # and filename is:      /tmp/{job_id}/resources/{hash}.gif
-          filename = self.sync.RESOURCE_PATH % (self.sync.id, resource_id)
+          filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
           copy_file(absolute_url, filename)
-          self.sync.resources[resource_id] = filename
+          self.bundle.resources[resource_id] = filename
           element.attrs[attr] = "resources/%s" % resource_id
         elif _is_local(url):
           # this means self.url is _not_ local but the url is, so make it absolute.
@@ -500,7 +542,7 @@ class BundleNode:
       absolute_url = urljoin(self.url, href)
 
       # if convert_links:
-      for other_node in self.sync.nodes:
+      for other_node in self.bundle.nodes:
         if (compare_links and compare_links(other_node.url, absolute_url)) or \
             other_node.url == absolute_url:
           # print("replace link: %s  -->  cards/%s" % (href[0:80], other_node.id))
@@ -523,12 +565,12 @@ class BundleNode:
     and .html file. For boards and board groups it's just a .yaml file.
     """
     if self.type == CARD:
-      write_file(self.sync.CARD_YAML_PATH % (self.sync.id, _id_to_filename(self.id)), self.make_yaml())
-      write_file(self.sync.CARD_HTML_PATH % (self.sync.id, _id_to_filename(self.id)), self.content or "")
+      write_file(self.bundle.CARD_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
+      write_file(self.bundle.CARD_HTML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.content or "")
     elif self.type == BOARD:
-      write_file(self.sync.BOARD_YAML_PATH % (self.sync.id, _id_to_filename(self.id)), self.make_yaml())
+      write_file(self.bundle.BOARD_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
     elif self.type == BOARD_GROUP:
-      write_file(self.sync.BOARD_GROUP_YAML_PATH % (self.sync.id, _id_to_filename(self.id)), self.make_yaml())
+      write_file(self.bundle.BOARD_GROUP_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
 
   def make_yaml(self):
     """Generates the yaml content for this node."""
@@ -657,8 +699,8 @@ class Bundle:
     Based on how you load and process data you may identify a node before you
     have all of its info. Say you load a page and it has links to its children,
     you'll know the URL and title of the children before you know what their
-    content is. You can call sync.node() to create them and establish the
-    parent/child relationship, then call sync.node() again later to set the
+    content is. You can call bundle.node() to create them and establish the
+    parent/child relationship, then call bundle.node() again later to set the
     child node's content.
     """
     id = str(id)
@@ -680,7 +722,7 @@ class Bundle:
         title = "%s..." % title[0:197]
     
     if not node:
-      node = BundleNode(id, sync=self, title=title, desc=desc, content=content, tags=tags, index=index)
+      node = BundleNode(id, bundle=self, title=title, desc=desc, content=content, tags=tags, index=index)
       self.nodes.append(node)
     
     if url:
