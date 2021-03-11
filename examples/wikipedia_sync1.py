@@ -2,6 +2,7 @@
 import guru
 
 # these are the pages we'll download and import into guru.
+# we'll end up with 6 cards on 1 board.
 urls = [
   "https://en.wikipedia.org/wiki/Odessey_and_Oracle",
   "https://en.wikipedia.org/wiki/Pet_Sounds",

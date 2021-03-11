@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 
 g = guru.Guru()
 
-def print_url(card, iframe_url):
+def print_iframe_info(card, iframe_url):
   print("%s\t%s\t%s\t%s\t%s" % (
     card.collection.name,
     card.title,
@@ -19,7 +19,7 @@ def print_url(card, iframe_url):
 for card in g.find_cards():
   # find all the links in this card and print the URLs.
   for iframe in card.doc.select("iframe"):
-    print_url(card, iframe.attrs.get("src"))
+    print_iframe_info(card, iframe.attrs.get("src"))
   
   # look for iframes in markdown blocks.
   for markdown_div in card.doc.select("[data-ghq-card-content-markdown-content]"):
@@ -27,4 +27,4 @@ for card in g.find_cards():
     doc = BeautifulSoup(html.unescape(markdown), "html.parser")
 
     for iframe in doc.select("iframe"):
-      print_url(card, iframe.attrs.get("src"))
+      print_iframe_info(card, iframe.attrs.get("src"))

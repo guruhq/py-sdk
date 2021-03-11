@@ -1,6 +1,12 @@
 
 import guru
 
+# this is like wikipedia_sync1 except there are two main differences:
+# 1. this sync creates a deeper hierarchy so the resulting guru content has
+#    a board group with two boards, and one of the boards contains sections.
+# 2. we download images from wikipedia so the resulting guru cards have their
+#    images hosted in guru, rather than referencing the external images.
+
 def get_page(url, include_image=True):
   doc = guru.load_html(url)
 
@@ -15,19 +21,23 @@ def get_page(url, include_image=True):
   title = doc.find(id="firstHeading").text
 
   # make a node for this page and add it to the board.
-  return sync.node(
+  return bundle.node(
     id=title,
     url=url,
     title=title,
     content=image_tag + str(body)
   )
 
+# this function is responsible for deciding if we should download an attachment
+# and, if we should, it goes ahead and downloads it. if you're working with an
+# external system that requires authentication, you may need to add a header to
+# the download_file() call so it's able to access the file.
 def download_file(url, filename):
   if "upload.wikimedia.org" in url:
     return guru.download_file(url, filename)
 
-# these are the urls of the pages we're going to download
-# and turn into guru cards.
+# these are the urls of the pages we're going to download and turn into guru cards.
+# the cards will be grouped by decade, so the decade labels become sections.
 albums = {
   "60s": [
     "https://en.wikipedia.org/wiki/Odessey_and_Oracle",
@@ -44,6 +54,7 @@ albums = {
   ]
 }
 
+# these pages get added to a separate board that has no sections.
 musicians = [
   "https://en.wikipedia.org/wiki/Joe_Strummer",
   "https://en.wikipedia.org/wiki/Paul_Simon",
@@ -51,17 +62,17 @@ musicians = [
 ]
 
 g = guru.Guru()
-sync = g.bundle("favorite_stuff", verbose=True)
+bundle = g.bundle("favorite_stuff", verbose=True)
 
 # make a node called 'My Favorite Albums', we'll add the other nodes
 # as its children so it'll become a board in guru.
-all_stuff = sync.node(id="favorites", title="My Favorites")
-albums_board = sync.node(id="albums", title="Albums").add_to(all_stuff)
-musicians_board = sync.node(id="musicians", title="Musicians").add_to(all_stuff)
+all_stuff = bundle.node(id="favorites", title="My Favorites")
+albums_board = bundle.node(id="albums", title="Albums").add_to(all_stuff)
+musicians_board = bundle.node(id="musicians", title="Musicians").add_to(all_stuff)
 
 # for each url, make a new node with the page's title/content and add it to the board.
 for era in sorted(albums.keys()):
-  section = sync.node(id=era, title=era).add_to(albums_board)
+  section = bundle.node(id=era, title=era).add_to(albums_board)
 
   for url in albums[era]:
     node = get_page(url)
@@ -71,8 +82,9 @@ for era in sorted(albums.keys()):
 for url in musicians:
   get_page(url).add_to(musicians_board)
 
-sync.zip(download_func=download_file)
-sync.print_tree()
-sync.view_in_browser()
+bundle.zip(download_func=download_file)
+bundle.print_tree()
+bundle.view_in_browser()
+
 # uncommenting this will make it upload the content to guru.
-# sync.upload(name="Favorite Albums", color=guru.CORNFLOWER, is_sync=True)
+# bundle.upload(name="Favorite Albums", color=guru.CORNFLOWER, is_sync=True)

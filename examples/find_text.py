@@ -16,6 +16,7 @@ terms = [
 # to check a single collection you can switch it to this:
 # for card in g.find_cards(collection="General"):
 for card in g.find_cards():
+  # we keep track of which terms are found in this card and if we find any, we print the card's information.
   terms_found = []
   for term in terms:
     # we have options here for case-sensitivity (e.g. does "Guru" match "guru"?)
