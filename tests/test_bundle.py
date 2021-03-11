@@ -848,8 +848,7 @@ class TestBundle(unittest.TestCase):
 <br/>- Two
 
 </td>
-</tr></table>
-""")
+</tr></table>""")
 
   @use_guru()
   def test_sync_visualization(self, g):
@@ -1175,3 +1174,75 @@ class TestBundle(unittest.TestCase):
       "Title": "node 6"
     })
     self.assertEqual(read_html("/tmp/test_sync_with_sort_order/cards/6.html"), "card content")
+
+  @use_guru()
+  def test_splitting_a_node_twice(self, g):
+    sync = g.bundle("test_splitting_a_node_twice")
+
+    # make two nodes, one with content, and add that one to the other.
+    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
+    node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2", content="""<p>first card</p>
+<h2>split here</h2>
+<p>second card</p>
+<table><tr><td>third card</td></tr></table>
+    """)
+    node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content")
+    node2.add_to(node1)
+    node3.add_to(node1)
+
+    node2.split(
+      "h2", "split here",
+      "table", ""
+    )
+
+    sync.zip()
+
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_twice/collection.yaml"), {
+      "Title": "test",
+      "Tags": [],
+      "Items": [{
+        "ID": "1",
+        "Title": "node 1",
+        "Type": "board"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_twice/boards/1.yaml"), {
+      "ExternalId": "1",
+      "ExternalUrl": "https://www.example.com/1",
+      "Title": "node 1",
+      "Items": [{
+        "ID": "2",
+        "Type": "card"
+      }, {
+        "ID": "2_part1",
+        "Type": "card"
+      }, {
+        "ID": "2_part2",
+        "Type": "card"
+      }, {
+        "ID": "3",
+        "Type": "card"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_twice/cards/2.yaml"), {
+      "ExternalId": "2",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "node 2"
+    })
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_twice/cards/2.html"), "<p>first card</p>")
+
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_twice/cards/2_part1.yaml"), {
+      "ExternalId": "2_part1",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "split here"
+    })
+    # we make sure the <h2> tag is removed since it matches the card's title.
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_twice/cards/2_part1.html"), "<p>second card</p>")
+
+    # we didn't specify a title so this part inherits "node 2" as its title
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_twice/cards/2_part2.yaml"), {
+      "ExternalId": "2_part2",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "node 2"
+    })
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_twice/cards/2_part2.html"), "<table><tr><td>third card</td></tr></table>")

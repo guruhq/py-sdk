@@ -588,7 +588,7 @@ class BundleNode:
     """
     if self.type == CARD:
       write_file(self.bundle.CARD_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
-      write_file(self.bundle.CARD_HTML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.content or "")
+      write_file(self.bundle.CARD_HTML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.content.strip() or "")
     elif self.type == BOARD:
       write_file(self.bundle.BOARD_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
     elif self.type == BOARD_GROUP:
