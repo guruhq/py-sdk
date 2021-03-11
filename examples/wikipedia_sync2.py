@@ -15,7 +15,7 @@ def get_page(url, include_image=True):
   image = body.select(".infobox img")[0]
   image_tag = "<p><img src=\"%s\" /></p>" % image.attrs["src"] if image else ""
 
-  for el in body.select(".ambox-content, .infobox, [role='navigation'], .wikitable.floatright, #toc, #toc ~ *, .shortdescription, .hatnote"):
+  for el in body.select(".ambox-content, .infobox, [role='navigation'], .wikitable.floatright, #toc, .shortdescription, .hatnote"):
     el.decompose()
   
   title = doc.find(id="firstHeading").text
@@ -83,7 +83,6 @@ for url in musicians:
   get_page(url).add_to(musicians_board)
 
 bundle.zip(download_func=download_file)
-bundle.print_tree()
 bundle.view_in_browser()
 
 # uncommenting this will make it upload the content to guru.

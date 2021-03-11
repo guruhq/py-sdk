@@ -428,11 +428,33 @@ class BundleNode:
 
     # we go backwards so the parts end up in the correct order.
     for index in range(len(selectors) - 1, -1, -1):
+      # part[0] is the new content for the 'root' card.
+      # part[1] is the content for the first new card, whose title is title[0].
+      new_content = parts[index + 1]
+      new_title = titles[index]
+
+      # if this piece has a title, we need to check for a heading tag where
+      # the title came from. we don't want the first thing inside the card's
+      # content to be an <h1> with the title, that'd be redundant.
+      if new_title:
+        # todo: how do we check if the heading is near the top of the card?
+        #       it may not literally be the first child. if this heading is
+        #       way towards the bottom and coincidentally has the same text
+        #       content as the title, we want to leave it alone then.
+        new_doc = BeautifulSoup(new_content, "html.parser")
+        for heading in new_doc.select("h1, h2, h3, h4, h5, h6"):
+          if heading.text.strip().lower() == new_title.strip().lower():
+            heading.decompose()
+            new_content = str(new_doc)
+
+          # we only care about the first heading so we always break after the first iteration.
+          break
+
       new_node = self.bundle.node(
         id="%s_part%s" % (self.id, index + 1),
         url=self.url,
-        title=titles[index] or self.title,
-        content=parts[index + 1]
+        title=new_title or self.title,
+        content=new_content
       )
 
       # add the new node after this existing node so it's on all the same boards.
