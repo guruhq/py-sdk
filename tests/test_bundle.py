@@ -848,6 +848,7 @@ class TestBundle(unittest.TestCase):
 <br/>- Two
 
 </td>
+
 </tr></table>""")
 
   @use_guru()
