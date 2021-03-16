@@ -128,6 +128,20 @@ def clean_up_html(html):
     if not el.attrs or not el.attrs.get("style"):
       el.unwrap()
   
+  # remove empty blocks. for a block to be empty it has to meet all of these criteria:
+  #
+  #  - contain no visible text.
+  #  - contain either no tags, or only <br> tags.
+  #
+  # the second rule is important otherwise we'll remove paragraphs that contain only an image.
+  for el in doc.select("p, h1, h2, h3, h4, h5, h6"):
+    text = el.text.strip()
+    if not text:
+      tag_count = len(el.select("*"))
+      br_count = len(el.select("br"))
+      if tag_count == br_count:
+        el.decompose()
+
   return str(doc).replace("\\n", "\n").replace("\\'", "'")
 
 def traverse_tree(bundle, func, node=None, parent=None, depth=0, post=False, **kwargs):
@@ -146,17 +160,74 @@ def traverse_tree(bundle, func, node=None, parent=None, depth=0, post=False, **k
       if not node.parents:
         traverse_tree(bundle, func, node, post=post, **kwargs)
 
+def make_spreadsheet(node, parent, depth, rows):
+  # if the 'rows' list is empty, add the headings to it.
+  if not rows:
+    rows.append([
+      "Index",
+      "ID",
+      "External URL",
+      "Type",
+      "Title",
+      "HTML Length",
+      "# of HTML Tags",
+      "# of Essential HTML Tags",
+      "Word Count",
+      "Headings",
+      "Iframes",
+      "All Links",
+      "Guru Card Links",
+      "Guru File Links",
+      "Table Cells",
+      "All Images",
+      "Attached Images"
+    ])
+
+  indent = "    " * min(3, depth)
+  values = [
+    len(rows),
+    node.id,
+    node.url or "",
+    node.type,
+    '"' + indent + node.title + '"'
+  ]
+
+  # for nodes with content we put additional values in the sheet,
+  # like word count, # of headings, # of links, etc.
+  if node.type == CARD:
+    doc = BeautifulSoup(node.content, "html.parser")
+    # these are the tag types that are absolutely essential, otherwise
+    # we're changing what the content looks like. some other tags, like
+    # divs, might be required to format the content correctly, but there's
+    # also a chance that some divs aren't needed.
+    essential_tags = "p, a, img, iframe, table, tr, th, td, h1, h2, h3, h4, h5, h6, ul, ol, li, em, strong, pre, code"
+    values += [
+      len(node.content),                         # html length
+      len(doc.select("*")),                      # number of tags
+      len(doc.select(essential_tags)),           # number of essential tags (p, img, table, etc.)
+      len(re.split("\s+", doc.text)),            # word count
+      len(doc.select("h1, h2, h3, h4, h5, h6")), # number of headings
+      len(doc.select("iframe")),                 # number of iframes
+      len(doc.select("a[href]")),                # all links
+      len(doc.select('a[href^="cards/"]')),      # guru card links,
+      len(doc.select('a[href^="resources/"]')),  # guru file links,
+      len(doc.select("td")),                     # table cells
+      len(doc.select("img")),                    # images
+      len(doc.select('img[src^="resources/"]')), # attached images
+    ]
+
+  rows.append(values)
+
 def make_html_tree(node, parent, depth, html_pieces):
   """This builds the board/card tree in the HTML preview page."""
-  indent = "&nbsp;&nbsp;" * min(3, depth)
   if node.type == CARD:
     url = node.bundle.CARD_HTML_PATH % (node.bundle.id, node.id)
     html_pieces.append(
-      '<a href="%s" data-original-url="%s" target="iframe">%s%s (%s)</a>' % (url, node.url, indent, node.title, node.type)
+      '<a href="%s" data-depth="%s" data-original-url="%s" target="iframe">%s (%s)</a>' % (url, depth, node.url, node.title, node.type)
     )
   else:
     html_pieces.append(
-      '<div>%s%s (%s)</div>' % (indent, node.title, node.type)
+      '<div data-depth="%s">%s (%s)</div>' % (depth, node.title, node.type)
     )
 
 def print_node(node, parent, depth):
@@ -923,6 +994,20 @@ class Bundle:
       is_sync=is_sync
     )
   
+  def build_spreadsheet(self):
+    rows = []
+    traverse_tree(self, make_spreadsheet, rows=rows)
+
+    # after the traversal, rows is a list of lists. we have to convert:
+    # - the values to strings.
+    # - the values to tab-delimited rows.
+    # - the rows to be newline-delimited.
+    return "\n".join([
+      "\t".join([
+        str(value).replace("`", "") for value in row
+      ]) for row in rows
+    ])
+
   def view_in_browser(self, open_browser=True):
     """
     This generates an HTML page that shows the .html files in an iframe
@@ -930,6 +1015,8 @@ class Bundle:
     """
     html_pieces = []
     traverse_tree(self, make_html_tree, html_pieces=html_pieces)
+
+    spreadsheet = self.build_spreadsheet()
     html = """<!doctype html>
 <html>
   <head>
@@ -951,16 +1038,23 @@ class Bundle:
 
       #tree {
         padding: 10px;
-        height: 100%%;
+        height: calc(100%% - 70px);
         overflow: auto;
         box-sizing: border-box;
-        padding-bottom: 30px;
         max-width: 400px;
       }
       #tree > * {
         display: block;
         padding: 2px;
       }
+
+      /* this covers depth=3 or higher. */
+      [data-depth] { margin-left: 45px; }
+
+      [data-depth="0"] { margin-left: 0px; }
+      [data-depth="1"] { margin-left: 15px; }
+      [data-depth="2"] { margin-left: 30px; }
+
       iframe {
         flex-grow: 1;
         max-width: 734px;
@@ -985,10 +1079,24 @@ class Bundle:
         color: #fff;
       }
 
+      #copy-spreadsheet {
+        border: 0;
+        outline: 0;
+        background: #44f;
+        color: #fff;
+        font-weight: bold;
+        padding: 8px 12px;
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        cursor: pointer;
+      }
+
     </style>
   </head>
   <body>
     <div id="tree">%s</div>
+    <button id="copy-spreadsheet">Copy Spreadsheet</button>
     <iframe name="iframe" src=""></iframe>
     <iframe id="source" style="display: none" src=""></iframe>
     <script>
@@ -1040,10 +1148,47 @@ class Bundle:
       };
       next();
 
+      var spreadsheet = `%s`;
+      var copyButton = document.getElementById("copy-spreadsheet");
+      var copyTimeout;
+      copyButton.onclick = function() {
+        var textarea = document.createElement("textarea");
+        textarea.value = spreadsheet;
+
+        // avoid scrolling to bottom.
+        textarea.style.top = "0";
+        textarea.style.left = "0";
+        textarea.style.position = "fixed";
+
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        var successful = false;
+        try {
+            successful = document.execCommand("copy");
+        } catch (err) {
+        }
+
+        document.body.removeChild(textarea);
+
+        copyButton.innerHTML = "Spreadsheet Copied!";
+        if (copyTimeout) {
+          clearTimeout(copyTimeout);
+        }
+        copyTimeout = setTimeout(function() {
+          copyButton.innerHTML = "Copy Spreadsheet";
+        }, 1500);
+      };
+
+      if (!spreadsheet) {
+        copyButton.style.display = "none";
+      }
+
     </script>
   </body>
 </html>
-""" % "".join(html_pieces)
+""" % ("".join(html_pieces), spreadsheet)
 
     write_file(self.CARD_PREVIEW_PATH % self.id, html)
     if open_browser:

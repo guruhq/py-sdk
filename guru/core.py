@@ -812,6 +812,11 @@ class Guru:
       except:
         return None
 
+  def get_visible_cards(self):
+    url = "%s/search/visible" % self.base_url
+    response = self.__get(url)
+    return response.headers.get("x-guru-total-cards")
+
   def get_card_version(self, card, version):
     """
     Loads a previous version of a card.
@@ -1650,7 +1655,7 @@ class Guru:
     if not team_id:
       self.__log(make_red("couldn't find your Team ID, are you authenticated?"))
       return
-    
+
     url = "%s/teams/%s/analytics?fromDate=%s&toDate=%s" % (
       self.base_url,
       team_id,
