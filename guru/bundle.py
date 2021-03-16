@@ -171,6 +171,7 @@ def make_spreadsheet(node, parent, depth, rows):
       "Title",
       "HTML Length",
       "# of HTML Tags",
+      "# of Essential HTML Tags",
       "Word Count",
       "Headings",
       "Iframes",
@@ -195,9 +196,15 @@ def make_spreadsheet(node, parent, depth, rows):
   # like word count, # of headings, # of links, etc.
   if node.type == CARD:
     doc = BeautifulSoup(node.content, "html.parser")
+    # these are the tag types that are absolutely essential, otherwise
+    # we're changing what the content looks like. some other tags, like
+    # divs, might be required to format the content correctly, but there's
+    # also a chance that some divs aren't needed.
+    essential_tags = "p, a, img, iframe, table, tr, th, td, h1, h2, h3, h4, h5, h6, ul, ol, li, em, strong, pre, code"
     values += [
       len(node.content),                         # html length
       len(doc.select("*")),                      # number of tags
+      len(doc.select(essential_tags)),           # number of essential tags (p, img, table, etc.)
       len(re.split("\s+", doc.text)),            # word count
       len(doc.select("h1, h2, h3, h4, h5, h6")), # number of headings
       len(doc.select("iframe")),                 # number of iframes
@@ -997,7 +1004,7 @@ class Bundle:
     # - the rows to be newline-delimited.
     return "\n".join([
       "\t".join([
-        str(value) for value in row
+        str(value).replace("`", "") for value in row
       ]) for row in rows
     ])
 
@@ -1041,14 +1048,12 @@ class Bundle:
         padding: 2px;
       }
 
+      /* this covers depth=3 or higher. */
+      [data-depth] { margin-left: 45px; }
+
+      [data-depth="0"] { margin-left: 0px; }
       [data-depth="1"] { margin-left: 15px; }
       [data-depth="2"] { margin-left: 30px; }
-      [data-depth="3"] { margin-left: 45px; }
-      [data-depth="4"] { margin-left: 60px; }
-      [data-depth="5"] { margin-left: 75px; }
-      [data-depth="6"] { margin-left: 90px; }
-      [data-depth="7"] { margin-left: 105px; }
-      [data-depth="8"] { margin-left: 120px; }
 
       iframe {
         flex-grow: 1;
