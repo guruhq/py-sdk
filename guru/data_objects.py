@@ -456,13 +456,8 @@ class Card:
     if self.has_tag(tag):
       return True
     
-    tag_object = self.guru.get_tag(tag)
-    if tag_object:
-      self.tags.append(tag_object)
-      return True
-    else:
-      # todo: if create is True, make the tag.
-      return False
+    tag_object = self.guru.add_tag_to_card(tag, self, create=create)
+    self.tags.append(tag_object)
 
   def comment(self, comment):
     return self.guru.add_comment_to_card(self, comment)

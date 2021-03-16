@@ -241,3 +241,8 @@ class TestCore(unittest.TestCase):
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_make_card(self, g):
+    pass
