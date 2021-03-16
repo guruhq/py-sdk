@@ -806,7 +806,10 @@ class TestBundle(unittest.TestCase):
 <p style="border-top: 1px solid #000">
   <span style="margin: 50px; color: #44f; background: yellow">Some of these styles should be kept.</span>
   <a href="mailto:user@example.com">user@example.com</a>
+  <a name="test">no href</a>
 </p>
+<p><br></p>
+<p><img src="https://www.example.com/test"/></p>
 <table>
   <caption>test</caption>
   <tr>
@@ -837,7 +840,10 @@ class TestBundle(unittest.TestCase):
 <p>
 <span style="color:#44f;background:yellow">Some of these styles should be kept.</span>
 <a href="mailto:user@example.com">user@example.com</a>
+<a>no href</a>
 </p>
+
+<p><img src="https://www.example.com/test"/></p>
 <table>
 
 <tr>
@@ -1247,3 +1253,36 @@ class TestBundle(unittest.TestCase):
       "Title": "node 2"
     })
     self.assertEqual(read_html("/tmp/test_splitting_a_node_twice/cards/2_part2.html"), "<table><tr><td>third card</td></tr></table>")
+
+  @use_guru()
+  def test_removing_a_node(self, g):
+    sync = g.bundle("test_removing_a_node")
+
+    # make two nodes, one with content, and add that one to the other.
+    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
+    node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2", content="card content")
+    node2.add_to(node1)
+    node2.remove()
+    sync.zip()
+
+    self.assertEqual(read_yaml("/tmp/test_removing_a_node/collection.yaml"), {
+      "Title": "test",
+      "Tags": [],
+      "Items": [{
+        "ID": "1",
+        "Title": "node 1",
+        "Type": "board"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_removing_a_node/boards/1.yaml"), {
+      "ExternalId": "1",
+      "ExternalUrl": "https://www.example.com/1",
+      "Title": "node 1",
+      "Items": []
+    })
+
+    # assert these files don't exist.
+    with self.assertRaises(FileNotFoundError):
+      read_html("/tmp/test_removing_a_node/cards/2.html")
+    with self.assertRaises(FileNotFoundError):
+      read_html("/tmp/test_removing_a_node/cards/2.yaml")

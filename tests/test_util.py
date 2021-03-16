@@ -56,3 +56,17 @@ class TestUtil(unittest.TestCase):
     guru.clear_dir("/tmp/this_does_not_exist/test")
     guru.read_file("/tmp/this_does_not_exist")
     guru.copy_file("/tmp/this_does_not_exist/a", "/tmp/this_does_not_exist/b")
+
+  @responses.activate
+  def test_character_encoding_edge_cases(self):
+    responses.add(responses.GET, "https://www.example.com/test1", body="test1")
+    test1 = guru.http_get("https://www.example.com/test1", cache=False)
+    self.assertEqual(test1, "test1")
+
+    responses.add(responses.GET, "https://www.example.com/test2", body="Yes 👍")
+    test2 = guru.http_get("https://www.example.com/test2", cache=False)
+    self.assertEqual(test2, "Yes 👍")
+
+    responses.add(responses.GET, "https://www.example.com/test3", body="háček señor Chișinău")
+    test3 = guru.http_get("https://www.example.com/test3", cache=False)
+    self.assertEqual(test3, "háček señor Chișinău")

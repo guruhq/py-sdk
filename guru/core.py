@@ -815,7 +815,7 @@ class Guru:
   def get_visible_cards(self):
     url = "%s/search/visible" % self.base_url
     response = self.__get(url)
-    return response.headers.get("x-guru-total-cards")
+    return int(response.headers.get("x-guru-total-cards"))
 
   def get_card_version(self, card, version):
     """

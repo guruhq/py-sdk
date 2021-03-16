@@ -58,7 +58,7 @@ def http_get(url, cache=False, headers=None):
   # todo: figure out a better way to handle this.
   #       this code was originally needed for gitlab's sync but causes issues in other ones.
   # html = response.content.decode("utf-8").encode("ascii", "ignore")
-  html = str(response.content)
+  html = response.content.decode("utf-8")
   write_file(cached_file, html)
   
   return html

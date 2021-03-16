@@ -103,15 +103,24 @@ class TestCore(unittest.TestCase):
       ]
     })
 
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard3/extended", json={
+      "verifiers": []
+    })
+
     # this should trigger the GET call we're expecting.
     card1 = g.get_card("mycard1")
     card2 = g.get_card("mycard2")
+    card3 = g.get_card("mycard3")
 
     self.assertEqual(card1.verifiers[0].type, "user")
     self.assertEqual(card1.verifiers[0].user.email, "jchappelle@getguru.com")
+    self.assertEqual(card1.verifier_label, "jchappelle@getguru.com")
 
     self.assertEqual(card2.verifiers[0].type, "user-group")
     self.assertEqual(card2.verifiers[0].group.name, "Customer Experience")
+    self.assertEqual(card2.verifier_label, "Customer Experience")
+
+    self.assertEqual(card3.verifier_label, "no verifier")
 
   @use_guru()
   @responses.activate
@@ -875,3 +884,18 @@ class TestCore(unittest.TestCase):
     # check for html attributes.
     self.assertEqual(card.has_text("class", case_sensitive=False), False)
     self.assertEqual(card.has_text("href", case_sensitive=False), False)
+
+  @use_guru()
+  @responses.activate
+  def test_get_visible_cards(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/search/visible", headers={
+      "x-guru-total-cards": "1234"
+    })
+
+    card_count = g.get_visible_cards()
+
+    self.assertEqual(card_count, 1234)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/search/visible"
+    }])
