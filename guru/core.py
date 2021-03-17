@@ -1202,7 +1202,7 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
-  def get_tag(self, tag):
+  def get_tag(self, tag, cache=False):
     """
     Gets a tag.
 
@@ -1218,7 +1218,7 @@ class Guru:
     if isinstance(tag, Tag):
       return tag
 
-    tags = self.get_tags()
+    tags = self.get_tags(cache=cache)
     for t in tags:
       if t.value.lower() == tag.lower() or t.id.lower() == tag.lower():
         return t
@@ -1228,7 +1228,7 @@ class Guru:
     response = self.__get(url, cache=cache)
     return response.json().get("team", {}).get("id")
 
-  def get_tags(self):
+  def get_tags(self, cache=False):
     # https://api.getguru.com/api/v1/teams/014dc5f6-9488-43fe-a892-206d276a7a9c/tagcategories/
     url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
 
@@ -1239,12 +1239,28 @@ class Guru:
     #     "id": "abcd1234",
     #     "name": "category"
     #   }
-    response = self.__get(url)
+    response = self.__get(url, cache=cache)
 
     tags = []
     for tag_category in response.json():
       tags += [Tag(t) for t in tag_category.get("tags", [])]
     return tags
+
+  def get_tag_category(self, category="Tags"):
+    url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
+    response = self.__get(url, cache=True)
+    for tag_category in response.json():
+      if tag_category["name"].lower() == category.lower():
+        return tag_category.get("id")
+
+  def make_tag(self, tag):
+    data = {
+      "categoryId": self.get_tag_category(),
+      "value": tag
+    }
+    url = "%s/teams/%s/tagcategories/tags" % (self.base_url, self.get_team_id())
+    response = self.__post(url, data)
+    return Tag(response.json())
 
   def delete_tag(self, tag):
     """
@@ -1300,6 +1316,37 @@ class Guru:
     }
     response = self.__post(url, data)
     return status_to_bool(response.status_code)
+
+  def add_tag_to_card(self, tag, card, create=False):
+    """
+    Adds a tag to a card using the PUT call to do just this, rather than
+    using the PUT call to update an entire card.
+
+    Args:
+      tag (str or Tag): A Tag's value, ID, or the Tag object.
+      card (str or Card): A card's slug, ID, or the Card object.
+
+    Returns:
+      Tag: The Tag object in case this was a newly created tag and you need
+        to use that object. Will return None if it was unsuccessful.
+    """
+    tag_object = self.get_tag(tag)
+    if not tag_object and create:
+      tag_object = self.make_tag(tag)
+
+    if not tag_object:
+      self.__log(make_red("could not find tag:", tag))
+      return
+
+    card_object = self.get_card(card)
+    if not card_object:
+      self.__log(make_red("could not find card:", card))
+      return
+
+    url = "%s/cards/%s/tags/%s" % (self.base_url, card_object.id, tag_object.id)
+    response = self.__put(url)
+    if status_to_bool(response.status_code):
+      return tag_object
 
   def get_board(self, board, collection=None, cache=True):
     """
