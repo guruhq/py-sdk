@@ -1,11 +1,22 @@
 
 import json
+import requests
 
 from guru.util import read_file, write_file
 
 
+def is_successful(result):
+  """
+  result could either be a boolean or the response object.
+  """
+  if isinstance(result, requests.models.Response):
+    return int(response.status_code / 100) == 2
+  else:
+    return result
+
+
 class Publisher:
-  def __init__(self, g, name="", metadata=None, silent=False):
+  def __init__(self, g, name="", metadata=None, silent=False, dry_run=False):
     self.g = g
     self.name = name or self.__class__.__name__
 
@@ -20,6 +31,7 @@ class Publisher:
         self.__metadata = {}
     
     self.silent = silent
+    self.dry_run = dry_run
     self.__results = {}
 
   def get_external_url(self, external_id, card):
@@ -161,18 +173,29 @@ class Publisher:
     # call create/update/delete_collection as needed.
     external_id = self.get_external_id(collection.id)
 
-    # todo: if we don't have an external_id, call find_external_collection to try to find it.
+    # if we don't have an external_id, call find_external_collection to try to find it.
+    if not external_id:
+      self.__log("find collection", collection.name)
+      external_id = self.find_external_collection(collection)
+      if external_id:
+        self.__log("found collection!", collection.name, "->", external_id)
 
+    successful = False
     if external_id:
       self.__results[collection.id] = "update"
       self.__log("update collection", external_id, collection.title)
-      self.update_external_collection(external_id, collection)
+      if not self.dry_run:
+        result = self.update_external_collection(external_id, collection)
+        successful = is_successful(result)
     else:
       self.__results[collection.id] = "create"
       self.__log("create collection", collection.title)
-      external_id = self.create_external_collection(collection)
+      if not self.dry_run:
+        external_id = self.create_external_collection(collection)
+        if external_id:
+          successful = True
     
-    if external_id:
+    if successful:
       self.__update_metadata(collection.id, external_id, type="collection")
     
     for item in home_board.items:
@@ -191,18 +214,29 @@ class Publisher:
     # call create/update/delete_board_group as needed.
     external_id = self.get_external_id(board_group.id)
 
-    # todo: if we don't have an external_id, call find_external_board_group to try to find it.
+    # if we don't have an external_id, call find_external_board_group to try to find it.
+    if not external_id:
+      self.__log("find board group", board_group.title)
+      external_id = self.find_external_board_group(board_group)
+      if external_id:
+        self.__log("found board_group!", board_group.title, "->", external_id)
 
+    successful = False
     if external_id:
       self.__results[board_group.id] = "update"
       self.__log("update board group", external_id, board_group.title)
-      self.update_external_board_group(external_id, board_group, collection)
+      if not self.dry_run:
+        result = self.update_external_board_group(external_id, board_group, collection)
+        successful = is_successful(result)
     else:
       self.__results[board_group.id] = "create"
       self.__log("create board group", board_group.title)
-      external_id = self.create_external_board_group(board_group, collection)
+      if not self.dry_run:
+        external_id = self.create_external_board_group(board_group, collection)
+        if external_id:
+          successful = True
     
-    if external_id:
+    if successful:
       self.__update_metadata(board_group.id, external_id, type="board_group")
 
     for item in board_group.items:
@@ -220,18 +254,29 @@ class Publisher:
     # call create/update/delete_board as needed.
     external_id = self.get_external_id(board.id)
 
-    # todo: if we don't have an external_id, call find_external_board to try to find it.
+    # if we don't have an external_id, call find_external_board to try to find it.
+    if not external_id:
+      self.__log("find board", board.title)
+      external_id = self.find_external_board(board)
+      if external_id:
+        self.__log("found board!", board.title, "->", external_id)
 
+    successful = False
     if external_id:
       self.__results[board.id] = "update"
       self.__log("update board", external_id, board.title)
-      self.update_external_board(external_id, board, board_group, collection)
+      if not self.dry_run:
+        result = self.update_external_board(external_id, board, board_group, collection)
+        successful = is_successful(result)
     else:
       self.__results[board.id] = "create"
       self.__log("create board", board.title)
-      external_id = self.create_external_board(board, board_group, collection)
+      if not self.dry_run:
+        external_id = self.create_external_board(board, board_group, collection)
+        if external_id:
+          successful = True
     
-    if external_id:
+    if successful:
       self.__update_metadata(board.id, external_id, type="board")
     
     for item in board.items:
@@ -246,18 +291,29 @@ class Publisher:
     # call create/update/delete_section as needed.
     external_id = self.get_external_id(section.id)
 
-    # todo: if we don't have an external_id, call find_external_section to try to find it.
+    # if we don't have an external_id, call find_external_section to try to find it.
+    if not external_id:
+      self.__log("find section", section.title)
+      external_id = self.find_external_section(section)
+      if external_id:
+        self.__log("found section!", section.title, "->", external_id)
 
+    successful = False
     if external_id:
       self.__results[section.id] = "update"
       self.__log("update section", external_id, section.title)
-      self.update_external_section(external_id, section, board, board_group, collection)
+      if not self.dry_run:
+        result = self.update_external_section(external_id, section, board, board_group, collection)
+        successful = is_successful(result)
     else:
       self.__results[section.id] = "create"
       self.__log("create section", section.title)
-      external_id = self.create_external_section(section, board, board_group, collection)
+      if not self.dry_run:
+        external_id = self.create_external_section(section, board, board_group, collection)
+        if external_id:
+          successful = True
     
-    if external_id:
+    if successful:
       self.__update_metadata(section.id, external_id, type="section")
 
     for item in section.items:
@@ -299,16 +355,22 @@ class Publisher:
       if external_id:
         self.__log("found card!", card.title, "->", external_id)
     
+    successful = False
     if external_id:
       self.__results[card.id] = "update"
       self.__log("update card", external_id, card.title)
-      self.update_external_card(external_id, card, section, board, board_group, collection)
+      if not self.dry_run:
+        result = self.update_external_card(external_id, card, section, board, board_group, collection)
+        successful = is_successful(result)
     else:
       self.__results[card.id] = "create"
       self.__log("create card", card.title)
-      external_id = self.create_external_card(card, section, board, board_group, collection)
+      if not self.dry_run:
+        external_id = self.create_external_card(card, section, board, board_group, collection)
+        if external_id:
+          successful = True
     
-    if external_id:
+    if successful:
       self.__update_metadata(
         card.id,
         external_id,
