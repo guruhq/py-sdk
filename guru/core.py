@@ -1157,6 +1157,46 @@ class Guru:
     comments = [CardComment(c, card=card_obj, guru=self) for c in comments]
     return comments
 
+  def get_open_card_comments(self, card):
+    """
+    Gets all open comments on a card.
+
+    Args:
+      card (str): The name or ID of the card.
+    
+    Returns:
+      list of CardComment: The card's comments.
+    """
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+    
+    url = "%s/cards/%s/comments?status=OPEN" % (self.base_url, card_obj.id)
+    comments = self.__get_and_get_all(url)
+    comments = [CardComment(c, card=card_obj, guru=self) for c in comments]
+    return comments
+
+  def get_resolved_card_comments(self, card):
+    """
+    Gets all resolved comments on a card.
+
+    Args:
+      card (str): The name or ID of the card.
+    
+    Returns:
+      list of CardComment: The card's comments.
+    """
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+    
+    url = "%s/cards/%s/comments?status=RESOLVED" % (self.base_url, card_obj.id)
+    comments = self.__get_and_get_all(url)
+    comments = [CardComment(c, card=card_obj, guru=self) for c in comments]
+    return comments
+
   def update_card_comment(self, comment_obj):
     """
     Updates a card comment.
@@ -1172,6 +1212,36 @@ class Guru:
     response = self.__put(url, comment_obj.json())
     if status_to_bool(response.status_code):
       return CardComment(response.json(), card=comment_obj.card, guru=self)
+
+  def resolve_card_comment(self, comment_obj):
+    """
+    Resolves a card comment.
+
+    Args:
+      comment_obj (CardComment): The CardComment object to be resolved.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    # https://api.getguru.com/api/v1/cards/a0201644-5dcf-4a90-868c-fb5e4981aa17/comments/2ecb2e09-e78a-4de8-90ac-f075e1cf6447/resolve
+    url = "%s/cards/%s/comments/%s/resolve" % (self.base_url, comment_obj.card.id, comment_obj.id)
+    response = self.__put(url)
+    return status_to_bool(response.status_code)
+
+  def reopen_card_comment(self, comment_obj):
+    """
+    Reopens a card comment, putting it back in the Open comment box.
+
+    Args:
+      comment_obj (CardComment): The CardComment object to be resolved.
+    
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    # https://api.getguru.com/api/v1/cards/a0201644-5dcf-4a90-868c-fb5e4981aa17/comments/2ecb2e09-e78a-4de8-90ac-f075e1cf6447/resolve
+    url = "%s/cards/%s/comments/%s/unresolve" % (self.base_url, comment_obj.card.id, comment_obj.id)
+    response = self.__put(url)
+    return status_to_bool(response.status_code)
 
   def delete_card_comment(self, card, comment_id):
     """
