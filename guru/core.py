@@ -1137,12 +1137,13 @@ class Guru:
     response = self.__post(url, data)
     return CardComment(response.json(), card=card_obj, guru=self)
 
-  def get_card_comments(self, card):
+  def get_card_comments(self, card, status=None):
     """
     Gets all comments on a card.
 
     Args:
       card (str): The name or ID of the card.
+      status (str): Either OPEN or RESOLVED, for the respective comment spaces of the card.
     
     Returns:
       list of CardComment: The card's comments.
@@ -1151,48 +1152,10 @@ class Guru:
     if not card_obj:
       self.__log(make_red("could not find card:", card))
       return
-    
-    url = "%s/cards/%s/comments" % (self.base_url, card_obj.id)
-    comments = self.__get_and_get_all(url)
-    comments = [CardComment(c, card=card_obj, guru=self) for c in comments]
-    return comments
-
-  def get_open_card_comments(self, card):
-    """
-    Gets all open comments on a card.
-
-    Args:
-      card (str): The name or ID of the card.
-    
-    Returns:
-      list of CardComment: The card's comments.
-    """
-    card_obj = self.get_card(card)
-    if not card_obj:
-      self.__log(make_red("could not find card:", card))
-      return
-    
-    url = "%s/cards/%s/comments?status=OPEN" % (self.base_url, card_obj.id)
-    comments = self.__get_and_get_all(url)
-    comments = [CardComment(c, card=card_obj, guru=self) for c in comments]
-    return comments
-
-  def get_resolved_card_comments(self, card):
-    """
-    Gets all resolved comments on a card.
-
-    Args:
-      card (str): The name or ID of the card.
-    
-    Returns:
-      list of CardComment: The card's comments.
-    """
-    card_obj = self.get_card(card)
-    if not card_obj:
-      self.__log(make_red("could not find card:", card))
-      return
-    
-    url = "%s/cards/%s/comments?status=RESOLVED" % (self.base_url, card_obj.id)
+    if status:
+      url = "%s/cards/%s/comments?status=%s" % (self.base_url, card_obj.id, status)
+    else:
+      url = "%s/cards/%s/comments" % (self.base_url, card_obj.id)
     comments = self.__get_and_get_all(url)
     comments = [CardComment(c, card=card_obj, guru=self) for c in comments]
     return comments

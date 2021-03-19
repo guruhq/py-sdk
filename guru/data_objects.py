@@ -462,6 +462,12 @@ class Card:
   def comment(self, comment):
     return self.guru.add_comment_to_card(self, comment)
 
+  def get_open_card_comments(self):
+    return self.guru.get_card_comments(self, status="OPEN")
+
+  def get_resolved_card_comments(self):
+    return self.guru.get_card_comments(self, status="RESOLVED")
+
   def add_to_board(self, board, section=None):
     return self.guru.add_card_to_board(self, board, section)
 

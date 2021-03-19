@@ -262,7 +262,8 @@ class TestCore(unittest.TestCase):
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222/resolve")
   
 
-    open_comments = g.get_open_card_comments("1111")
+    card = g.get_card("1111")
+    open_comments = card.get_open_card_comments()
     open_comments[0].resolve()
 
     self.assertEqual(get_calls(), [{
@@ -287,8 +288,9 @@ class TestCore(unittest.TestCase):
     }])
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222/unresolve")
 
-    comments = g.get_resolved_card_comments("1111")
-    comments[0].unresolve()
+    card = g.get_card("1111")
+    resolved_comments = card.get_resolved_card_comments()
+    resolved_comments[0].unresolve()
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
