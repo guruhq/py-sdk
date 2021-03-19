@@ -252,6 +252,57 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_resolve_card_comment(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/comments?status=OPEN", json=[{
+      "id": "2222"
+    }])
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222/resolve")
+  
+
+    open_comments = g.get_open_card_comments("1111")
+    open_comments[0].resolve()
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments?status=OPEN"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments/2222/resolve"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_reopen_card_comment(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/comments?status=RESOLVED", json=[{
+      "id": "2222"
+    }])
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222/unresolve")
+
+    comments = g.get_resolved_card_comments("1111")
+    comments[0].unresolve()
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments?status=RESOLVED"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments/2222/unresolve"
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_delete_card_comment(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"

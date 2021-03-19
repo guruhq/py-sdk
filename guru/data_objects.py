@@ -520,6 +520,12 @@ class CardComment:
 
   def delete(self):
     return self.guru.delete_card_comment(self.card.id, self.id)
+
+  def resolve(self):
+    return self.guru.resolve_card_comment(self)
+
+  def unresolve(self):
+    return self.guru.reopen_card_comment(self)
   
   def save(self):
     return self.guru.update_card_comment(self)
