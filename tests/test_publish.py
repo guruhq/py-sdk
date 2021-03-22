@@ -17,16 +17,34 @@ class PublisherTest(guru.Publisher):
   so we can do assertions on these values later.
   """
 
-  def __init__(self, g, metadata=None):
+  def __init__(self, g, metadata=None, external_data=None, dry_run=False):
     self.calls = []
-    super().__init__(g, metadata=metadata, silent=True)
+    self.external_data = external_data or []
+    super().__init__(g, metadata=metadata, silent=True, dry_run=dry_run)
 
   def get_external_url(self, external_id, card):
     self.calls.append("get external url %s" % card.title)
     return "https://www.example.com/%s" % external_id
 
+  def find_external_collection(self, collection):
+    self.calls.append("find collection %s" % collection.name)
+    return collection.id[0:4] if collection.name in self.external_data else ""
+
+  def find_external_board_group(self, board_group):
+    self.calls.append("find board group %s" % board_group.title)
+    return board_group.id[0:4] if board_group.title in self.external_data else ""
+
+  def find_external_board(self, board):
+    self.calls.append("find board %s" % board.title)
+    return board.id[0:4] if board.title in self.external_data else ""
+
+  def find_external_section(self, section):
+    self.calls.append("find section %s" % section.title)
+    return section.id[0:4] if section.title in self.external_data else ""
+
   def find_external_card(self, card):
     self.calls.append("find card %s" % card.title)
+    return card.id[0:4] if card.title in self.external_data else ""
 
   # crud operations for cards
   def create_external_card(self, card, section, board, board_group, collection):
@@ -96,7 +114,7 @@ class PublisherTest(guru.Publisher):
     self.calls.append("delete collection %s" % external_id)
 
 
-@unittest.skipUnless(os.environ.get("E2E"), "end-to-end tests not enabled")
+@unittest.skipUnless(os.environ.get("PUB"), "publishing tests not enabled")
 class TestPublish(unittest.TestCase):
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_publishing_a_collection(self, g):
@@ -104,21 +122,28 @@ class TestPublish(unittest.TestCase):
     publisher.publish_collection("Engineering")
 
     self.assertEqual(publisher.calls, [
+      "find collection Engineering",
       "create collection Engineering",
+      "find board Other Docs",
       "create board Other Docs",
       "find card Onboarding",
       "create card Onboarding",
+      "find board group API Docs",
       "create board group API Docs",
+      "find board API",
       "create board API",
+      "find section General Information",
       "create section General Information",
       "get external url Pagination",
       "find card Authentication",
       "create card Authentication",
       "find card Pagination",
       "create card Pagination",
+      "find section User & Groups",
       "create section User & Groups",
       "find card Inviting Users",
       "create card Inviting Users",
+      "find board SDK",
       "create board SDK",
       "get external url Authentication",
       "find card Getting Started with the SDK",
@@ -131,13 +156,16 @@ class TestPublish(unittest.TestCase):
     publisher.publish_board("KTgKBoGT")
 
     self.assertEqual(publisher.calls, [
+      "find board API",
       "create board API",
+      "find section General Information",
       "create section General Information",
       "get external url Pagination",
       "find card Authentication",
       "create card Authentication",
       "find card Pagination",
       "create card Pagination",
+      "find section User & Groups",
       "create section User & Groups",
       "find card Inviting Users",
       "create card Inviting Users"
@@ -157,6 +185,7 @@ class TestPublish(unittest.TestCase):
     publisher.publish_board("9cxgG7jc")
 
     self.assertEqual(publisher.calls, [
+      "find board SDK",
       "create board SDK",
       "get external url Authentication",
       "update card Getting Started with the SDK"
@@ -179,6 +208,7 @@ class TestPublish(unittest.TestCase):
     publisher.publish_board("9cxgG7jc")
 
     self.assertEqual(publisher.calls, [
+      "find board SDK",
       "create board SDK"
     ])
 
@@ -215,6 +245,11 @@ class TestPublish(unittest.TestCase):
         "external_id": "6e00",
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
+      "7bc34e16-4854-47bd-bcf1-0b84c3586cfa": {
+        "type": "section",
+        "external_id": "7bc3",
+        "last_updated": "2020-01-01T00:00:00.000+0000"
+      },
       "d14dfa34-f237-4986-b0b9-ff4a1bb57fa2": {
         "type": "card",
         "external_id": "d14d",
@@ -248,7 +283,7 @@ class TestPublish(unittest.TestCase):
       "get external url Pagination",
       "update card Authentication",
       "update card Pagination",
-      "create section User & Groups",
+      "update section User & Groups",
       "find card Inviting Users",
       "create card Inviting Users",
       "update board SDK",
@@ -294,6 +329,7 @@ class TestPublish(unittest.TestCase):
     publisher.process_deletions()
 
     self.assertEqual(publisher.calls, [
+      "find board SDK",
       "create board SDK",
       "get external url Authentication",
       "find card Getting Started with the SDK",
@@ -317,3 +353,78 @@ class TestPublish(unittest.TestCase):
       publisher.update_external_card(None, None, None, None, None, None)
     with self.assertRaises(NotImplementedError):
       publisher.delete_external_card(None)
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_dry_run(self, g):
+    publisher = PublisherTest(g, metadata={}, dry_run=True)
+    publisher.publish_collection("Engineering")
+
+    self.assertEqual(publisher.calls, [
+      "find collection Engineering",
+      "find board Other Docs",
+      "find card Onboarding",
+      "find board group API Docs",
+      "find board API",
+      "find section General Information",
+      "get external url Pagination",
+      "find card Authentication",
+      "find card Pagination",
+      "find section User & Groups",
+      "find card Inviting Users",
+      "find board SDK",
+      "get external url Authentication",
+      "find card Getting Started with the SDK"
+    ])
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_when_objects_are_found(self, g):
+    # external_data is a list of object names and we pretend they already exist in the external
+    # system so find_external_* will return an ID if the object's name is in this list.
+    external_data = [
+      "Engineering",                 # collection
+      "Other Docs",                  # board
+      "Onboarding",                  # card
+      "API Docs",                    # board group
+      "API",                         # board
+      "General Information",         # section
+      "Authentication",              # card
+      # we leave out this so one card is not found.
+      # "Pagination",                # card
+      "User & Groups",               # section
+      "Inviting Users",              # card
+      "SDK",                         # board
+      "Getting Started with the SDK" # card
+    ]
+
+    publisher = PublisherTest(g, metadata={}, external_data=external_data)
+    publisher.publish_collection("Engineering")
+
+    self.assertEqual(publisher.calls, [
+      "find collection Engineering",
+      "update collection Engineering",
+      "find board Other Docs",
+      "update board Other Docs",
+      "find card Onboarding",
+      "update card Onboarding",
+      "find board group API Docs",
+      "update board group API Docs",
+      "find board API",
+      "update board API",
+      "find section General Information",
+      "update section General Information",
+      "get external url Pagination",
+      "find card Authentication",
+      "update card Authentication",
+      "find card Pagination",
+      # this is a 'create' call because we intentionally left 'Pagination' out of external_data to test this.
+      "create card Pagination",
+      "find section User & Groups",
+      "update section User & Groups",
+      "find card Inviting Users",
+      "update card Inviting Users",
+      "find board SDK",
+      "update board SDK",
+      "get external url Authentication",
+      "find card Getting Started with the SDK",
+      "update card Getting Started with the SDK",
+    ])
