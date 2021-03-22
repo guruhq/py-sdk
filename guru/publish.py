@@ -10,7 +10,7 @@ def is_successful(result):
   result could either be a boolean or the response object.
   """
   if isinstance(result, requests.models.Response):
-    return int(response.status_code / 100) == 2
+    return int(result.status_code / 100) == 2
   else:
     return result
 
