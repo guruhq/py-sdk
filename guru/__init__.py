@@ -31,5 +31,6 @@ from guru.util import (
   write_file,
   read_file,
   copy_file,
-  clear_dir
+  clear_dir,
+  format_timestamp
 )
