@@ -27,6 +27,7 @@ from guru.util import (
   MAX_FILE_SIZE,
   load_html,
   http_get,
+  http_post,
   download_file,
   write_file,
   read_file,

@@ -64,6 +64,24 @@ def http_get(url, cache=False, headers=None):
   
   return html
 
+def http_post(url, data=None, cache=False, headers=None):
+  """Makes an HTTP POST request and returns the body content."""
+  if not headers:
+    headers = {}
+
+  non_alphanumeric = re.compile("[^a-zA-Z0-9]")
+  cached_file = "./cache/%s.html" % non_alphanumeric.sub("", url)
+  if cache:
+    cached_content = read_file(cached_file)
+    if cached_content:
+      return cached_content
+
+  response = requests.post(url, json=data, headers=headers)
+  html = response.content.decode("utf-8")
+  write_file(cached_file, html)
+
+  return html
+
 def download_file(url, filename, headers=None):
   """Downloads an image and saves it as the full filename you provide."""
   response = requests.get(url, headers=headers, allow_redirects=True)
