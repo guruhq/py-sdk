@@ -8,19 +8,12 @@ import pytz
 import guru
 from datetime import datetime
 
+from tests.util import use_guru, get_calls
+
 def read_html(filename):
   with open(filename) as file_in:
     return file_in.read()
 
-def get_calls():
-  calls = []
-  for call in responses.calls:
-    c = {
-      "method": call.request.method,
-      "url": call.request.url
-    }
-    calls.append(c)
-  return calls
 
 class TestUtil(unittest.TestCase):
   @responses.activate
@@ -95,3 +88,28 @@ class TestUtil(unittest.TestCase):
     responses.add(responses.GET, "https://www.example.com/test3", body="háček señor Chișinău")
     test3 = guru.http_get("https://www.example.com/test3", cache=False)
     self.assertEqual(test3, "háček señor Chișinău")
+
+  @responses.activate
+  def test_http_post(self):
+    responses.add(responses.POST, "https://www.example.com/post1", body="post1")
+    post1 = guru.http_post("https://www.example.com/post1", data={}, cache=False)
+    self.assertEqual(post1, "post1")
+
+    responses.add(responses.POST, "https://www.example.com/post2", body="post2")
+    post2 = guru.http_post("https://www.example.com/post2", data=["a"], cache=True)
+    self.assertEqual(post2, "post2")
+
+    # make the same call again but since cache=True, it won't make a call.
+    responses.add(responses.POST, "https://www.example.com/post2", body="post2")
+    post2 = guru.http_post("https://www.example.com/post2", data=["a"], cache=True)
+    self.assertEqual(post2, "post2")
+
+    self.assertEqual(get_calls(), [{
+      "method": "POST",
+      "url": "https://www.example.com/post1",
+      "body": {}
+    }, {
+      "method": "POST",
+      "url": "https://www.example.com/post2",
+      "body": ["a"]
+    }])
