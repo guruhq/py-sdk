@@ -1,5 +1,5 @@
 
-from guru.util import find_by_name_or_id, find_by_id
+from guru.util import find_by_name_or_id, find_by_id, compare_datetime_string
 
 from bs4 import BeautifulSoup
 
@@ -462,6 +462,12 @@ class Card:
   def comment(self, comment):
     return self.guru.add_comment_to_card(self, comment)
 
+  def get_open_card_comments(self):
+    return self.guru.get_card_comments(self, status="OPEN")
+
+  def get_resolved_card_comments(self):
+    return self.guru.get_card_comments(self, status="RESOLVED")
+
   def add_to_board(self, board, section=None):
     return self.guru.add_card_to_board(self, board, section)
 
@@ -520,9 +526,21 @@ class CardComment:
 
   def delete(self):
     return self.guru.delete_card_comment(self.card.id, self.id)
+
+  def resolve(self):
+    return self.guru.resolve_card_comment(self)
+
+  def unresolve(self):
+    return self.guru.reopen_card_comment(self)
   
   def save(self):
     return self.guru.update_card_comment(self)
+  
+  def is_before(self, date, format='%Y-%m-%d'):
+    return compare_datetime_string(self.created_date.split('T')[0], "lt", date_to_compare_against=date, date_str_format=format)
+  
+  def is_after(self, date, format='%Y-%m-%d'):
+    return compare_datetime_string(self.created_date.split('T')[0], "gt", date_to_compare_against=date, date_str_format=format)
   
   def json(self):
     return {
