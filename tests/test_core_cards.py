@@ -333,6 +333,37 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_is_card_comment_before_or_after_specific_date(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/comments?status=OPEN", json=[{
+      "id": "2222",
+      "dateCreated": "2021-03-18T17:29:04.527+0000"
+    }])
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222/resolve")
+  
+
+    card = g.get_card("1111")
+    open_comments = card.get_open_card_comments()
+    
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/comments?status=OPEN"
+    }])
+
+    self.assertTrue(open_comments[0].is_before("2021-03-20"))
+    self.assertFalse(open_comments[0].is_after("2021-03-20"))
+
+
+
+
+  @use_guru()
+  @responses.activate
   def test_archive_invalid_card(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json=None, status=404)
 
