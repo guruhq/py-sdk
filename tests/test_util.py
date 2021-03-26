@@ -3,10 +3,8 @@ import json
 import yaml
 import unittest
 import responses
-import pytz
 
 import guru
-from datetime import datetime
 
 from tests.util import use_guru, get_calls
 
