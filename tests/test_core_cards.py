@@ -563,6 +563,95 @@ class TestCore(unittest.TestCase):
         "collectionIds": []
       }
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_find_verified_or_unverified_cards(self, g):
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/search/cardmgr", json=[])
+
+    # these two are equivalent.
+    g.find_cards(verified=True)
+    g.find_cards(unverified=False)
+
+    # these two are equivalent.
+    g.find_cards(verified=False)
+    g.find_cards(unverified=True)
+
+    # these are contradictory so no filtering is done.
+    g.find_cards(verified=True, unverified=True)
+    g.find_cards(verified=False, unverified=False)
+
+    post_body_verified = {
+      "queryType": None,
+      "sorts": [{
+        "type": "verificationState",
+        "dir": "ASC"
+      }],
+      "query": {
+        "nestedExpressions": [{
+          "type": "trust-state",
+          "verificationState": "TRUSTED",
+          "op": "EQ"
+        }],
+        "op": "AND",
+        "type": "grouping"
+      },
+      "collectionIds": []
+    }
+
+    post_body_unverified = {
+      "queryType": None,
+      "sorts": [{
+        "type": "verificationState",
+        "dir": "ASC"
+      }],
+      "query": {
+        "nestedExpressions": [{
+          "type": "trust-state",
+          "verificationState": "NEEDS_VERIFICATION",
+          "op": "EQ"
+        }],
+        "op": "AND",
+        "type": "grouping"
+      },
+      "collectionIds": []
+    }
+
+    post_body_no_filter = {
+      "queryType": None,
+      "sorts": [{
+        "type": "verificationState",
+        "dir": "ASC"
+      }],
+      "query": None,
+      "collectionIds": []
+    }
+
+    self.assertEqual(get_calls(), [{
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": post_body_verified
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": post_body_verified
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": post_body_unverified
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": post_body_unverified
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": post_body_no_filter
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": post_body_no_filter
+    }])
   
   @use_guru()
   @responses.activate
@@ -609,6 +698,131 @@ class TestCore(unittest.TestCase):
           "type": "grouping"
         },
         "collectionIds": []
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_find_cards_created_in_date_range(self, g):
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/search/cardmgr", json=[])
+
+    g.find_cards(
+      created_after="2021-03-01",
+      created_before="2021-03-15"
+    )
+
+    self.assertEqual(get_calls(), [{
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": {
+        "queryType": None,
+        "sorts": [{
+          "type": "verificationState",
+          "dir": "ASC"
+        }],
+        "query": {
+          "nestedExpressions": [{
+            "type": "absolute-date",
+            "value": "2021-03-15T00:00:00-00:00",
+            "op": "LT",
+            "field": "DATECREATED"
+          }, {
+            "type": "absolute-date",
+            "value": "2021-03-01T00:00:00-00:00",
+            "op": "GTE",
+            "field": "DATECREATED"
+          }],
+          "op": "AND",
+          "type": "grouping"
+        },
+        "collectionIds": []
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_find_cards_by_last_modified(self, g):
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/search/cardmgr", json=[])
+
+    g.find_cards(
+      last_modified_by="user@example.com",
+      last_modified_after="2021-03-01",
+      last_modified_before="2021-03-15"
+    )
+
+    self.assertEqual(get_calls(), [{
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": {
+        "queryType": None,
+        "sorts": [{
+          "type": "verificationState",
+          "dir": "ASC"
+        }],
+        "query": {
+          "nestedExpressions": [{
+            "type": "absolute-date",
+            "value": "2021-03-15T00:00:00-00:00",
+            "op": "LT",
+            "field": "LASTMODIFIED"
+          }, {
+            "type": "absolute-date",
+            "value": "2021-03-01T00:00:00-00:00",
+            "op": "GTE",
+            "field": "LASTMODIFIED"
+          }, {
+            "type": "last-modified-by",
+            "email": "user@example.com",
+            "op": "EQ"
+          }],
+          "op": "AND",
+          "type": "grouping"
+        },
+        "collectionIds": []
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_find_cards_with_multiple_filters(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/search/cardmgr", json=[])
+
+    g.find_cards(collection="General", title="test", author="user@example.com", verified=True)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": {
+        "queryType": None,
+        "sorts": [{
+          "type": "verificationState",
+          "dir": "ASC"
+        }],
+        "query": {
+          "nestedExpressions": [{
+            "type": "title",
+            "value": "test",
+            "op": "CONTAINS"
+          }, {
+            "type": "originalOwner",
+            "email": "user@example.com",
+            "op": "EQ"
+          }, {
+            "type": "trust-state",
+            "verificationState": "TRUSTED",
+            "op": "EQ"
+          }],
+          "op": "AND",
+          "type": "grouping"
+        },
+        "collectionIds": ["1234"]
       }
     }])
 

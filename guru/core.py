@@ -14,7 +14,7 @@ else:
 
 from guru.bundle import Bundle
 from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User
-from guru.util import find_by_name_or_id, find_by_email, find_by_id
+from guru.util import find_by_name_or_id, find_by_email, find_by_id, format_timestamp
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -868,27 +868,47 @@ class Guru:
     if cards:
       return cards[0]
 
-  def find_cards(self, title="", tag="", collection="", archived=False):
+  def find_cards(
+    self, title="", tag="", collection="", author="", verified=None, unverified=None,
+    created_before=None, created_after=None, last_modified_before=None, last_modified_after=None,
+    last_modified_by=None, archived=False
+  ):
     """
     Gets a list of cards that match the criteria defined by the parameters.
-    You can include any combination of title, tag, and collection to
-    filter by a single value or multiple.
+    All parameters are optional. Calling find_cards() selects all cards you
+    have read access to. Parameter may be combined to find cards that match
+    all specified criteria (e.g. cards in a collection that also have the
+    specified tag).
 
     Args:
-      title (str, optional): A title to match against cards. The matching
-        is not case sensitive.
-      tag (str, optional): The name or ID of a tag.
-      collection (str, optional): The name or ID of a collection.
+      title (str, optional): Optional parameter to select cards containing the
+        specified text in their title. Not case sensitive.
+      tag (str, optional): Optional parameter to select cards containing the
+        specified tag. Can be the tag's name or ID.
+      collection (str, optional): Optional parameter to select cards within the
+        specified collection. Can be the collection's name or ID.
+      author (str, optional): Optional parameter to select cards originally created
+        by the specified user (email address).
+      verified (bool, optional): Optional parameter to select only verified cards
+        (verified=True) or unverified cards (verified=False).
+      unverified (bool, optional): Also lets you select only verified or unverified
+        cards, but gives you the option of saying verified=False or unverified=True.
+      created_before (str, optional): Optional parameter to select cards created before
+        a certain date and time.
+      created_after (str, optional): Optional parameter to select cards created after a
+        certain date and time.
+      last_modified_before (str, optional): Optional parameter to select cards last
+        modified before a certain date and time.
+      last_modified_after (str, optional): Optional parameter to select cards last
+        modified after a certain date and time.
+      last_modified_by (str, optional): Optional parameter to select cards last
+        modified by the specified user (email address).
       archived (bool, optional): Sets the query to search archived cards. 
         Can be mixed with title, tag, and/ or collection.
     
     Returns:
       list of Card: The cards that matched the parameters you provided.
     """
-    # todo: look up the tag and get its id.
-    url = "%s/search/cardmgr" % self.base_url
-    # look up the tag and include its id here.
-
     if archived:
       data = {
         "queryType": "archived",
@@ -918,35 +938,100 @@ class Guru:
       data["collectionIds"] = [collection_obj.id]
 
     # if no tag value was passed in, get_tag() will return nothing.
+    nested_expressions = []
     if tag:
       tag_obj = self.get_tag(tag)
       if not tag_obj:
         self.__log(make_red("could not find tag:", tag))
         return []
-      
+
+      nested_expressions.append({
+        "type": "tag",
+        "ids": [tag_obj.id],
+        "op": "EXISTS"
+      })
+
+    if title:
+      nested_expressions.append({
+        "type": "title",
+        "value": title,
+        "op": "CONTAINS"
+      })
+
+    if author:
+      nested_expressions.append({
+        "type": "originalOwner",
+        "email": author,
+        "op": "EQ"
+      })
+
+    # if these are set to the same value that either means they're both
+    # omitted (both = None) or they're contradictory - we interpret
+    # verified=True and unverified=True to mean we select all cards.
+    if verified == unverified:
+      pass
+    elif verified == True or unverified == False:
+      nested_expressions.append({
+        "type": "trust-state",
+        "verificationState": "TRUSTED",
+        "op": "EQ"
+      })
+    elif verified == False or unverified == True:
+      nested_expressions.append({
+        "type": "trust-state",
+        "verificationState": "NEEDS_VERIFICATION",
+        "op": "EQ"
+      })
+
+    # the card manager UI doesn't allow for this, but the API
+    # lets you specify both 'created before' and 'created after'.
+    if created_before:
+      nested_expressions.append({
+        "type": "absolute-date",
+        "value": format_timestamp(created_before),
+        "op": "LT",
+        "field": "DATECREATED"
+      })
+    if created_after:
+      nested_expressions.append({
+        "type": "absolute-date",
+        "value": format_timestamp(created_after),
+        "op": "GTE",
+        "field": "DATECREATED"
+      })
+
+    if last_modified_before:
+      nested_expressions.append({
+        "type": "absolute-date",
+        "value": format_timestamp(last_modified_before),
+        "op": "LT",
+        "field": "LASTMODIFIED"
+      })
+    if last_modified_after:
+      nested_expressions.append({
+        "type": "absolute-date",
+        "value": format_timestamp(last_modified_after),
+        "op": "GTE",
+        "field": "LASTMODIFIED"
+      })
+
+    if last_modified_by:
+      nested_expressions.append({
+        "type": "last-modified-by",
+        "email": last_modified_by,
+        "op": "EQ"
+      })
+
+    if nested_expressions:
       data["query"] = {
-        "nestedExpressions": [
-          {
-            "type": "tag",
-            "ids": [
-              tag_obj.id
-            ],
-            "op": "EXISTS"
-          }
-        ],
+        "nestedExpressions": nested_expressions,
         "op": "AND",
         "type": "grouping"
       }
 
+    url = "%s/search/cardmgr" % self.base_url
     cards = self.__post_and_get_all(url, data)
-    cards = [Card(c, guru=self) for c in cards]
-    if title:
-      filtered_cards = []
-      for c in cards:
-        if c.title.lower() == title.lower():
-          filtered_cards.append(c)
-      cards = filtered_cards
-    return cards
+    return [Card(c, guru=self) for c in cards]
 
   def patch_card(self, card, keep_verification=True):
     """

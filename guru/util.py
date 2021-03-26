@@ -6,6 +6,7 @@ import yaml
 import shutil
 import requests
 import pytz
+import dateutil.parser
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -179,6 +180,15 @@ def find_by_id(lst, id):
   filtered = [x for x in lst if func(x)]
   if filtered:
     return filtered[0]
+
+def format_timestamp(timestamp):
+  """
+  Return a timestamp formatted like: 2021-03-15T00:00:00-04:00
+
+  The input can vary. It might be a shorter value, like just "2021-03-15",
+  or it could be more complete.
+  """
+  return "%s-00:00" % dateutil.parser.parse(timestamp).isoformat()
 
 def compare_datetime_string(date_to_compare, comparison, date_str_format, date_to_compare_against="", tz_aware=False):
   """
