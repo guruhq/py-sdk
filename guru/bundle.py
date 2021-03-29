@@ -16,7 +16,7 @@ if sys.version_info.major >= 3:
 else:
   from urlparse import urljoin
 
-from guru.util import clear_dir, write_file, copy_file, download_file, to_yaml
+from guru.util import clear_dir, write_file, copy_file, download_file, to_yaml, http_post, http_get, load_html
 
 # node types
 NONE = "NONE"
@@ -581,7 +581,7 @@ class BundleNode:
           self.bundle.log(message="checking if we should download attachment", url=absolute_url, file=filename)
 
           # returning True means the file was downloaded so we need to update the src/href.
-          if download_func(absolute_url, filename):
+          if download_func(absolute_url, filename, self.bundle, self):
             self.bundle.log(message="download successful", url=absolute_url, file=filename)
             self.bundle.resources[resource_id] = filename
             element.attrs[attr] = "resources/%s" % resource_id
@@ -843,6 +843,26 @@ class Bundle:
       traverse_tree(self, print_type)
     else:
       traverse_tree(self, print_node)
+
+  def load_html(self, url, cache=False, make_links_absolute=True, headers=None):
+    # todo: figure out if we should log the headers. these could be helpful to have later
+    #       but they could also contain an API key or other sensitive data.
+    self.log(message="calling load_html", url=url, cache=cache, make_links_absolute=make_links_absolute)
+    return load_html(url, cache, make_links_absolute, headers)
+
+  def http_get(self, url, cache=False, headers=None, timeout=0):
+    self.log(message="calling http_get", url=url, cache=cache, timeout=timeout)
+    return http_get(url, cache, headers)
+
+  def http_post(self, url, data=None, cache=False, headers=None, timeout=0):
+    self.log(message="calling http_post", url=url, cache=cache, timeout=timeout)
+    return http_post(url, data, cache, headers)
+
+  def download_file(self, url, filename, headers=None):
+    self.log(message="calling download_file", url=url, filename=filename)
+    status_code, file_size = download_file(url, filename, headers)
+    self.log(message="download complete", url=url, filename=filename, status_code=status_code, file_size=file_size)
+    return status_code, file_size
 
   """
   def download_resource(self, url, headers=None):

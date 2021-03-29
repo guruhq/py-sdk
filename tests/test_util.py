@@ -71,7 +71,7 @@ class TestUtil(unittest.TestCase):
     self.assertEqual(post1, "post1")
 
     responses.add(responses.POST, "https://www.example.com/post2", body="post2")
-    post2 = guru.http_post("https://www.example.com/post2", data=["a"], cache=True)
+    post2 = guru.http_post("https://www.example.com/post2", data=["a"], cache=False)
     self.assertEqual(post2, "post2")
 
     # make the same call again but since cache=True, it won't make a call.

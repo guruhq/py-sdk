@@ -7,8 +7,8 @@ import guru
 # 2. we download images from wikipedia so the resulting guru cards have their
 #    images hosted in guru, rather than referencing the external images.
 
-def get_page(url, include_image=True):
-  doc = guru.load_html(url)
+def get_page(bundle, url, include_image=True):
+  doc = bundle.load_html(url)
 
   # remove elements we don't want in the guru card (right column, footer links, etc.)
   body = doc.select(".mw-parser-output")[0]
@@ -32,9 +32,9 @@ def get_page(url, include_image=True):
 # and, if we should, it goes ahead and downloads it. if you're working with an
 # external system that requires authentication, you may need to add a header to
 # the download_file() call so it's able to access the file.
-def download_file(url, filename):
+def download_file(url, filename, bundle, node):
   if "upload.wikimedia.org" in url:
-    return guru.download_file(url, filename)
+    return bundle.download_file(url, filename)
 
 # these are the urls of the pages we're going to download and turn into guru cards.
 # the cards will be grouped by decade, so the decade labels become sections.
@@ -75,12 +75,12 @@ for era in sorted(albums.keys()):
   section = bundle.node(id=era, title=era).add_to(albums_board)
 
   for url in albums[era]:
-    node = get_page(url)
+    node = get_page(bundle, url)
     node.tags = [era, "album"]
     node.add_to(section)
 
 for url in musicians:
-  get_page(url).add_to(musicians_board)
+  get_page(bundle, url).add_to(musicians_board)
 
 bundle.zip(download_func=download_file)
 bundle.view_in_browser()

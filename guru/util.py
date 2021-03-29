@@ -2,6 +2,7 @@
 import re
 import os
 import sys
+import time
 import yaml
 import shutil
 import requests
@@ -41,7 +42,7 @@ def load_html(url, cache=False, make_links_absolute=True, headers=None):
 
   return doc
 
-def http_get(url, cache=False, headers=None):
+def http_get(url, cache=False, headers=None, timeout=0):
   """Makes an HTTP GET request and returns the body content."""
   if not headers:
     headers = {}
@@ -53,7 +54,22 @@ def http_get(url, cache=False, headers=None):
     if cached_content:
       return cached_content
   
-  response = requests.get(url, headers=headers)
+  start_time = time.time()
+  while True:
+    response = requests.get(url, headers=headers)
+
+    # if we see a 429 response, we wait and try again.
+    # todo: check the response headers to see if they tell us how long to wait for.
+    if response.status_code == 429:
+      if timeout:
+        elapsed = time.time() - start_time
+        if elapsed >= timeout:
+          break
+
+      time.sleep(5)
+      continue
+    else:
+      break
 
   # todo: figure out a better way to handle this.
   #       this code was originally needed for gitlab's sync but causes issues in other ones.
@@ -63,7 +79,7 @@ def http_get(url, cache=False, headers=None):
   
   return html
 
-def http_post(url, data=None, cache=False, headers=None):
+def http_post(url, data=None, cache=False, headers=None, timeout=0):
   """Makes an HTTP POST request and returns the body content."""
   if not headers:
     headers = {}
@@ -75,7 +91,23 @@ def http_post(url, data=None, cache=False, headers=None):
     if cached_content:
       return cached_content
 
-  response = requests.post(url, json=data, headers=headers)
+  start_time = time.time()
+  while True:
+    response = requests.post(url, json=data, headers=headers)
+
+    # if we see a 429 response, we wait and try again.
+    # todo: check the response headers to see if they tell us how long to wait for.
+    if response.status_code == 429:
+      if timeout:
+        elapsed = time.time() - start_time
+        if elapsed >= timeout:
+          break
+
+      time.sleep(5)
+      continue
+    else:
+      break
+
   html = response.content.decode("utf-8")
   write_file(cached_file, html)
 

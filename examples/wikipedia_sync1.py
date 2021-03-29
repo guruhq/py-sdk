@@ -29,7 +29,7 @@ my_favorite_albums = bundle.node(id="albums", title="My Favorite Albums")
 for url in urls:
   # download the page from wikipedia and extract the article's body and title
   # since that's the information we need to make a guru card.
-  doc = guru.load_html(url)
+  doc = bundle.load_html(url)
   body = doc.select(".mw-parser-output")[0]
   title = doc.find(id="firstHeading").text
 
