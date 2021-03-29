@@ -64,6 +64,10 @@ class TestUtil(unittest.TestCase):
     test3 = guru.http_get("https://www.example.com/test3", cache=False)
     self.assertEqual(test3, "háček señor Chișinău")
 
+  def test_format_timestamp(self):
+    self.assertEqual(guru.format_timestamp("2021-03-01"), "2021-03-01T00:00:00-00:00")
+    self.assertEqual(guru.format_timestamp("2021-03-01T01:23:45"), "2021-03-01T01:23:45-00:00")
+
   @responses.activate
   def test_http_post(self):
     responses.add(responses.POST, "https://www.example.com/post1", body="post1")
