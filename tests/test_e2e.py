@@ -1,5 +1,6 @@
 
 import unittest
+import requests
 
 from tests.util import use_guru
 
@@ -500,6 +501,16 @@ class TestEndToEnd(unittest.TestCase):
       "user": "rmiller@getguru.com",
       "eventDate": "2020-09-14T19:54:44.096+0000"
     })
+
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_upload_file(self, g):
+    # write a local text file then try uploading it.
+    guru.write_file("/tmp/upload.txt", "sample file")
+    guru_url = g.upload_file("/tmp/upload.txt")
+
+    # download the file to check that it worked.
+    response = requests.get(guru_url, auth=(SDK_E2E_USER, SDK_E2E_TOKEN))
+    self.assertEqual(response.content.decode("utf-8"), "sample file")
 
 # these are the methods that aren't tested yet:
 # add_users_to_group

@@ -844,25 +844,65 @@ class Bundle:
     else:
       traverse_tree(self, print_node)
 
-  def load_html(self, url, cache=False, make_links_absolute=True, headers=None):
+  def __wait_and_retry(self, status_code, wait):
+    if status_code == 429:
+      # todo: use the response headers to check if they tell us how long to wait.
+      self.log(message="got a 429 response", status_code=status_code, wait=wait)
+      time.sleep(wait)
+      return True
+
+  def load_html(self, url, cache=False, make_links_absolute=True, headers=None, wait=5, timeout=0):
     # todo: figure out if we should log the headers. these could be helpful to have later
     #       but they could also contain an API key or other sensitive data.
     self.log(message="calling load_html", url=url, cache=cache, make_links_absolute=make_links_absolute)
-    return load_html(url, cache, make_links_absolute, headers)
+    while True:
+      doc, status_code = load_html(url, cache, make_links_absolute, headers)
+      self.log(message="load_html response", url=url, status_code=status_code)
 
-  def http_get(self, url, cache=False, headers=None, timeout=0):
+      if self.__wait_and_retry(status_code, wait):
+        # todo: check if we've timed out.
+        continue
+      else:
+        return doc
+
+  def http_get(self, url, cache=False, headers=None, wait=5, timeout=0):
     self.log(message="calling http_get", url=url, cache=cache, timeout=timeout)
-    return http_get(url, cache, headers)
 
-  def http_post(self, url, data=None, cache=False, headers=None, timeout=0):
+    while True:
+      content, status_code = http_get(url, cache, headers)
+      self.log(message="http_get response", url=url, status_code=status_code)
+
+      if self.__wait_and_retry(status_code, wait):
+        # todo: check if we've timed out.
+        continue
+      else:
+        return content
+
+  def http_post(self, url, data=None, cache=False, headers=None, wait=5, timeout=0):
     self.log(message="calling http_post", url=url, cache=cache, timeout=timeout)
-    return http_post(url, data, cache, headers)
+    while True:
+      content, status_code = http_post(url, data, cache, headers)
+      self.log(message="http_post response", url=url, status_code=status_code)
 
-  def download_file(self, url, filename, headers=None):
+      if self.__wait_and_retry(status_code, wait):
+        # todo: check if we've timed out.
+        continue
+      else:
+        return content
+
+  def download_file(self, url, filename, headers=None, wait=5, timeout=0):
+    # todo: make this have a 'cache' parameter.
     self.log(message="calling download_file", url=url, filename=filename)
-    status_code, file_size = download_file(url, filename, headers)
-    self.log(message="download complete", url=url, filename=filename, status_code=status_code, file_size=file_size)
-    return status_code, file_size
+
+    while True:
+      status_code, file_size = download_file(url, filename, headers)
+      self.log(message="download_file response", url=url, filename=filename, status_code=status_code, file_size=file_size)
+
+      if self.__wait_and_retry(status_code, wait):
+        # todo: check if we've timed out.
+        continue
+      else:
+        return status_code, file_size
 
   """
   def download_resource(self, url, headers=None):

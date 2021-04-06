@@ -24,9 +24,13 @@ MAX_FILE_SIZE = 5000000000
 def load_html(url, cache=False, make_links_absolute=True, headers=None):
   """Fetches HTML from the given URL and returns it as a BeautifulSoup document object."""
   if url.startswith("http"):
-    html = http_get(url, cache, headers)
+    html, status_code = http_get(url, cache, headers)
+    if status_code >= 400:
+      return "", status_code
   else:
     html = read_file(url)
+    status_code = 200
+
   doc = BeautifulSoup(html, "html.parser")
 
   # since we know the url this is all coming from we can make link urls
@@ -41,9 +45,9 @@ def load_html(url, cache=False, make_links_absolute=True, headers=None):
       if src:
         image.attrs["src"] = urljoin(url, src)
 
-  return doc
+  return doc, status_code
 
-def http_get(url, cache=False, headers=None, timeout=0):
+def http_get(url, cache=False, headers=None):
   """Makes an HTTP GET request and returns the body content."""
   if not headers:
     headers = {}
@@ -53,24 +57,9 @@ def http_get(url, cache=False, headers=None, timeout=0):
   if cache:
     cached_content = read_file(cached_file)
     if cached_content:
-      return cached_content
-  
-  start_time = time.time()
-  while True:
-    response = requests.get(url, headers=headers)
+      return cached_content, 200
 
-    # if we see a 429 response, we wait and try again.
-    # todo: check the response headers to see if they tell us how long to wait for.
-    if response.status_code == 429:
-      if timeout:
-        elapsed = time.time() - start_time
-        if elapsed >= timeout:
-          break
-
-      time.sleep(5)
-      continue
-    else:
-      break
+  response = requests.get(url, headers=headers)
 
   # todo: figure out a better way to handle this.
   #       this code was originally needed for gitlab's sync but causes issues in other ones.
@@ -78,9 +67,9 @@ def http_get(url, cache=False, headers=None, timeout=0):
   html = response.content.decode("utf-8")
   write_file(cached_file, html)
   
-  return html
+  return html, response.status_code
 
-def http_post(url, data=None, cache=False, headers=None, timeout=0):
+def http_post(url, data=None, cache=False, headers=None):
   """Makes an HTTP POST request and returns the body content."""
   if not headers:
     headers = {}
@@ -90,29 +79,13 @@ def http_post(url, data=None, cache=False, headers=None, timeout=0):
   if cache:
     cached_content = read_file(cached_file)
     if cached_content:
-      return cached_content
+      return cached_content, 200
 
-  start_time = time.time()
-  while True:
-    response = requests.post(url, json=data, headers=headers)
-
-    # if we see a 429 response, we wait and try again.
-    # todo: check the response headers to see if they tell us how long to wait for.
-    if response.status_code == 429:
-      if timeout:
-        elapsed = time.time() - start_time
-        if elapsed >= timeout:
-          break
-
-      time.sleep(5)
-      continue
-    else:
-      break
-
+  response = requests.post(url, json=data, headers=headers)
   html = response.content.decode("utf-8")
   write_file(cached_file, html)
 
-  return html
+  return html, response.status_code
 
 def download_file(url, filename, headers=None):
   """Downloads an image and saves it as the full filename you provide."""
