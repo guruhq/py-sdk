@@ -47,6 +47,8 @@ def _is_local(url_or_path):
     return False
   elif url_or_path.startswith("//"):
     return False
+  elif re.match(r'[a-zA-Z]{1,}\:\/\/.*', url_or_path):
+    return False
   else:
     return True
 
