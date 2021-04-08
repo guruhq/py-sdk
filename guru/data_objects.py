@@ -536,11 +536,11 @@ class CardComment:
   def save(self):
     return self.guru.update_card_comment(self)
   
-  def is_before(self, date, format='%Y-%m-%d'):
-    return compare_datetime_string(self.created_date.split('T')[0], "lt", date_to_compare_against=date, date_str_format=format)
+  def is_before(self, date):
+    return compare_datetime_string(self.created_date, "lt", date_to_compare_against=date)
   
-  def is_after(self, date, format='%Y-%m-%d'):
-    return compare_datetime_string(self.created_date.split('T')[0], "gt", date_to_compare_against=date, date_str_format=format)
+  def is_after(self, date):
+    return compare_datetime_string(self.created_date, "gt", date_to_compare_against=date)
   
   def json(self):
     return {
