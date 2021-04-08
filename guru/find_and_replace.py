@@ -7,7 +7,6 @@ from bs4 import BeautifulSoup
 
 def replace_text_in_text(text, term, replacement, case_sensitive=False):
   # replacement = "[start]Customer[end]".capitalize()
-  original_text = text
   lowercased_term = term.lower()
   lowercased_replacement = replacement.lower().replace("[guru_sdk_highlight_start]", "[GURU_SDK_HIGHLIGHT_START]").replace("[guru_sdk_highlight_end]", "[GURU_SDK_HIGHLIGHT_END]")
   uppercased_term = term.upper()
@@ -27,7 +26,6 @@ def replace_text_in_text(text, term, replacement, case_sensitive=False):
     capitalized_replacement = replacement.capitalize()
   if case_sensitive:
     text = text.replace(term, replacement)
-    print(case_sensitive, term, replacement)
   else:
     text = text.replace(lowercased_term, lowercased_replacement).replace(uppercased_term, uppercased_replacement).replace(capitalized_term, capitalized_replacement)
   
@@ -43,34 +41,41 @@ def replace_text_in_html(html, term, replacement, case_sensitive=False):
     ))
   return str(doc)
 
+def add_highlight(card, term, replacement, highlight="replacement"):
+  highlight_class = None
+  if highlight == "original":
+    highlight_class = "sdk-orig-highlight"
+  if highlight == "replacement":
+    highlight_class = "sdk-replacement-highlight"
+
+  card_content = card.content if isinstance(card, Card) else card
+
+  content = replace_text_in_html(card_content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
+  # do string replacements on the [start] and [end] tokens.
+  if isinstance(card, Card):
+    content = replace_text_in_html(content, "[GURU_SDK_HIGHLIGHT_START]", '<span class=%s>' % highlight_class, case_sensitive=True)
+    content = replace_text_in_html(content, "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+  else:
+    content = replace_text_in_text(str(content), "[GURU_SDK_HIGHLIGHT_START]", '<span class=%s>' % highlight_class, case_sensitive=True)
+    content = replace_text_in_text(str(content), "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+  return content
+
 def replace_text_in_card(card, term, replacement, replace_title=True, replacement_highlight=False, orig_highlight=False, case_sensitive=False):
   if isinstance(card, Card):
     if replace_title:
       card.title = replace_text_in_text(card.title, term, replacement)
     if replacement_highlight:
-      card.content = replace_text_in_html(card.content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
-      # do string replacements on the [start] and [end] tokens.
-      card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-replacement-highlight">', case_sensitive=True)
-      card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+      card.content = add_highlight(card, term, replacement)
     elif orig_highlight:
-      card.content = replace_text_in_html(card.content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
-      # do string replacements on the [start] and [end] tokens.
-      card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-orig-highlight">', case_sensitive=True)
-      card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+      card.content = add_highlight(card, term, replacement, highlight="original")
     else:
       card.content = replace_text_in_html(card.content, term, replacement)
     return card.content
   else:
     if replacement_highlight:
-      card = replace_text_in_html(card, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
-      # do string replacements on the [start] and [end] tokens.
-      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-replacement-highlight">', case_sensitive=True)
-      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+      card = add_highlight(card, term, replacement)
     elif orig_highlight:
-      card.content = replace_text_in_html(card, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
-      # do string replacements on the [start] and [end] tokens.
-      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-orig-highlight">', case_sensitive=True)
-      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+      card = add_highlight(card, term, replacement, highlight="original")
     else:
       card = replace_text_in_html(card, term, replacement)
     return card
