@@ -43,23 +43,33 @@ def replace_text_in_html(html, term, replacement, case_sensitive=False):
     ))
   return str(doc)
 
-def replace_text_in_card(card, term, replacement, replace_title=True, highlight=False, case_sensitive=False):
+def replace_text_in_card(card, term, replacement, replace_title=True, replacement_highlight=False, orig_highlight=False, case_sensitive=False):
   if isinstance(card, Card):
     if replace_title:
       card.title = replace_text_in_text(card.title, term, replacement)
-    if highlight:
+    if replacement_highlight:
       card.content = replace_text_in_html(card.content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
       # do string replacements on the [start] and [end] tokens.
-      card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-highlight">', case_sensitive=True)
+      card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-replacement-highlight">', case_sensitive=True)
+      card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+    elif orig_highlight:
+      card.content = replace_text_in_html(card.content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
+      # do string replacements on the [start] and [end] tokens.
+      card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-orig-highlight">', case_sensitive=True)
       card.content = replace_text_in_html(card.content, "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
     else:
       card.content = replace_text_in_html(card.content, term, replacement)
     return card.content
   else:
-    if highlight:
+    if replacement_highlight:
       card = replace_text_in_html(card, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
       # do string replacements on the [start] and [end] tokens.
-      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-highlight">', case_sensitive=True)
+      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-replacement-highlight">', case_sensitive=True)
+      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+    elif orig_highlight:
+      card.content = replace_text_in_html(card, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
+      # do string replacements on the [start] and [end] tokens.
+      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-orig-highlight">', case_sensitive=True)
       card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
     else:
       card = replace_text_in_html(card, term, replacement)
@@ -92,12 +102,17 @@ class Preview:
       <style>
 
       * {
-        color: rgba(0, 0, 0, 0.6)
+        color: rgba(0, 0, 0, 0.3)
       }
-
-      .sdk-highlight {
+      .sdk-replacement-highlight {
         background-color: #4a7; 
         color: #fff;
+        filter: drop-shadow(6px 6px 4px #4444dd);
+      }
+      .sdk-orig-highlight {
+        background-color: #E81456; 
+        color: #fff;
+        filter: drop-shadow(6px 6px 4px #4444dd);
       }
       </style>
       """
@@ -107,12 +122,13 @@ class Preview:
       write_file(orig_filepath, content_data.orig_content)
       write_file(new_filepath, content_data.new_content)
       
-      # orig_content_html = load_html(orig_filepath, make_links_absolute=False)
-      # orig_content_html = replace_text_in_card(orig_content_html, self.term, self.term, replace_title=False, highlight=True)
-      # write_file(orig_filepath, highlight_css + str(orig_content_html))
+      orig_content_html = load_html(orig_filepath, make_links_absolute=False)
+
+      orig_content_html = replace_text_in_card(orig_content_html, self.term, self.term, replace_title=False, orig_highlight=True)
+      write_file(orig_filepath, highlight_css + str(orig_content_html))
       
       new_content_html = load_html(new_filepath, make_links_absolute=False)
-      new_content_html = replace_text_in_card(new_content_html, self.replacement, self.replacement, replace_title=False, highlight=True)
+      new_content_html = replace_text_in_card(new_content_html, self.replacement, self.replacement, replace_title=False, replacement_highlight=True)
       write_file(new_filepath, highlight_css + str(new_content_html))
       
       self.html_pieces.append(
