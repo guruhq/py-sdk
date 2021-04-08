@@ -141,7 +141,10 @@ def copy_file(src, dest):
 
   try:
     make_dir(dest)
-    shutil.copyfile(src, dest)
+    try:
+      shutil.copyfile(src, dest)
+    except FileNotFoundError:
+      raise FileNotFoundError("File not found", src)
     return True
   except:
     return False
