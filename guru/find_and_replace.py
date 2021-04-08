@@ -7,19 +7,22 @@ from bs4 import BeautifulSoup
 
 def replace_text_in_text(text, term, replacement, case_sensitive=False):
   # replacement = "[start]Customer[end]".capitalize()
+  original_text = text
   lowercased_term = term.lower()
   lowercased_replacement = replacement.lower().replace("[guru_sdk_highlight_start]", "[GURU_SDK_HIGHLIGHT_START]").replace("[guru_sdk_highlight_end]", "[GURU_SDK_HIGHLIGHT_END]")
   uppercased_term = term.upper()
   uppercased_replacement = replacement.upper()
   capitalized_term = term.capitalize()
-  if "[GURU_SDK_HIGHLIGHT_START]" in replacement:
+  if "[GURU_SDK_HIGHLIGHT_START]" in replacement and "[GURU_SDK_HIGHLIGHT_END]" in replacement:
+    replacement = replacement.replace("[GURU_SDK_HIGHLIGHT_END]", "")
     replacement = replacement.replace("[GURU_SDK_HIGHLIGHT_START]", "")
-    capitalized_replacement = "[GURU_SDK_HIGHLIGHT_START]" + replacement.capitalize()
+    capitalized_replacement = "[GURU_SDK_HIGHLIGHT_START]" + replacement.capitalize() + "[GURU_SDK_HIGHLIGHT_END]"
   elif "[GURU_SDK_HIGHLIGHT_END]" in replacement:
     replacement = replacement.replace("[GURU_SDK_HIGHLIGHT_END]", "")
     capitalized_replacement = "[GURU_SDK_HIGHLIGHT_END]" + replacement.capitalize()
-
-
+  elif "[GURU_SDK_HIGHLIGHT_START]" in replacement:
+    replacement = replacement.replace("[GURU_SDK_HIGHLIGHT_START]", "")
+    capitalized_replacement = "[GURU_SDK_HIGHLIGHT_START]" + replacement.capitalize()
   else:
     capitalized_replacement = replacement.capitalize()
   if case_sensitive:
@@ -56,8 +59,8 @@ def replace_text_in_card(card, term, replacement, replace_title=True, highlight=
     if highlight:
       card = replace_text_in_html(card, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement)
       # do string replacements on the [start] and [end] tokens.
-      # card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-highlight">', case_sensitive=True)
-      # card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_START]", '<span class="sdk-highlight">', case_sensitive=True)
+      card = replace_text_in_text(str(card), "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
     else:
       card = replace_text_in_html(card, term, replacement)
     return card
