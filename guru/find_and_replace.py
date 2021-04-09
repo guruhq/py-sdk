@@ -5,6 +5,11 @@ from guru.data_objects import Card
 
 from bs4 import BeautifulSoup
 
+def get_term_count(text, term):
+  doc = BeautifulSoup(text, "html.parser")
+  lowered_doc = doc.text.lower()
+  return lowered_doc.count(term.lower())
+
 def replace_text_in_text(text, term, replacement, case_sensitive=False):
   # replacement = "[start]Customer[end]".capitalize()
   lowercased_term = term.lower()
@@ -80,12 +85,21 @@ def replace_text_in_card(card, term, replacement, replace_title=True, replacemen
       card = replace_text_in_html(card, term, replacement)
     return card
 class PreviewData:
-  def __init__(self, card, orig_content, new_content):
+  def __init__(self, card, term, replacement, orig_content, new_content):
     self.card_id = card.id
     self.title = card.title
+    self.term = term
+    self.replacement = replacement
     self.orig_content = orig_content
     self.new_content = new_content
+    
+  @property
+  def replacement_term_count(self):
+    return get_term_count(self.new_content, self.replacement)
 
+  @property
+  def original_term_count(self):
+    return get_term_count(self.orig_content, self.term)
 class Preview:
   def __init__(self, content_list, term, replacement, folder="/tmp/", task_name=None):
     self.content_list = content_list
@@ -135,9 +149,11 @@ class Preview:
       new_content_html = load_html(new_filepath, make_links_absolute=False)
       new_content_html = replace_text_in_card(new_content_html, self.replacement, self.replacement, replace_title=False, replacement_highlight=True)
       write_file(new_filepath, highlight_css + str(new_content_html))
-      
+      term_count = content_data.original_term_count
+      replacement_count = content_data.replacement_term_count
+
       self.html_pieces.append(
-        '<a href="%s" data-original-url="%s" target="iframe">%s</a>' % (new_filepath, orig_filepath, content_data.title)
+        '<a href="%s" data-original-url="%s" target="iframe">%s (%s/%s)</a>' % (new_filepath, orig_filepath, content_data.title, replacement_count, term_count)
       )
 
   def view_in_browser(self, open_browser=True):
