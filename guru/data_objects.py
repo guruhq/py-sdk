@@ -53,7 +53,7 @@ class Board:
         self.__all_items += section.items
         self.__cards += section.items
       else:
-        card = Card(item)
+        card = Card(item, guru=guru)
         self.items.append(card)
         self.__all_items.append(card)
         self.__cards.append(card)
@@ -99,7 +99,7 @@ class Board:
     return find_by_name_or_id(self.__cards, card)
 
   def add_card(self, card, section=None):
-    return self.guru.add_card_to_board(card, self, section=section)
+    return self.guru.add_card_to_board(card, self, section=section, collection=self.collection)
 
   def remove_card(self, card):
     return self.guru.remove_card_from_board(card, self)
@@ -223,13 +223,16 @@ class HomeBoard:
 
 
 class Group:
-  def __init__(self, data):
+  def __init__(self, data, guru=None):
+    self.guru = guru
     self.date_created = data.get("dateCreated")
     self.modifiable = data.get("modifiable")
     self.id = data.get("id")
     self.identifier = data.get("groupIdentifier")
     self.name = data.get("name")
 
+  def get_members(self):
+    return self.guru.get_group_members(self)
 
 class Collection:
   def __init__(self, data, guru=None):
@@ -459,11 +462,11 @@ class Card:
     tag_object = self.guru.add_tag_to_card(tag, self, create=create)
     self.tags.append(tag_object)
 
-  def comment(self, comment):
+  def add_comment(self, comment):
     return self.guru.add_comment_to_card(self, comment)
 
   def add_to_board(self, board, section=None):
-    return self.guru.add_card_to_board(self, board, section)
+    return self.guru.add_card_to_board(self, board, section, collection=self.collection)
 
   def json(self, verify=False):
     # if you accessed the doc object then we want to use its HTML so
