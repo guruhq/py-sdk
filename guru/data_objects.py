@@ -1,8 +1,25 @@
 
-from guru.util import find_by_name_or_id, find_by_id
-
+import markdown
+from urllib.parse import quote
 from bs4 import BeautifulSoup
 
+from guru.util import find_by_name_or_id, find_by_id
+
+
+def find_urls_in_doc(doc):
+  urls = set()
+  # src and href attributes may contain urls.
+  for image in doc.select('[src], [href]'):
+    url = image.attrs.get("src")
+    if url:
+      urls.add(url)
+
+    # todo: what if it's a relative url?
+    url = image.attrs.get("href")
+    if url:
+      urls.add(url)
+
+  return urls
 
 class Section:
   def __init__(self, data):
@@ -451,6 +468,40 @@ class Card:
       return True
 
     return text in card_content
+
+  def find_urls(self):
+    # this checks images, iframes, and links.
+    urls = find_urls_in_doc(self.doc)
+
+    # if the card is entirely markdown, we need to convert it to html then look for urls.
+    html = markdown.markdown(self.content)
+    doc = BeautifulSoup(html, "html.parser")
+    urls = urls.union(find_urls_in_doc(doc))
+
+    return list(urls)
+
+  def replace_url(self, old_url, new_url):
+    """
+    Replaces the occurrence of one URL with another. This is different
+    than replacing text because we want to target HTML attributes (image
+    URLs, link URLs, etc.).
+    """
+    modified = False
+    if old_url in self.content:
+      # todo: what if we match a prefix of a URL? like, the card contains example.com/test.png
+      #       and we replace "example.com" with "google.com", should it become google.com/test.png?
+      self.content = self.content.replace(old_url, new_url)
+      modified = True
+
+    # escape the url and then do the replacement so markdown blocks are covered too.
+    old_md_url = quote(old_url)
+    new_md_url = quote(new_url)
+
+    if old_md_url in self.content:
+      self.content = self.content.replace(old_md_url, new_md_url)
+      modified = True
+
+    return modified
 
   def add_tag(self, tag, create=False):
     if self.has_tag(tag):
