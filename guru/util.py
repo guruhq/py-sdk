@@ -2,6 +2,7 @@
 import re
 import os
 import sys
+import time
 import yaml
 import shutil
 import requests
@@ -23,9 +24,13 @@ MAX_FILE_SIZE = 5000000000
 def load_html(url, cache=False, make_links_absolute=True, headers=None):
   """Fetches HTML from the given URL and returns it as a BeautifulSoup document object."""
   if url.startswith("http"):
-    html = http_get(url, cache, headers)
+    html, status_code = http_get(url, cache, headers)
+    if status_code >= 400:
+      return "", status_code
   else:
     html = read_file(url)
+    status_code = 200
+
   doc = BeautifulSoup(html, "html.parser")
 
   # since we know the url this is all coming from we can make link urls
@@ -40,7 +45,7 @@ def load_html(url, cache=False, make_links_absolute=True, headers=None):
       if src:
         image.attrs["src"] = urljoin(url, src)
 
-  return doc
+  return doc, status_code
 
 def http_get(url, cache=False, headers=None):
   """Makes an HTTP GET request and returns the body content."""
@@ -52,8 +57,8 @@ def http_get(url, cache=False, headers=None):
   if cache:
     cached_content = read_file(cached_file)
     if cached_content:
-      return cached_content
-  
+      return cached_content, 200
+
   response = requests.get(url, headers=headers)
 
   # todo: figure out a better way to handle this.
@@ -62,7 +67,7 @@ def http_get(url, cache=False, headers=None):
   html = response.content.decode("utf-8")
   write_file(cached_file, html)
   
-  return html
+  return html, response.status_code
 
 def http_post(url, data=None, cache=False, headers=None):
   """Makes an HTTP POST request and returns the body content."""
@@ -74,13 +79,13 @@ def http_post(url, data=None, cache=False, headers=None):
   if cache:
     cached_content = read_file(cached_file)
     if cached_content:
-      return cached_content
+      return cached_content, 200
 
   response = requests.post(url, json=data, headers=headers)
   html = response.content.decode("utf-8")
   write_file(cached_file, html)
 
-  return html
+  return html, response.status_code
 
 def download_file(url, filename, headers=None):
   """Downloads an image and saves it as the full filename you provide."""
