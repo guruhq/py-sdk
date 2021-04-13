@@ -26,7 +26,9 @@ pub)
   fi
   ;;
 docs)
-  pydoc -p 9000 guru
+  pydoc-markdown --bootstrap mkdocs
+  pydoc-markdown --bootstrap readthedocs
+  pydoc-markdown --server --open
   ;;
 *)
   echo ""
