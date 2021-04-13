@@ -260,6 +260,12 @@ class Guru:
     """
     Loads a collection.
 
+    ```
+    collection = g.get_collection("Engineering")
+    print(collection.name)
+    print(collection.description)
+    ```
+
     Args:
       collection (str): Either a collection name or ID. If it's a name, it'll
         return the first matching collection and the comparison is not case
@@ -286,6 +292,11 @@ class Guru:
   def get_collections(self, cache=False):
     """
     Loads a list of all collections you have access to.
+
+    ```
+    for collection in g.get_collections():
+      print(collection.name)
+    ```
 
     Args:
       cache (bool, optional): Tells us whether we should reuse the results
@@ -454,6 +465,7 @@ class Guru:
     return status_to_bool(response.status_code)
 
   def upload_content(self, collection, filename, zip_path, is_sync=False):
+    """internal: used by the bundle object"""
     collection_obj = self.get_collection(collection)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
@@ -481,6 +493,11 @@ class Guru:
     """
     Loads a group.
 
+    ```
+    group = g.get_group("Experts")
+    print(group.id)
+    ```
+
     Args:
       group (str): Either a group name or ID. If it's a name, it'll return
         the first matching collection and the comparison is not case sensitive.
@@ -505,6 +522,11 @@ class Guru:
     """
     Loads a list of all groups.
 
+    ```
+    for group in g.get_groups():
+      print(group.id, group.name)
+    ```
+
     Args:
       cache (bool, optional): Tells us whether we should reuse the results
         from the previous call or not. Defaults to False. Set this to True
@@ -524,6 +546,11 @@ class Guru:
     exists, but you should still be careful not to create duplicate groups.
     For example, you can still create near-duplicates where one group's name
     is the misspelling of another, or one is singular and the other is plural.
+
+    ```
+    g.make_group("Experts")
+    g.add_user_to_group("user@example.com", "Experts")
+    ```
 
     Args:
       name (str): The group's name.
@@ -572,6 +599,11 @@ class Guru:
     """
     Gets a list of users in the group.
 
+    ```
+    for user in g.get_group_members("Experts"):
+      print(user.email)
+    ```
+
     Args:
       group (str or Group): The name of the group, or its ID, or a Group object.
 
@@ -614,6 +646,13 @@ class Guru:
 
     If the user is already on the team this still adds them to the
     groups.
+
+    ```
+    g.invite_user("user1@example.com")
+
+    # invite a user and add them to some groups.
+    g.invite_user("user2@example.com", "Experts", "Engineering")
+    ```
 
     Args:
       email (str): The email address of the user to add to the team.
@@ -716,6 +755,10 @@ class Guru:
     The user must already be on the team. If you need to invite a user
     and also assign them to groups, you can call `invite_user` and pass
     that the list of groups to both invite them and add them to groups.
+
+    ```
+    g.add_user_to_groups("user@example.com", "Experts", "Engineering")
+    ```
 
     Args:
       email (str): The user being added to groups.
@@ -854,7 +897,14 @@ class Guru:
 
   def get_card(self, card):
     """
-    Loads a single card by its ID.
+    Loads a single card by its ID or slug. The slug comes from the card's URL, like this:
+
+    ```
+    # load this card: https://app.getguru.com/card/Tbbqo5pc/Getting-Started-with-the-Guru-SDK
+    card = g.get_card("Tbbqo5pc")
+    print(card.title)
+    print(card.content)
+    ```
 
     Args:
       card (str): The card's ID or slug.
@@ -875,6 +925,19 @@ class Guru:
         return None
 
   def get_visible_cards(self):
+    """
+    Gets the count of all cards on the team where you have read access or higher.
+
+    This is helpful when you want to run a script that checks all cards for a certain
+    kind of image or link, this gives you an easy way to see how many of the team's
+    cards you're able to see.
+
+    Args:
+      none
+
+    Returns:
+      int: The number of cards you can view.
+    """
     url = "%s/search/visible" % self.base_url
     response = self.__get(url)
     return int(response.headers.get("x-guru-total-cards"))
@@ -941,6 +1004,12 @@ class Guru:
     have read access to. Parameter may be combined to find cards that match
     all specified criteria (e.g. cards in a collection that also have the
     specified tag).
+
+    ```
+    # list all cards in the Engineering collection created after April 1.
+    for card in g.find_cards(collection="Engineering", created_after="2020-04-01"):
+      print(card.url)
+    ```
 
     Args:
       title (str, optional): Optional parameter to select cards containing the
@@ -1107,6 +1176,23 @@ class Guru:
     return self.__upload_key
 
   def upload_file(self, filename):
+    """
+    Uploads a file, like an image or pdf, to Guru so you can reference it in cards.
+
+    ```
+    # load a card and add a pdf to it.
+    card = g.get_card("Tbbqo5pc")
+    url = g.upload_file("/Users/rob/Documents/getting-started.pdf")
+    card.content += '<a href="%s">getting-started.pdf</a>' % url
+    card.save()
+    ```
+
+    Args:
+      filename (str): The file on your computer that you want to upload to Guru.
+
+    Returns:
+      str: The Guru URL for the attachment, something like: https://content.api.getguru.com/files/view/3886ec47-a99d-4431-848e-cff2d73a49f3
+    """
     # there are three steps here:
     # 1. make sure we have an upload key for filestack, we get this from our API.
     # 2. make the /S3 call to upload the file to filestack (FS gives us the attachment URL in their response).

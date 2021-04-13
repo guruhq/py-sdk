@@ -5,6 +5,21 @@ from bs4 import BeautifulSoup
 
 
 class Section:
+  """
+  You can often refer to sections simply by their name. For example, when
+  adding a card to a board, you can say `section="Onboarding"` to add the
+  card to the Onboarding section.
+
+  Sections do have more properties and if you need to reference them, you'll
+  use the Section object. They have these properties:
+
+  - `type`: always the string "section", but this is useful when you have a list
+    of board items where each item could be a section or card and you want to check
+    which type it is.
+  - `title` the displayed title for this section.
+  - `id` the internal Guru ID for the section.
+  - `items` the list of Card objects for each card in the section.
+  """
   def __init__(self, data):
     self.type = "section"
     self.title = data.get("title")
@@ -25,11 +40,30 @@ class Section:
 
 
 class Board:
+  """
+  The Board object contains the board's properties, like title and description,
+  and also includes a list of the cards and sections it contains.
+
+  Here's a partial list of properties these objects have:
+
+  - `title` is the board's name as it's displayed in the UI.
+  - `description` is an optional description.
+  - `id` is the board's internal ID.
+  - `url` is the full URL for the board.
+  - `items` is the list of items on the board, where each item can be a Card object or a Section object.
+  - `cards` is a flattened list of Card objects for each card on the board.
+  - `sections` is the list of Section objects for each section on the board.
+  - `all_items` is a flattened list where each is a Card object or Section object. This is similar to the `items` list
+    except a board with 2 sections (each containing 1 card) will have two items (just the sections) but `all_items` will
+    have all four items.
+  """
+
   def __init__(self, data, guru=None, home_board=None):
     self.guru = guru
     self.home_board = home_board
     self.last_modified = data.get("lastModified")
     self.title = data.get("title")
+    self.description = data.get("description")
     self.slug = data.get("slug")
     self.id = data.get("id")
     self.__item_id = data.get("itemId")
@@ -57,6 +91,13 @@ class Board:
         self.items.append(card)
         self.__all_items.append(card)
         self.__cards.append(card)
+
+  @property
+  def url(self):
+    if self.slug:
+      return "https://app.getguru.com/boards/%s" % self.slug
+    else:
+      return ""
 
   @property
   def item_id(self):
@@ -87,10 +128,69 @@ class Board:
   def all_items(self):
     return tuple(self.__all_items)
 
+  def has_section(self, section):
+    """
+    Returns True if the board contains the section and False if it doesn't.
+    Other operations, like adding a section, doesn't check for duplicates
+    so here's how we can do that:
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    board = g.get_board("TrE4qxgc")
+    if not board.has_section("Week 2"):
+      board.add_section("Week 2"):
+    ```
+
+    Args:
+      section (str): The section's name or ID.
+
+    Returns:
+      bool: True if the board contains the section and False otherwise.
+    """
+    return True if find_by_name_or_id(board_obj.sections, section) else False
+
   def add_section(self, name):
+    """
+    Adds a section to the board. The new section is added at the end of the
+    board. If the board already has a section by this name, this _will_ add another.
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    # we can load a board using its slug, which we find from its URL:
+    # https://app.getguru.com/boards/TrE4qxgc/Onboarding
+    board = g.get_board("TrE4qxgc")
+    board.add_section("Week 2")
+    ```
+
+    Args:
+      name (str): The name of the section to add.
+    """
     self.guru.add_section_to_board(self, name)
 
   def set_item_order(self, *items):
+    """
+    Rearranges the items on the board based on the list of strings
+    you pass in here. For example, if you have a board about
+    onboarding and it has sections called Week 1, Week 2, and Week 3,
+    here's how you'd arrange them to make sure they're in order:
+
+    ```
+    board = g.get_board("TrE4qxgc")
+    board.set_item_order("Week 1", "Week 2", "Week 3")
+    ```
+
+    Remember, the items on a board aren't all sections, it can be a
+    mix of cards and sections. The strings you pass in here are expected
+    to match section or card titles.
+
+    Args:
+      *items (str): Any number of strings that specifies the order
+        you want the items to appear in.
+    """
     return self.guru.set_item_order(self.collection, self, *items)
 
   def get_card(self, card):
@@ -99,21 +199,84 @@ class Board:
     return find_by_name_or_id(self.__cards, card)
 
   def add_card(self, card, section=None):
+    """
+    Adds a card to the board. The card will be added to the end
+    of the board. If a section name is provided, the card will
+    be added inside that section. If the section doesn't exist
+    on the board it will _not_ be created.
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    # we use slugs (the IDs found in URLs) to specify which
+    # board we're loading and what card we're adding to it.
+    board = g.get_board("TrE4qxgc")
+    board.add_card("Tbbqo5pc")
+    ```
+
+    Args:
+      card (str or Card): The card to add to this board. Can either be a Card object or a string
+        that's the card's ID or slug.
+      section (str, optional): The name of the section to add the card to.
+    """
     return self.guru.add_card_to_board(card, self, section=section, collection=self.collection)
 
   def remove_card(self, card):
+    """
+    Removes a card from the board.
+
+    Args:
+      card (str or Card): The card's ID or slug, or a Card object.
+    """
     return self.guru.remove_card_from_board(card, self)
 
   def get_groups(self):
+    """
+    Gets the list of groups the board has been shared with
+    via board permissioning. This does not include the groups
+    who can see the board due to the collection's permissioning.
+
+    Returns:
+      list of Group: A list of Group objects for each group the board has been shared with.
+    """
     return self.guru.get_shared_groups(self)
   
   def add_group(self, group):
+    """
+    Shares the board with an additional group.
+
+    Args:
+      group (str or Group): The group's ID or name, or a Group object.
+    """
     return self.guru.add_shared_group(self, group)
   
   def remove_group(self, group):
+    """
+    Removes a shared group from this board.
+
+    Args:
+      group (str or Group): The group's ID or name, or a Group object.
+    """
     return self.guru.remove_shared_group(self, group)
 
   def move_to_collection(self, collection, timeout=0):
+    """
+    Moves the board to a different collection.
+
+    These operations are done asynchronously and can take a little while
+    to complete. If you want to wait for the operation to complete you
+    can pass in a `timeout` parameter -- this tells the SDK two things:
+    first, that you want to wait for the operation to complete and second,
+    how long it should wait.
+
+    Args:
+      collection (str or Collection): The collection's name or ID or a Collection object.
+      timeout (int, optional): If you want to wait for the move to complete, this is the
+        maximum amount of time (in seconds) that you'll wait. By default this is zero which
+        means this function call returns before the board has actually been moved to its
+        new collection.
+    """
     self.guru.move_board_to_collection(self, collection, timeout)
 
   def json(self, include_items=True, include_item_id=False, include_collection=True):
@@ -223,6 +386,21 @@ class HomeBoard:
 
 
 class Group:
+  """
+  The Group object represents a group of users. Often we refer to
+  these groups simply by name, but internally they each have an ID.
+  You can do a lot of operation, like adding users to groups, only
+  using each group's name. Other operations, like getting the list
+  of groups with access to a collection, will return full Group objects.
+
+  The Group object has these properties:
+
+  - `id` the internal Guru ID for the group.
+  - `name` the group's displayed name.
+  - `date_created` the timestamp of when the group was created.
+  - `modifiable` True if the group can be modified. Some groups, like All Members,
+    are managed by Guru and aren't editable.
+  """
   def __init__(self, data, guru=None):
     self.guru = guru
     self.date_created = data.get("dateCreated")
@@ -232,9 +410,33 @@ class Group:
     self.name = data.get("name")
 
   def get_members(self):
+    """
+    Gets the list of all users in the group.
+
+    Returns:
+      list of User: a list of User objects representing the set of users in this group.
+    """
     return self.guru.get_group_members(self)
 
 class Collection:
+  """
+  The Collection object is used to represent a collection. You can often
+  reference a collection using only its name, like when you are creating a
+  new card you can simply say `collection="Engineering"`. When you get a
+  collection or list of all collections, these Collection objects are what
+  you get back.
+
+  It has these properties:
+
+  - `id` the internal Guru ID for the collection.
+  - `name` the collection's displayed name.
+  - `title` is also the collection's name. You can use `title` or `name` interchangeably.
+  - `description` the collection's displayed description.
+  - `color` the collection's displayed color.
+  - `type` either "INTERNAL" or "EXTERNAL", external collections are ones whose
+    content is synced and is not editable in Guru.
+  - `public_cards_enabled` whether or not public cards can be created in this collection.
+  """
   def __init__(self, data, guru=None):
     self.guru = guru
 
@@ -267,12 +469,38 @@ class Collection:
     self.name = title
 
   def add_group(self, group, role):
+    """
+    Gives a group access to the collection. When you add a group you have
+    to also assign it a role: Read-only, Author, or Collection Owner.
+
+    Args:
+      group (str or Group): The name or ID of the group or a Group object.
+      role (str): one of these values: guru.READ_ONLY, guru.AUTHOR, or guru.COLLECTION_OWNER.
+    """
     return self.guru.add_group_to_collection(group, self, role)
 
   def remove_group(self, group):
+    """
+    Remove a group's access from the collection. When you do this, users may
+    lose access to content in the collection. This can trigger some things that
+    you can't easily undo -- for example, any cards in this collection that were
+    in a user's favorites list will be removed (as they no longer have access to
+    the card). Even if you restore their access, the card has already been
+    removed from their favorites and won't be added back.
+
+    If you're adjusting group permissions, it's best to add all new groups then
+    remove the old ones. For example, if you're splitting the "Product" group into
+    four smaller groups, you'd add the four new ones then remove the old one.
+    """
     return self.guru.remove_group_from_collection(group, self)
 
   def get_groups(self):
+    """
+    Gets the list of all groups that have access to the collection.
+
+    Returns:
+      list of CollectionAccess: A list of CollectionAccess objects.
+    """
     return self.guru.get_groups_on_collection(self)
 
   def json(self):
@@ -285,6 +513,15 @@ class Collection:
 
 
 class CollectionAccess:
+  """
+  The CollectionAccess object is used to represent a group's assignment
+  to a collection. These objects simply have these properties:
+
+  - `group_name`
+  - `group_id`
+  - `role`
+  """
+
   def __init__(self, data):
     self.group_name = data.get("groupName")
     self.group_id = data.get("groupId")
@@ -299,6 +536,19 @@ class CollectionStats:
 
 
 class User:
+  """
+  The User object represents data we get back when loading a list of
+  users or as a card's author, verifier, etc.
+
+  These objects have properties like:
+
+  - `email`
+  - `first_name`
+  - `last_name`
+  - `groups` - when you load a list of users (i.e. from calling `g.get_members()`) the User
+    objects that come back have a list of groups for each user.
+  """
+
   def __init__(self, data):
     user_obj = data.get("user") or data or {}
     self.email = user_obj.get("email")
@@ -309,6 +559,24 @@ class User:
     self.groups = [Group(group) for group in data.get("groups", [])]
 
   def has_group(self, group):
+    """
+    Returns True if the user is a member of the specified group.
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    for user in g.get_members():
+      if user.has_group("Engineering") and user.has_group("Product"):
+        print("%s is in the Engineering and Product groups" % user.email)
+    ```
+
+    Args:
+      group (str or Group): The name or ID of the group or the Group object.
+    
+    Returns
+      bool: True if the user is in that group and False if they're not.
+    """
     return True if find_by_name_or_id(self.groups, group) else False
 
 
@@ -337,6 +605,43 @@ class Verifier:
 
 
 class Card:
+  """
+  The Card object is used to represent card data we get back from
+  calls like get_card or find_cards.
+  
+  ```
+  import guru
+  g = guru.Guru()
+
+  # we can use the 'slug' part of this URL to load a card:
+  # https://app.getguru.com/card/Tbbqo5pc/Getting-Started-with-the-Guru-SDK
+  card = g.get_card("Tbbqo5pc")
+  card.favorite()
+  card.add_tag("SDK")
+  card.add_to_board("Shared Docs", section="API & SDK")
+  ```
+
+  This object has a lot of properties and I encourage you to experiment
+  and see what all is available, but here's a short list:
+
+  - `id` is the 8-4-4-4-12 hexadecimal ID assigned to this card. These IDs
+    are helpful when matching cards to events returned by `get_events()`.
+  - `title` is the card's title.
+  - `content` is the card's HTML content as a string.
+  - `doc` is the card's content parsed as an HTML document. This uses Beautiful
+    Soup and you check check [its docs](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
+    for more info.
+  - `collection` is a Collection object representing the collection this card is in.
+  - `boards` is a list of Board objects for all the boards this card is on.
+  - `url` is the full URL you can use to access the card in Guru's webapp.
+  - `verifier_label` is a string representing the verifier -- either the group name if it's
+    assigned to a group or the individual verifier's email address.
+  
+  This object also has a lot of methods that make it easy to do
+  things like verify, unverify, update, archive, add tags, add
+  comments, etc.
+  """
+
   def __init__(self, data, guru=None):
     analytics = data.get("cardInfo", {}).get("analytics", {})
     self.guru = guru
@@ -401,6 +706,24 @@ class Card:
 
   @property
   def verifier_label(self):
+    """
+    This is a string that represents the card's verifier.
+    Since the verifier can be a group or user, rather than figuring out
+    if you want to use the group's name or the user's email address, you
+    can simply refer to `card.verifier_label`, like this:
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    # print the verifier for each card in the Engineering collection:
+    for card in g.find_cards(collection="Engineering"):
+      print(card.verifier_label, card.url)
+    ```
+
+    Some cards do not have a verifier, in which case the label will be
+    the string `"no verifier"`.
+    """
     if not self.verifiers:
       return "no verifier"
 
@@ -411,15 +734,40 @@ class Card:
       return verifier.user.email
 
   def archive(self):
+    """
+    Archives the card.
+    """
     return self.guru.archive_card(self)
 
   def favorite(self):
+    """
+    Adds the card to your favorites list. The Guru object is given a username
+    and API token -- that's the user whose favorites list we're adding to. If
+    you want to favorite a card for someone else you'll need to have their
+    username and API token.
+    """
     return self.guru.favorite_card(self)
   
   def unfavorite(self):
+    """
+    Removes a card from your favorites list.
+    """
     return self.guru.unfavorite_card(self)
 
   def patch(self, keep_verification=True):
+    """
+    Updates the card's title and content. If you're a collection owner you can also
+    use the `keep_verification` flag to make this update without affecting the card's
+    trust state -- normally, if you're not the verifier, the card will become
+    unverified when you edit it. With keep_verification=True, it'll remain verified
+    even if you're not the verifier! This is especially helpful when you're updating
+    a card to replace a term in its content or title.
+
+    Args:
+      keep_verification (bool): True if you want the card to remain in its current
+        trust state, False if you want the normal verification rules to apply (meaning
+        your edit may cause the card to become unverified).
+    """
     saved_card, status = self.guru.patch_card(self, keep_verification)
     return saved_card
 
@@ -434,19 +782,67 @@ class Card:
     return saved_card
   
   def verify(self):
+    """
+    Verifies the card.
+    """
     return self.guru.verify_card(self)
 
   def unverify(self):
+    """
+    Unverifies the card.
+    """
     return self.guru.unverify_card(self)
 
   def has_tag(self, tag):
+    """
+    Checks if the card has a particular tag applied to it.
+
+    Args:
+      tag (str): The name of the tag you're looking for.
+    
+    Returns:
+      bool: True if the card has the tag and False otherwise.
+    """
     for t in self.tags:
       if t.value.lower() == tag.lower():
         return True
     return False
   
   def has_text(self, text, case_sensitive=False, include_title=True):
+    """
+    Checks if the card contains a particular string. This is useful when you're
+    looking to update a term or name. For eample, if you changed the name of your
+    #product-feedback channel, you can use this to find the affected cards:
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    for card in g.find_cards():
+      if card.has_text("#product-feedback"):
+        print(card.url)
+    ```
+
+    If you searched Guru for "#product-feedback" you'll find cards that contain
+    just the word "feedback". Using `has_text()` checks that the card contains
+    this exact string.
+
+    Args:
+      case_sensitive (bool, optional): True if you want the comparison to be case
+        sensitive (i.e. has_text("guru") will _not_ match "Guru"). False if you
+        want it to be case insensitive (i.e. "guru" _will_ match "Guru"). This
+        parameter is False by default.
+      include_title (bool, optional): True if you want to check the card's title
+        too and False if you want to skip checking the title. This is True (it checks
+        the title) by default.
+    
+    Returns:
+      bool: True if the card contains the term, False if it doesn't.
+    """
     card_title = self.title if case_sensitive else self.title.lower()
+    # note: if the card contains markdown blocks, this'll work fine. if the card is
+    #       entirely a markdown card, checking doc.text will consider link and image
+    #       urls since it essentially treats the card as one big text node.
     card_content = self.doc.text if case_sensitive else self.doc.text.lower()
     text = text if case_sensitive else text.lower()
 
@@ -456,6 +852,9 @@ class Card:
     return text in card_content
 
   def add_tag(self, tag, create=False):
+    """
+    Adds the tag to the card and saves this change.
+    """
     if self.has_tag(tag):
       return True
     
@@ -463,12 +862,26 @@ class Card:
     self.tags.append(tag_object)
 
   def add_comment(self, comment):
+    """
+    Adds a comment to the card. Remmeber, the Guru object is given a single user's
+    username and API token and all comments will be made as that user. If you want
+    to make comments as different users, you'll need each user's username and API
+    token.
+    """
     return self.guru.add_comment_to_card(self, comment)
 
   def add_to_board(self, board, section=None):
+    """
+    Adds the card to a board.
+
+    Args:
+      board (str or Board): The name of the board you're adding the card to, or the Board object.
+      section (str, optional): The name of the section to add this card to.
+    """
     return self.guru.add_card_to_board(self, board, section, collection=self.collection)
 
   def json(self, verify=False):
+    """internal"""
     # if you accessed the doc object then we want to use its HTML so
     # any modifications you made are captured here.
     content = str(self.__doc) if self.__doc else self.content
@@ -491,6 +904,7 @@ class Card:
     return data
 
   def lite_json(self):
+    """internal"""
     return {
       "type": "fact",
       "id": self.id,
