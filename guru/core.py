@@ -103,6 +103,7 @@ class Guru:
     self.base_url = "https://qaapi.getguru.com/api/v1" if qa else "https://api.getguru.com/api/v1"
     self.dry_run = dry_run
     self.__cache = {}
+    self.__upload_key = None
 
     if self.dry_run:
       self.debug = True
@@ -112,18 +113,22 @@ class Guru:
       self.debug = True
   
   def __is_id(self, value):
+    """internal"""
     if re.match("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", str(value)):
       return True
     else:
       return False
 
   def __print(self, *args):
+    """internal"""
     print(" ".join([str(a) for a in args]))
 
   def __get_auth(self):
+    """internal"""
     return HTTPBasicAuth(self.username, self.api_token)
 
   def __log(self, *args):
+    """internal"""
     if self.debug:
       if self.dry_run:
         self.__print(make_bold("[Dry Run]"), *args)
@@ -131,16 +136,19 @@ class Guru:
         self.__print(make_bold(make_green("[Live]")), *args)
 
   def __log_response(self, response):
+    """internal"""
     if status_to_bool(response.status_code):
       self.__log(make_gray("  response status:", response.status_code))
     else:
       self.__log(make_gray("  response status:", response.status_code, "body:", response.content))
 
   def __clear_cache(self, url):
+    """internal"""
     if self.__cache.get(url):
       del self.__cache[url]
 
   def __get(self, url, cache=False):
+    """internal"""
     if cache:
       # if we don't have a response for this call in our cache,
       # make the call and store the response.
@@ -158,6 +166,7 @@ class Guru:
       return response
   
   def __put(self, url, data=None):
+    """internal"""
     if self.dry_run:
       self.__log(make_gray("  would make a put call:", url, data))
       return DummyResponse()
@@ -168,6 +177,7 @@ class Guru:
     return response
 
   def __patch(self, url, data=None):
+    """internal"""
     if self.dry_run:
       self.__log(make_gray("  would make a patch call:", url, data))
       return DummyResponse()
@@ -178,6 +188,7 @@ class Guru:
     return response
 
   def __post(self, url, data=None, files=None):
+    """internal"""
     if self.dry_run:
       self.__log(make_gray("  would make a post call:", url, data))
       return DummyResponse()
@@ -193,6 +204,7 @@ class Guru:
       return response
   
   def __get_and_get_all(self, url, cache=False, max_pages=500):
+    """internal"""
     if cache and self.__cache.get(url):
       self.__log(make_gray("  using cached get call:", url))
       return self.__cache[url]
@@ -219,6 +231,7 @@ class Guru:
     return results
 
   def __post_and_get_all(self, url, data):
+    """internal"""
     results = []
     auth = self.__get_auth()
     page = 0
@@ -233,6 +246,7 @@ class Guru:
     return results
 
   def __delete(self, url, data=None):
+    """internal"""
     if self.dry_run:
       self.__log(make_gray("  would make a delete call:", url, data))
       return DummyResponse(204)
@@ -245,6 +259,12 @@ class Guru:
   def get_collection(self, collection, cache=False):
     """
     Loads a collection.
+
+    ```
+    collection = g.get_collection("Engineering")
+    print(collection.name)
+    print(collection.description)
+    ```
 
     Args:
       collection (str): Either a collection name or ID. If it's a name, it'll
@@ -272,6 +292,11 @@ class Guru:
   def get_collections(self, cache=False):
     """
     Loads a list of all collections you have access to.
+
+    ```
+    for collection in g.get_collections():
+      print(collection.name)
+    ```
 
     Args:
       cache (bool, optional): Tells us whether we should reuse the results
@@ -351,6 +376,13 @@ class Guru:
     Adds a group to a collection and gives it the specified role.
     If the group is already on the collection it'll update its role
     to be what you specify here.
+
+    You can also do this through the Collection object:
+
+    ```
+    collection = g.get_collection("Engineering")
+    collection.add_group("Customer Support", guru.READ_ONLY)
+    ```
 
     Args:
       group (str): A group name or ID.
@@ -433,6 +465,7 @@ class Guru:
     return status_to_bool(response.status_code)
 
   def upload_content(self, collection, filename, zip_path, is_sync=False):
+    """internal: used by the bundle object"""
     collection_obj = self.get_collection(collection)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
@@ -460,6 +493,11 @@ class Guru:
     """
     Loads a group.
 
+    ```
+    group = g.get_group("Experts")
+    print(group.id)
+    ```
+
     Args:
       group (str): Either a group name or ID. If it's a name, it'll return
         the first matching collection and the comparison is not case sensitive.
@@ -484,6 +522,11 @@ class Guru:
     """
     Loads a list of all groups.
 
+    ```
+    for group in g.get_groups():
+      print(group.id, group.name)
+    ```
+
     Args:
       cache (bool, optional): Tells us whether we should reuse the results
         from the previous call or not. Defaults to False. Set this to True
@@ -495,11 +538,19 @@ class Guru:
     """
     url = "%s/groups" % self.base_url
     response = self.__get(url, cache)
-    return [Group(g) for g in response.json()]
+    return [Group(g, guru=self) for g in response.json()]
   
   def make_group(self, name):
     """
-    Creates a new group.
+    Creates a new group. This *does* check if a group by this name already
+    exists, but you should still be careful not to create duplicate groups.
+    For example, you can still create near-duplicates where one group's name
+    is the misspelling of another, or one is singular and the other is plural.
+
+    ```
+    g.make_group("Experts")
+    g.add_user_to_group("user@example.com", "Experts")
+    ```
 
     Args:
       name (str): The group's name.
@@ -507,6 +558,14 @@ class Guru:
     Returns:
       Group: An object representing the new group.
     """
+    # check first if a group with this name already exists.
+    # our backend does not check for this so if we don't, it's easy
+    # to create duplicate groups.
+    group_obj = self.get_group(name)
+    if group_obj:
+      self.__log(make_red("A group with the name \"%s\" already exists." % name))
+      return None
+
     url = "%s/groups" % self.base_url
     data = {
       "id": "new-group",
@@ -514,7 +573,7 @@ class Guru:
     }
     response = self.__post(url, data)
     self.__clear_cache("%s/groups" % self.base_url)
-    return Group(response.json())
+    return Group(response.json(), guru=self)
 
   def delete_group(self, group):
     """
@@ -535,6 +594,30 @@ class Guru:
     url = "%s/groups/%s" % (self.base_url, group_obj.id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
+
+  def get_group_members(self, group):
+    """
+    Gets a list of users in the group.
+
+    ```
+    for user in g.get_group_members("Experts"):
+      print(user.email)
+    ```
+
+    Args:
+      group (str or Group): The name of the group, or its ID, or a Group object.
+
+    Returns:
+      list of User: a list of users in the group.
+    """
+    group_obj = self.get_group(group)
+    if not group_obj:
+      self.__log(make_red("could not find group:", group))
+      return False
+
+    url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
+    response = self.__get(url)
+    return [User(u) for u in response.json() or []]
 
   def get_members(self, search="", cache=False):
     """
@@ -563,6 +646,13 @@ class Guru:
 
     If the user is already on the team this still adds them to the
     groups.
+
+    ```
+    g.invite_user("user1@example.com")
+
+    # invite a user and add them to some groups.
+    g.invite_user("user2@example.com", "Experts", "Engineering")
+    ```
 
     Args:
       email (str): The email address of the user to add to the team.
@@ -659,7 +749,16 @@ class Guru:
   def add_user_to_groups(self, email, *groups):
     """
     Adds a user to one or more groups. If the user is already in some
-    of the groups provided, that's ok.
+    of the groups provided, that's ok. All groups must already exist, no
+    new groups will be created here.
+
+    The user must already be on the team. If you need to invite a user
+    and also assign them to groups, you can call `invite_user` and pass
+    that the list of groups to both invite them and add them to groups.
+
+    ```
+    g.add_user_to_groups("user@example.com", "Experts", "Engineering")
+    ```
 
     Args:
       email (str): The user being added to groups.
@@ -708,7 +807,13 @@ class Guru:
   
   def add_user_to_group(self, email, group):
     """
-    Adds a user to a single group.
+    Adds a user to a single group. This requires that the group exists and
+    that the user is on the team. It's ok if the user hasn't logged in yet
+    but they need to have been invited at least.
+
+    If you're adding the user to many groups you can call `add_user_to_groups`.
+
+    If you need to invite the user and assign them to groups you an call `invite_user`.
 
     Args:
       email (str): The user being added to the group.
@@ -754,7 +859,7 @@ class Guru:
       result[group_obj.name] = status_to_bool(response.status_code)
     
     return result
-  
+
   def remove_user_from_group(self, email, group):
     """
     Removes a single user from a single group
@@ -792,7 +897,14 @@ class Guru:
 
   def get_card(self, card):
     """
-    Loads a single card by its ID.
+    Loads a single card by its ID or slug. The slug comes from the card's URL, like this:
+
+    ```
+    # load this card: https://app.getguru.com/card/Tbbqo5pc/Getting-Started-with-the-Guru-SDK
+    card = g.get_card("Tbbqo5pc")
+    print(card.title)
+    print(card.content)
+    ```
 
     Args:
       card (str): The card's ID or slug.
@@ -813,6 +925,19 @@ class Guru:
         return None
 
   def get_visible_cards(self):
+    """
+    Gets the count of all cards on the team where you have read access or higher.
+
+    This is helpful when you want to run a script that checks all cards for a certain
+    kind of image or link, this gives you an easy way to see how many of the team's
+    cards you're able to see.
+
+    Args:
+      none
+
+    Returns:
+      int: The number of cards you can view.
+    """
     url = "%s/search/visible" % self.base_url
     response = self.__get(url)
     return int(response.headers.get("x-guru-total-cards"))
@@ -879,6 +1004,12 @@ class Guru:
     have read access to. Parameter may be combined to find cards that match
     all specified criteria (e.g. cards in a collection that also have the
     specified tag).
+
+    ```
+    # list all cards in the Engineering collection created after April 1.
+    for card in g.find_cards(collection="Engineering", created_after="2020-04-01"):
+      print(card.url)
+    ```
 
     Args:
       title (str, optional): Optional parameter to select cards containing the
@@ -1032,6 +1163,98 @@ class Guru:
     url = "%s/search/cardmgr" % self.base_url
     cards = self.__post_and_get_all(url, data)
     return [Card(c, guru=self) for c in cards]
+
+  def __get_upload_key(self):
+    """internal"""
+    # the key we get here is valid for 24 hours which means it could expire, but we'll assume
+    # for now your script won't run for 24+ hours.
+    if self.__upload_key:
+      return self.__upload_key
+
+    url = "%s/attachments/policy" % self.base_url
+    self.__upload_key = self.__get(url).json()
+    return self.__upload_key
+
+  def upload_file(self, filename):
+    """
+    Uploads a file, like an image or pdf, to Guru so you can reference it in cards.
+
+    ```
+    # load a card and add a pdf to it.
+    card = g.get_card("Tbbqo5pc")
+    url = g.upload_file("/Users/rob/Documents/getting-started.pdf")
+    card.content += '<a href="%s">getting-started.pdf</a>' % url
+    card.save()
+    ```
+
+    Args:
+      filename (str): The file on your computer that you want to upload to Guru.
+
+    Returns:
+      str: The Guru URL for the attachment, something like: https://content.api.getguru.com/files/view/3886ec47-a99d-4431-848e-cff2d73a49f3
+    """
+    # there are three steps here:
+    # 1. make sure we have an upload key for filestack, we get this from our API.
+    # 2. make the /S3 call to upload the file to filestack (FS gives us the attachment URL in their response).
+    # 3. make the /attachment call to tell guru about the newly created attachment.
+    upload_key = self.__get_upload_key()
+
+    # read the file and upload it to filestack.
+    with open(filename, "rb") as file_in:
+      url = "https://www.filepicker.io/api/store/S3?key=%s&filename=%s&path=%s&signature=%s&policy=%s" % (
+        upload_key.get("apiKey"),
+        os.path.basename(filename),
+        upload_key.get("path"),
+        upload_key.get("signature"),
+        upload_key.get("policy")
+      )
+      files = {
+        "fileUpload": (filename, file_in)
+      }
+      response = self.__post(url, files=files)
+      if response.status_code != 200:
+        self.__log(make_red("status %s uploading to filestack" % response.status_code))
+        return
+
+      # the response has a bunch of values we need, particularly the filestack url.
+      # the full response looks like this:
+      #   {
+      #     "container": "fs.getguru.com",
+      #     "url": "https://cdn.filepicker.io/api/file/YtOIxff7T8Cyu2OZaF7m",
+      #     "filename": "screenshot.jpeg",
+      #     "key": "d7277b61-3974-4228-bcd7-4e4e220e93cb/iasnMk0TROCyLZPX9QIk_4e2d7a8627e34e8c8406e6b38f481941.jpeg",
+      #     "type": "image/jpeg",
+      #     "size": 4083
+      #   }
+      fs_data = response.json()
+
+    # make the call to our backend so we know the attachment was uploaded
+    # and what its filestack url is.
+    url = "%s/attachments" % self.base_url
+    data = {
+      "filestackKey": fs_data.get("key"),
+      "filestackUrl": fs_data.get("url"),
+      "filestackClient": "",
+      "filename": fs_data.get("filename"),
+      "size": fs_data.get("size"),
+      "mimeType": fs_data.get("type")
+    }
+    response = self.__post(url, data=data)
+
+    # the response from our api gives us the content.api.getguru.com URL for the file.
+    # the full response looks like this:
+    #   {
+    #     "mimeType" : "image/jpeg",
+    #     "link" : "https://content.api.getguru.com/files/view/3886ec47-a99d-4431-848e-cff2d73a49f3",
+    #     "filename" : "screenshot.jpeg",
+    #     "filestackKey" : "d7277b61-3974-4228-bcd7-4e4e220e93cb/iasnMk0TROCyLZPX9QIk_4e2d7a8627e34e8c8406e6b38f481941.jpeg",
+    #     "attachmentId" : "3886ec47-a99d-4431-848e-cff2d73a49f3",
+    #     "filestackUrl" : "https://cdn.filepicker.io/api/file/YtOIxff7T8Cyu2OZaF7m",
+    #     "filestackClient" : "",
+    #     "size" : 4083
+    #   }
+    if status_to_bool(response.status_code):
+      return response.json().get("link")
 
   def patch_card(self, card, keep_verification=True):
     """
@@ -1200,7 +1423,13 @@ class Guru:
 
   def add_comment_to_card(self, card, comment):
     """
-    Adds a comment to a card.
+    Adds a comment to a card. You can also add comments through the Card object, like thisL
+
+    ```
+    # load a card using it's slug and add a comment.
+    card = g.get_card("TyRM678c")
+    card.add_comment("Is this still a good doc to include in our onboarding materials?")
+    ```
 
     Args:
       card (str): The name or ID of the card to add a comment to.
@@ -1471,6 +1700,17 @@ class Guru:
     return Board(response.json(), guru=self)
   
   def get_boards(self, collection=None, cache=False):
+    """
+    Gets a list of boards you can see. You can optionally filter by collection.
+
+    Args:
+      collection (str or Collection, optional): The name or ID of a collection or a Collection object
+        to filter by. If this is not provided, you'll get back a list of all boards in all collections
+        you can see.
+
+    Returns:
+      list of Board: Either all boards you have access to or all boards within the specified collection.
+    """
     # filtering by collection is optional.
     if collection:
       collection_obj = self.get_collection(collection)
@@ -1485,6 +1725,17 @@ class Guru:
     return [Board(b, guru=self) for b in response.json()]
 
   def get_board_group(self, board_group, collection):
+    """
+    Loads a board group.
+
+    Args:
+      board_group(str): The name of the board group.
+      collection(str or Collection): The name of the collection or the Collection object
+        for the collection that contains the board group you're looking for.
+
+    Returns:
+      BoardGroup: an object representing the board group.
+    """
     if isinstance(board_group, BoardGroup):
       return board_group
 
@@ -1528,6 +1779,24 @@ class Guru:
       return self.get_board_group(title, collection)
 
   def add_board_to_board_group(self, board, board_group, collection=""):
+    """
+    Adds an existing board to a board group. You can also load the Board and
+    BoardGroup objects and add boards like this:
+
+    ```
+    board_group = g.get_board_group("Onboarding", "Engineering")
+    board_group.add_board("Week 1")
+    ```
+
+    Args:
+      board (str or Board): The name, ID, or slug of the Board or a Board object.
+      board_group (str or BoardGrop): The name of the Board Group or a BoardGroup object.
+      collection (str or Collection): The name or ID of the Collection the board and board group
+        are located in, or the Collection object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
     board_obj = self.get_board(board, collection)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
@@ -1653,6 +1922,18 @@ class Guru:
     Board names still don't have to be unique inside a collection. If you run
     into this problem, you'll have to use the board's ID or slug.
 
+    You can also do this using the Board or Card objects:
+
+    ```
+    # load a card using its slug and add it to a board:
+    card = g.get_card("TyRM678c")
+    card.add_to_board("Onboarding")
+
+    # or you load the board and add cards like this:
+    board = g.get_board("Onboarding", collection="Engineering")
+    board.add_card("TyRM678c")
+    ```
+
     Args:
       card (str or Card): The card to be added to the board. Can either be the
         card's title, ID, slug, or the Card object.
@@ -1701,6 +1982,16 @@ class Guru:
   def add_section_to_board(self, board, section, collection=None):
     """
     Adds a section to a board.
+
+    You can also do this through the Board object:
+
+    ```
+    # load a board using its slug and add some new sections.
+    board = g.get_board("Onboarding", collection="Engineering")
+    board.add_section("Week 1")
+    board.add_section("Week 2")
+    board.add_section("Week 3")
+    ```
 
     Args:
       board (str or Board): The board you're adding the section to. Can either
@@ -1778,11 +2069,19 @@ class Guru:
   
   def sync(self, id="default", clear=True, folder="/tmp/", verbose=False):
     """
-    sync() is an alias for bundle().
+    internal: sync() is an alias for bundle().
     """
     return Bundle(guru=self, id=id, clear=clear, folder=folder, verbose=verbose)
 
   def get_events(self, start="", end="", max_pages=10):
+    """
+    Load a list of events from the /analytics API. Check [this doc](https://developer.getguru.com/docs/list-analytics-data)
+    for more information about this endpoint.
+
+    The start and end parameters are timestamps that can either be full
+    timestamps like `"2021-02-01T15:01:30.000+04:00"` or just dates like
+    `"2021-02-01"`.
+    """
     team_id = self.get_team_id()
     if not team_id:
       self.__log(make_red("couldn't find your Team ID, are you authenticated?"))
@@ -1807,6 +2106,26 @@ class Guru:
     return [BoardPermission(b) for b in response.json()]
   
   def add_shared_group(self, board, group):
+    """
+    Shares a board with a group using the Board Permissions settings.
+    This is how you share specific boards with groups that don't have full
+    read access to the collection.
+
+    You can also do this through the board object:
+
+    ```
+    # load a board using its slug and share it with a group:
+    board = g.get_board("KTRX8zMT")
+    board.add_group("Sales")
+    ```
+
+    Args:
+      board (str or Board): The board's ID or slug or a Board object.
+      group (str or Group): The group's name or ID or a Group object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
     group_obj = self.get_group(group)
     if not group_obj:
       self.__log(make_red("could not find group:", group))

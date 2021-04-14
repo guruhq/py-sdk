@@ -684,7 +684,9 @@ class TestBundle(unittest.TestCase):
 
     self.assertEqual(download_mock.call_args.args, (
       "https://www.example.com/test.png",
-      "/tmp/test_sync_with_image_we_download/resources/a3957e37ef2bcbe40ae4cfa69d8a2e5e.png"
+      "/tmp/test_sync_with_image_we_download/resources/a3957e37ef2bcbe40ae4cfa69d8a2e5e.png",
+      sync,
+      node1
     ))
     self.assertEqual(read_yaml("/tmp/test_sync_with_image_we_download/collection.yaml"), {
       "Title": "test",
@@ -715,7 +717,9 @@ class TestBundle(unittest.TestCase):
 
     self.assertEqual(download_mock.call_args.args, (
       "https://www.example.com/test.png",
-      "/tmp/test_sync_with_image_we_dont_download/resources/a3957e37ef2bcbe40ae4cfa69d8a2e5e.png"
+      "/tmp/test_sync_with_image_we_dont_download/resources/a3957e37ef2bcbe40ae4cfa69d8a2e5e.png",
+      sync,
+      node1
     ))
     self.assertEqual(read_yaml("/tmp/test_sync_with_image_we_dont_download/collection.yaml"), {
       "Title": "test",
@@ -745,7 +749,9 @@ class TestBundle(unittest.TestCase):
 
     self.assertEqual(download_mock.call_args.args, (
       "https://www.example.com/test.pdf",
-      "/tmp/test_sync_with_attachment_we_download/resources/f7046e184217c5391c01550389ee7406.pdf"
+      "/tmp/test_sync_with_attachment_we_download/resources/f7046e184217c5391c01550389ee7406.pdf",
+      sync,
+      node1
     ))
     self.assertEqual(read_yaml("/tmp/test_sync_with_attachment_we_download/collection.yaml"), {
       "Title": "test",
