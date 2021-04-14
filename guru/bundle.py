@@ -318,8 +318,8 @@ def insert_nodes(node, parent, depth):
   
   bundle = node.bundle
 
-  # board groups that have content require two new nodes -- one for the
-  # card and one to be the board that contains that card.
+  # board groups have to have a board as a child to be a board group, 
+  # so if it has content, we can add it to the first board in the group
   if node.content and node.type == BOARD_GROUP:
     # Add a card to the first board in the board group.
     content_id = "%s_content" % node.id
