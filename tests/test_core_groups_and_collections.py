@@ -28,7 +28,15 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "name": "test"
     }])
-    g.get_collection("test")
+    collection = g.get_collection("test")
+    self.assertEqual(collection.name, "test")
+    self.assertEqual(collection.title, "test")
+
+    # make sure title also works as an alias when setting its name.
+    collection.title = "new title"
+    self.assertEqual(collection.name, "new title")
+    self.assertEqual(collection.title, "new title")
+
     self.assertEqual(get_calls(), [
       {
         "method": "GET",

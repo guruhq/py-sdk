@@ -338,6 +338,11 @@ def insert_nodes(node, parent, depth):
     )
     bundle.node(board_id).add_child(content_node, first=True)
 
+    # we clear the url because the new content_node has this url and
+    # when we look for card-to-card links, we want things to link to
+    # content_node and not this node.
+    node.url = ""
+
   # if the node has content and is a board or section we just make
   # a new node (as the card) inside this node.
   elif node.content and (node.type == BOARD or node.type == SECTION):
@@ -351,6 +356,7 @@ def insert_nodes(node, parent, depth):
       type=CARD
     )
     node.add_child(content_node, first=True)
+    node.url = ""
   
   # todo: figure out how this happens.
   # if a board group contains a card directly we need to move the card into a board.
@@ -602,9 +608,17 @@ class BundleNode:
           # then absolute_url is: /Users/rmiller/export/images/bullet.gif
           # and filename is:      /tmp/{job_id}/resources/{hash}.gif
           filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
-          copy_file(absolute_url, filename)
-          self.bundle.resources[resource_id] = filename
-          element.attrs[attr] = "resources/%s" % resource_id
+          if copy_file(absolute_url, filename):
+            self.bundle.resources[resource_id] = filename
+            element.attrs[attr] = "resources/%s" % resource_id
+          else:
+            # the element could be a link or an image.
+            # if it's a link we unwrap its text, if it's an image we just remove it.
+            self.bundle.log(message="resource doesn't exist", file=filename)
+            if attr == "href":
+              element.unwrap()
+            else:
+              element.decompose()
         elif _is_local(url):
           # this means self.url is _not_ local but the url is, so make it absolute.
           element.attrs[attr] = absolute_url
@@ -636,7 +650,7 @@ class BundleNode:
 
       # if convert_links:
       for other_node in self.bundle.nodes:
-        if (compare_links and compare_links(other_node.url, absolute_url)) or \
+        if (compare_links and compare_links(other_node, absolute_url)) or \
             other_node.url == absolute_url:
           # print("replace link: %s  -->  cards/%s" % (href[0:80], other_node.id))
           link.attrs["href"] = "cards/%s" % other_node.id
