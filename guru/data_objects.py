@@ -786,7 +786,7 @@ class Card:
         your edit may cause the card to become unverified).
     """
     saved_card, status = self.guru.patch_card(self, keep_verification)
-    return saved_card
+    return saved_card, status
 
   def save(self, verify=False):
     saved_card, status = self.guru.save_card(self, verify)

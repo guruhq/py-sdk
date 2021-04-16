@@ -513,10 +513,7 @@ class Guru:
       return group
 
     groups = self.get_groups(cache)
-    for g in groups:
-      # todo: handle the case where the name isn't unique.
-      if g.name.lower() == group.lower():
-        return g
+    return find_by_name_or_id(groups, group)
 
   def get_groups(self, cache=False):
     """
