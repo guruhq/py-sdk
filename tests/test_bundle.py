@@ -416,6 +416,7 @@ class TestBundle(unittest.TestCase):
     node3.add_to(node2)
     node2.add_to(node1)
     sync.zip()
+    sync.view_in_browser()
 
     self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/collection.yaml"), {
       "Title": "test",
@@ -428,25 +429,17 @@ class TestBundle(unittest.TestCase):
     })
     self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/board-groups/1.yaml"), {
       "ExternalId": "1",
-      "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
-      "Boards": ["1_content_board", "2"]
-    })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/boards/1_content_board.yaml"), {
-      "ExternalId": "1_content_board",
-      "ExternalUrl": "https://www.example.com/1",
-      "Title": "node 1 Content",
-      "Items": [{
-        "ID": "1_content",
-        "Type": "card"
-      }]
+      "Boards": ["2"]
     })
     self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/boards/2.yaml"), {
       "ExternalId": "2",
-      "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
       "Items": [{
         "ID": "2_content",
+        "Type": "card"
+      }, {
+        "ID": "1_content",
         "Type": "card"
       }, {
         "ID": "3",
@@ -623,7 +616,6 @@ class TestBundle(unittest.TestCase):
     })
     self.assertEqual(read_yaml("/tmp/test_sync_with_container_that_has_content/boards/1.yaml"), {
       "ExternalId": "1",
-      "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
       "Items": [{
         "ID": "1_content",
