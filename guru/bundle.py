@@ -47,6 +47,8 @@ def _is_local(url_or_path):
     return False
   elif url_or_path.startswith("//"):
     return False
+  elif not url_or_path.startswith("file:") and re.match(r'[a-zA-Z]{1,}\:\/\/.*', url_or_path):
+    return False
   else:
     return True
 
@@ -131,21 +133,21 @@ def clean_up_html(html):
   # remove empty blocks. for a block to be empty it has to meet all of these criteria:
   #
   #  - contain no visible text.
-  #  - contain either no tags, or only <br> tags.
+  #  - contain either no tags, or contains only br, div, or span tags.
   #
-  # the second rule is important otherwise we'll remove paragraphs that contain only an image.
+  # the second rule is important otherwise we'll remove paragraphs that contain only an image, iframe, etc.
   for el in doc.select("p, h1, h2, h3, h4, h5, h6"):
     text = el.text.strip()
     if not text:
-      tag_count = len(el.select("*"))
-      br_count = len(el.select("br"))
-      if tag_count == br_count:
+      all_tag_count = len(el.select("*"))
+      unimportant_tag_count = len(el.select("br, div, span"))
+      if all_tag_count == unimportant_tag_count:
         el.decompose()
 
   return str(doc).replace("\\n", "\n").replace("\\'", "'")
 
 def traverse_tree(bundle, func, node=None, parent=None, depth=0, post=False, **kwargs):
-  """Does a tree traversal on the nodes and calls the provided callback (func) on each node."""
+  """internal: Does a tree traversal on the nodes and calls the provided callback (func) on each node."""
   if node:
     func(node, parent, depth, **kwargs)
     for id in node.children[0:]:
@@ -161,6 +163,7 @@ def traverse_tree(bundle, func, node=None, parent=None, depth=0, post=False, **k
         traverse_tree(bundle, func, node, post=post, **kwargs)
 
 def make_spreadsheet(node, parent, depth, rows):
+  """internal"""
   # if the 'rows' list is empty, add the headings to it.
   if not rows:
     rows.append([
@@ -219,7 +222,7 @@ def make_spreadsheet(node, parent, depth, rows):
   rows.append(values)
 
 def make_html_tree(node, parent, depth, html_pieces):
-  """This builds the board/card tree in the HTML preview page."""
+  """internal: This builds the board/card tree in the HTML preview page."""
   if node.type == CARD:
     url = node.bundle.CARD_HTML_PATH % (node.bundle.id, node.id)
     html_pieces.append(
@@ -231,6 +234,7 @@ def make_html_tree(node, parent, depth, html_pieces):
     )
 
 def print_node(node, parent, depth):
+  """internal"""
   indent = "  " * min(3, depth)
   parent_str = ", parent=%s" % parent.id if parent else ""
   if node.url:
@@ -243,6 +247,7 @@ def print_type(node, parent, depth):
 
 def assign_types(node, parent, depth, post=False, favor_boards=None, favor_sections=None):
   """
+  internal:
   When you're done adding content to a bundle we call this for every
   node to figure out which nodes become board groups, boards, cards,
   or sections.
@@ -302,6 +307,7 @@ def assign_types(node, parent, depth, post=False, favor_boards=None, favor_secti
 
 def insert_nodes(node, parent, depth):
   """
+  internal:
   If a node that ends up being a board or board group also has
   content of its own, we need to insert additional nodes so its
   content has a place to go.
@@ -316,19 +322,12 @@ def insert_nodes(node, parent, depth):
   
   bundle = node.bundle
 
-  # board groups that have content require two new nodes -- one for the
-  # card and one to be the board that contains that card.
+  # board groups have to have a board as a child to be a board group, 
+  # so if it has content, we can add it to the first board in the group
   if node.content and node.type == BOARD_GROUP:
-    # insert a board and add a card to it.
-    board_id = "%s_content_board" % node.id
+    # Add a card to the first board in the board group.
     content_id = "%s_content" % node.id
-    board_node = bundle.node(
-      id=board_id,
-      url=node.url,
-      title="%s Content" % node.title,
-      type=BOARD
-    )
-    node.add_child(board_node, first=True)
+    board_id = node.children[0]
 
     content_node = bundle.node(
       id=content_id,
@@ -337,7 +336,7 @@ def insert_nodes(node, parent, depth):
       content=node.content,
       type=CARD
     )
-    bundle.node(board_id).add_child(content_node)
+    bundle.node(board_id).add_child(content_node, first=True)
 
   # if the node has content and is a board or section we just make
   # a new node (as the card) inside this node.
@@ -444,8 +443,8 @@ class BundleNode:
     
     return self
   
-  def _make_items_list(self):
-    """This is used internally when we're building the .yaml files."""
+  def __make_items_list(self):
+    """internal: This is used internally when we're building the .yaml files."""
     items = []
     for id in self.children:
       node = self.bundle.node(id)
@@ -455,12 +454,12 @@ class BundleNode:
           "Type": "card"
         })
         # if this node has nested children this'll flatten them out.
-        items += node._make_items_list()
+        items += node.__make_items_list()
       elif node.type == SECTION:
         items.append({
           "Type": "section",
           "Title": node.title,
-          "Items": node._make_items_list()
+          "Items": node.__make_items_list()
         })
       elif node.type == BOARD:
         items.append(node.id)
@@ -534,6 +533,7 @@ class BundleNode:
 
   def html_cleanup(self, download_func=None, convert_links=True, compare_links=None):
     """
+    internal:
     This adjusts image and link URLs to either be absolute or refer to
     something in this import -- for cards this means we look for href
     values that should become card-to-card links and for images we look
@@ -654,6 +654,7 @@ class BundleNode:
 
   def write_files(self):
     """
+    internal:
     Writes the files needed for this object. For cards that's a .yaml
     and .html file. For boards and board groups it's just a .yaml file.
     """
@@ -666,7 +667,7 @@ class BundleNode:
       write_file(self.bundle.BOARD_GROUP_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
 
   def make_yaml(self):
-    """Generates the yaml content for this node."""
+    """internal: Generates the yaml content for this node."""
     if self.type == CARD:
       data = {
         # card titles cannot contain html.
@@ -686,7 +687,7 @@ class BundleNode:
       data = {
         "Title": self.title,
         "ExternalId": self.id,
-        items_key: self._make_items_list()
+        items_key: self.__make_items_list()
       }
       if self.url:
         data["ExternalUrl"] = self.url
@@ -748,7 +749,8 @@ class Bundle:
     if self.verbose:
       print(kwargs)
 
-  def _write_csv(self):
+  def __write_csv(self):
+    """internal"""
     labels = []
     for event in self.events:
       for key in event:
@@ -837,6 +839,20 @@ class Bundle:
     return node
   
   def print_tree(self, print_func=None, just_types=False):
+    """
+    Prints the bundle's hierarchy to the terminal.
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    bundle = g.bundle("test")
+
+    # you'd have some code here to add content to the bundle...
+
+    bundle.zip()
+    bundle.print_tree()
+    """
     if print_func:
       traverse_tree(self, print_func)
     elif just_types:
@@ -845,6 +861,7 @@ class Bundle:
       traverse_tree(self, print_node)
 
   def __wait_and_retry(self, status_code, wait):
+    """internal"""
     if status_code == 429:
       # todo: use the response headers to check if they tell us how long to wait.
       self.log(message="got a 429 response", status_code=status_code, wait=wait)
@@ -852,6 +869,15 @@ class Bundle:
       return True
 
   def load_html(self, url, cache=False, make_links_absolute=True, headers=None, wait=5, timeout=0):
+    """
+    Makes an HTTP get call to load a URL, parse its content as HTML, and return a Beautiful
+    Soup document object representing it.
+
+    You can do this yourself using the `requests` and `bs4` modules directly but if you do it
+    through the bundle object then it automatically logs this call and its response to its .csv
+    log file. It's also easily cacheable so if your scripts can run faster by storing the HTTP
+    responses to disk so subsequent runs can use the cached data.
+    """
     # todo: figure out if we should log the headers. these could be helpful to have later
     #       but they could also contain an API key or other sensitive data.
     self.log(message="calling load_html", url=url, cache=cache, make_links_absolute=make_links_absolute)
@@ -866,6 +892,14 @@ class Bundle:
         return doc
 
   def http_get(self, url, cache=False, headers=None, wait=5, timeout=0):
+    """
+    Makes an HTTP get call to load the specified URL and returns its response content as a string.
+
+    You can do this yourself using the `requests` module directly but if you do it
+    through the bundle object then it automatically logs this call and its response to its .csv
+    log file. It's also easily cacheable so if your scripts can run faster by storing the HTTP
+    responses to disk so subsequent runs can use the cached data.
+    """
     self.log(message="calling http_get", url=url, cache=cache, timeout=timeout)
 
     while True:
@@ -879,6 +913,14 @@ class Bundle:
         return content
 
   def http_post(self, url, data=None, cache=False, headers=None, wait=5, timeout=0):
+    """
+    Makes an HTTP post call to the specified URL and returns the response content as a string.
+
+    You can do this yourself using the `requests` module directly but if you do it
+    through the bundle object then it automatically logs this call and its response to its .csv
+    log file. It's also easily cacheable so if your scripts can run faster by storing the HTTP
+    responses to disk so subsequent runs can use the cached data.
+    """
     self.log(message="calling http_post", url=url, cache=cache, timeout=timeout)
     while True:
       content, status_code = http_post(url, data, cache, headers)
@@ -891,6 +933,13 @@ class Bundle:
         return content
 
   def download_file(self, url, filename, headers=None, wait=5, timeout=0):
+    """
+    Makes an HTTP get call to load a remote file and save it to a local file.
+
+    You can do this yourself using the `requests` module directly but if you do it
+    through the bundle object then it automatically logs this call and its response to its .csv
+    log file.
+    """
     # todo: make this have a 'cache' parameter.
     self.log(message="calling download_file", url=url, filename=filename)
 
@@ -924,7 +973,8 @@ class Bundle:
     return "resources/%s" % resource_id
   """
 
-  def _make_collection_yaml(self):
+  def __make_collection_yaml(self):
+    """internal"""
     items = []
     tags = []
     for node in self.nodes:
@@ -992,7 +1042,7 @@ class Bundle:
       node.write_files()
     
     # write the collection.yaml file.
-    write_file(self.COLLECTION_YAML_PATH % self.id, self._make_collection_yaml())
+    write_file(self.COLLECTION_YAML_PATH % self.id, self.__make_collection_yaml())
 
     # make sure local files are all inside the /tmp/x/resources folder.
     for res_path in self.resources:
@@ -1018,7 +1068,7 @@ class Bundle:
           zip_file.write(src_path, dest_path)
 
     zip_file.close()
-    self._write_csv()
+    self.__write_csv()
   
   def upload(self, is_sync=False, name="", color="", desc="", collection_id=""):
     """
@@ -1055,6 +1105,7 @@ class Bundle:
     )
   
   def build_spreadsheet(self):
+    """internal"""
     rows = []
     traverse_tree(self, make_spreadsheet, rows=rows)
 

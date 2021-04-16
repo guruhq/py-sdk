@@ -244,7 +244,7 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222/extended", json=None)
 
     card = g.get_card("1111")
-    card.comment("")
+    card.add_comment("")
 
     g.add_comment_to_card("2222", "test")
     g.get_card_comments("2222")

@@ -48,7 +48,10 @@ class TestCoreCache(unittest.TestCase):
       "groups": []
     }])
 
-    # the first call won't find the group, the second one will.
+    # the first call happens when we try to add the user to the group (we want it to fail).
+    # the second call happens inside make_group -- it checks if the group exists before creating it (we want it to not exist).
+    # the third call happens when we add the user to the group again and we want to simulate the group now existing.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1111",
@@ -74,6 +77,9 @@ class TestCoreCache(unittest.TestCase):
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups",
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups",

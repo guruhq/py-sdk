@@ -6,3 +6,11 @@ cache/
 .coveragerc
 internal/
 PublisherTest.json
+ReadmePublisher.json
+IntercomPublisher.json
+.readthedocs-custom-steps.yml
+.readthedocs-requirements.txt
+.readthedocs.yml
+pydoc-markdown.yml
+build/
+tests/download_file.html
