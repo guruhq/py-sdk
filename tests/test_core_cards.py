@@ -244,7 +244,7 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222/extended", json=None)
 
     card = g.get_card("1111")
-    card.comment("")
+    card.add_comment("")
 
     g.add_comment_to_card("2222", "test")
     g.get_card_comments("2222")
@@ -1058,3 +1058,88 @@ class TestCore(unittest.TestCase):
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/search/visible"
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_find_urls(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "content": """<p>
+  this paragraph has a <a href="https://www.example.com/link">link</a>.
+</p>
+<p>
+  this paragraph has an image: <img src="http://www.example.com/image.png" /> and here's an iframe:
+</p>
+<p>
+  <iframe src="https://www.example.com/embed"></iframe>
+</p>"""
+    })
+
+    # test with a card that has a guru markdown block.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222/extended", json={
+      "content": """<p>
+  this card has a <a href="https://help.getguru.com/en/articles/4681211-using-markdown-in-guru-cards">guru markdown block</a>.
+</p>
+<p class="ghq-card-content__paragraph" data-ghq-card-content-type="paragraph">test</p><div class="ghq-card-content__markdown" data-ghq-card-content-type="MARKDOWN" data-ghq-card-content-markdown-content="this%20has%20a%20%5Bmarkdown%20link%5D%28https%3A//www.example.com/link1%29%20and%20an%20image%3A%0A%0A%21%5B%5D%28https%3A//www.example.com/image1.png%29%0A%0Ait%20also%20has%20inline%20html%20for%20a%20%3Ca%20href%3D%22https%3A//www.example.com/link2%22%3Elink%3C/a%3E%20and%20image%3A%0A%0A%3Cimg%20src%3D%22https%3A//www.example.com/image2.png%22%20/%3E"><p>this has a <a href="https://www.example.com/link1" target="_blank" rel="noopener noreferrer">markdown link</a> and an image:</p><p><img src="https://www.example.com/image1.png" alt=""></p><p>it also has inline html for a <a href="https://www.example.com/link2" target="_blank" rel="noopener noreferrer">link</a> and image:</p><img src="https://www.example.com/image2.png"></div>
+"""
+    })
+
+    # test with a card whose content is entirely markdown.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/3333/extended", json={
+      "content": """## test
+
+this card's content is entirely [markdown](https://guides.github.com/features/mastering-markdown/).
+
+1. test
+2. numbered
+3. list
+
+here's an image:
+![](https://pp.getguru.com/a4211b79b48446f589b8e0e53fc067d7.jpeg)"""
+    })
+
+    normal_card = g.get_card("1111")
+    card_with_markdown = g.get_card("2222")
+    markdown_card = g.get_card("3333")
+
+    # we sort the urls because the elements and links aren't always enumerated in DOM order.
+    self.assertEqual(sorted(normal_card.find_urls()), [
+      "http://www.example.com/image.png",
+      "https://www.example.com/embed",
+      "https://www.example.com/link"
+    ])
+
+    self.assertEqual(sorted(card_with_markdown.find_urls()), [
+      "https://help.getguru.com/en/articles/4681211-using-markdown-in-guru-cards",
+      "https://www.example.com/image1.png",
+      "https://www.example.com/image2.png",
+      "https://www.example.com/link1",
+      "https://www.example.com/link2"
+    ])
+
+    self.assertEqual(sorted(markdown_card.find_urls()), [
+      "https://guides.github.com/features/mastering-markdown/",
+      "https://pp.getguru.com/a4211b79b48446f589b8e0e53fc067d7.jpeg"
+    ])
+
+  @use_guru()
+  @responses.activate
+  def test_replace_url(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+    "content": """<p>
+this card has a <a href="https://help.getguru.com/en/articles/4681211-using-markdown-in-guru-cards">guru markdown block</a>.
+</p>
+<p class="ghq-card-content__paragraph" data-ghq-card-content-type="paragraph">test</p><div class="ghq-card-content__markdown" data-ghq-card-content-type="MARKDOWN" data-ghq-card-content-markdown-content="this%20has%20a%20%5Bmarkdown%20link%5D%28https%3A//www.example.com/link1%29%20and%20an%20image%3A%0A%0A%21%5B%5D%28https%3A//www.example.com/image1.png%29%0A%0Ait%20also%20has%20inline%20html%20for%20a%20%3Ca%20href%3D%22https%3A//www.example.com/link2%22%3Elink%3C/a%3E%20and%20image%3A%0A%0A%3Cimg%20src%3D%22https%3A//www.example.com/image2.png%22%20/%3E"><p>this has a <a href="https://www.example.com/link1" target="_blank" rel="noopener noreferrer">markdown link</a> and an image:</p><p><img src="https://www.example.com/image1.png" alt=""></p><p>it also has inline html for a <a href="https://www.example.com/link2" target="_blank" rel="noopener noreferrer">link</a> and image:</p><img src="https://www.example.com/image2.png"></div>
+"""
+    })
+
+    card = g.get_card("1111")
+    result1 = card.replace_url("https://help.getguru.com/en/articles/4681211-using-markdown-in-guru-cards", "https://www.example.com")
+    card.replace_url("https://www.example.com/link1", "https://www.example.com/new-link")
+    result2 = card.replace_url("https://help.getguru.com/en/articles/4681211-using-markdown-in-guru-cards", "https://www.example.com")
+    self.assertEqual(result1, True)
+    self.assertEqual(result2, False)
+    self.assertEqual(card.content, """<p>
+this card has a <a href="https://www.example.com">guru markdown block</a>.
+</p>
+<p class="ghq-card-content__paragraph" data-ghq-card-content-type="paragraph">test</p><div class="ghq-card-content__markdown" data-ghq-card-content-type="MARKDOWN" data-ghq-card-content-markdown-content="this%20has%20a%20%5Bmarkdown%20link%5D%28https%3A//www.example.com/new-link%29%20and%20an%20image%3A%0A%0A%21%5B%5D%28https%3A//www.example.com/image1.png%29%0A%0Ait%20also%20has%20inline%20html%20for%20a%20%3Ca%20href%3D%22https%3A//www.example.com/link2%22%3Elink%3C/a%3E%20and%20image%3A%0A%0A%3Cimg%20src%3D%22https%3A//www.example.com/image2.png%22%20/%3E"><p>this has a <a href="https://www.example.com/new-link" target="_blank" rel="noopener noreferrer">markdown link</a> and an image:</p><p><img src="https://www.example.com/image1.png" alt=""></p><p>it also has inline html for a <a href="https://www.example.com/link2" target="_blank" rel="noopener noreferrer">link</a> and image:</p><img src="https://www.example.com/image2.png"></div>
+""")

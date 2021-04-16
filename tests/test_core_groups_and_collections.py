@@ -28,7 +28,15 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "name": "test"
     }])
-    g.get_collection("test")
+    collection = g.get_collection("test")
+    self.assertEqual(collection.name, "test")
+    self.assertEqual(collection.title, "test")
+
+    # make sure title also works as an alias when setting its name.
+    collection.title = "new title"
+    self.assertEqual(collection.name, "new title")
+    self.assertEqual(collection.title, "new title")
+
     self.assertEqual(get_calls(), [
       {
         "method": "GET",
@@ -321,17 +329,74 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_make_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/groups", json={})
 
     g.make_group("new group")
 
     self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/groups",
       "body": {
         "id": "new-group",
         "name": "new group"
       }
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_make_group_with_duplicate_name(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "name": "new group"
+    }])
+
+    g.make_group("new group")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_get_group_members(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "name": "Experts",
+      "id": "1111"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups/1111/members", json=[{
+      "id": "user1@example.com",
+      "dateCreated": "2019-10-04T19:04:12.108+0000",
+      "user": {
+        "status": "ACTIVE",
+        "email": "user1@example.com",
+        "firstName": "User",
+        "lastName": "One"
+      }
+    }, {
+      "id": "user2@example.com",
+      "dateCreated": "2019-10-04T19:04:12.108+0000",
+      "user": {
+        "status": "ACTIVE",
+        "email": "user2@example.com",
+        "firstName": "User",
+        "lastName": "Two"
+      }
+    }])
+
+    users = g.get_group("Experts").get_members()
+
+    self.assertEqual(users[0].last_name, "One")
+    self.assertEqual(users[1].last_name, "Two")
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups/1111/members"
     }])
 
   @use_guru()

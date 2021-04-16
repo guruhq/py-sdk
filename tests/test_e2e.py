@@ -104,7 +104,7 @@ class TestEndToEnd(unittest.TestCase):
 
     # test create/update/delete for comments:
     # add a comment.
-    comment = card.comment("new comment")
+    comment = card.add_comment("new comment")
 
     # check that it was added.
     comments = g.get_card_comments(card)
