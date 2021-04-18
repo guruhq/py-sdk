@@ -416,7 +416,6 @@ class TestBundle(unittest.TestCase):
     node3.add_to(node2)
     node2.add_to(node1)
     sync.zip()
-    sync.view_in_browser()
 
     self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/collection.yaml"), {
       "Title": "test",

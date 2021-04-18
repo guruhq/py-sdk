@@ -614,6 +614,26 @@ class Tag:
 
 
 class Verifier:
+  """
+  A card's verifier can be an individual user or a group, so we
+  use the Verifier object to represent that. Each Card object has
+  a `verifier` property, which is a Verifier object that'll have
+  a reference to a User object or Group object.
+
+  Question objects also use a Verifier object as their `answerer`
+  property, since questions can be asked to an individual or a group.
+
+  These are the properties a Verifier object has:
+
+  - `type`: Either the string `"user-group"` or `"user"`.
+  - `id`: The user's email address (if it's an individual verifier) or
+    the ID of the Group verifier.
+  - `user`: A User object, if the verifier is an individual user. `None`
+    if the verifier is a group.
+  - `group`: A Group object, if the verifier is a group. `None` if the
+    verifier is a user.
+  """
+
   def __init__(self, data):
     self.id = data.get("id")
     self.type = data.get("type")
@@ -996,3 +1016,59 @@ class CardComment:
     return {
       "content": self.content,
     }
+
+class Question:
+  """
+  Represents a question we get back from calling `get_questions_inbox()`.
+
+  ```
+  import guru
+  g = guru.Guru()
+
+  # print each question and who asked it:
+  for question in g.get_questions_inbox():
+    print(question.asker.email, question.question)
+  ```
+
+  Here are some of the properties that Questions have:
+
+  - `answerer` is a Verifier object which contains a reference to a Group object or a User object.
+  - `asker` is the User object of who asked the question.
+  - `created_date` is when the question was asked.
+  """
+
+  def __init__(self, data, guru=None):
+    self.guru = guru
+    self.answerer = Verifier(data.get("answerer")) if data.get("answerer") else None
+    self.answerable = data.get("answerable", None)
+    self.archivable = data.get("archivable", None)
+    self.asker = User(data.get("asker")) if data.get("asker") else None
+    self.id = data.get("id")
+    self.question = data.get("question")
+    self.created_date = data.get("createdDate")
+    # i am not sure what we use this for, so i don't know if customers would need it.
+    # when we archive a question we use its id, not its question_id.
+    # self.question_id = data.get("questionId")
+    self.last_activity = data.get("lastActivityType")
+    self.last_activity_date = data.get("lastActivityDate")
+    self.last_activity_by = User(data.get("lastActivityUser")) if data.get("lastActivityUser") else None
+
+  def archive(self):
+    """
+    Deletes a question.
+
+    Returns
+      bool: True if it was successful and False otherwise.
+    """
+    return self.guru.delete_question(self)
+
+  def dismiss(self):
+    """
+    Deletes a question. This does the same thing as the `archive()` method
+    the different is just its name. We say "dismiss" when we're deleting a
+    question in your inbox and "archive" when it's a question you sent.
+
+    Returns
+      bool: True if it was successful and False otherwise.
+    """
+    return self.guru.delete_question(self)

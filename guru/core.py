@@ -13,7 +13,7 @@ else:
   from urlparse import quote
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User
+from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question
 from guru.util import find_by_name_or_id, find_by_email, find_by_id, format_timestamp
 
 # collection colors
@@ -2241,3 +2241,20 @@ class Guru:
         break
 
     return False
+
+  def get_questions(self, type="INBOX", cache=False):
+    url = "%s/tasks/questions?filter=%s" % (self.base_url, type)
+    questions = self.__get_and_get_all(url, cache)
+    questions = [Question(q, guru=self) for q in questions]
+    return questions
+
+  def get_questions_inbox(self, cache=False):
+    return self.get_questions("INBOX", cache)
+
+  def get_questions_sent(self, cache=False):
+    return self.get_questions("SENT", cache)
+
+  def delete_question(self, question):
+    url = "%s/tasks/questions/%s" % (self.base_url, question.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
