@@ -2249,12 +2249,36 @@ class Guru:
     return questions
 
   def get_questions_inbox(self, cache=False):
+    """
+    Gets the questions in your inbox.
+
+    Returns:
+      list of Question: A list of Question objects for each question in your inbox.
+    """
     return self.get_questions("INBOX", cache)
 
   def get_questions_sent(self, cache=False):
+    """
+    Gets the questions you have sent.
+
+    Returns:
+      list of Question: A list of Question objects for each question you've sent.
+    """
     return self.get_questions("SENT", cache)
 
   def delete_question(self, question):
-    url = "%s/tasks/questions/%s" % (self.base_url, question.id)
+    """
+    Deletes a question. Can be applied to a question you've sent or received.
+
+    Args:
+      question (str or Question): Either question's ID as a string or a Question object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    if isinstance(question, Question):
+      url = "%s/tasks/questions/%s" % (self.base_url, question.id)
+    else:
+      url = "%s/tasks/questions/%s" % (self.base_url, question)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
