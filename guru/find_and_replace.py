@@ -3,6 +3,7 @@ import webbrowser
 from guru.util import write_file, load_html
 from guru.data_objects import Card
 
+
 from bs4 import BeautifulSoup
 
 # for markdown_div in card.doc.select("[data-ghq-card-content-markdown-content]"):
@@ -15,39 +16,53 @@ def get_term_count(text, term):
   lowered_doc = doc.text.lower()
   return lowered_doc.count(term.lower())
 
-def replace_text_in_text(text, term, replacement, case_sensitive=False):
+def replace_text_in_text(text, term, replacement, term_case_sensitive=False, replacement_case_sensitive=False):
   # replacement = "[start]Customer[end]".capitalize()
   lowercased_term = term.lower()
   lowercased_replacement = replacement.lower().replace("[guru_sdk_highlight_start]", "[GURU_SDK_HIGHLIGHT_START]").replace("[guru_sdk_highlight_end]", "[GURU_SDK_HIGHLIGHT_END]")
   uppercased_term = term.upper()
   uppercased_replacement = replacement.upper()
   capitalized_term = term.capitalize()
+  titlecased_term = term.title()
   if "[GURU_SDK_HIGHLIGHT_START]" in replacement and "[GURU_SDK_HIGHLIGHT_END]" in replacement:
     replacement = replacement.replace("[GURU_SDK_HIGHLIGHT_END]", "")
     replacement = replacement.replace("[GURU_SDK_HIGHLIGHT_START]", "")
     capitalized_replacement = "[GURU_SDK_HIGHLIGHT_START]" + replacement.capitalize() + "[GURU_SDK_HIGHLIGHT_END]"
+    titlecased_replacement = "[GURU_SDK_HIGHLIGHT_START]" + replacement.title() + "[GURU_SDK_HIGHLIGHT_END]"
   elif "[GURU_SDK_HIGHLIGHT_END]" in replacement:
     replacement = replacement.replace("[GURU_SDK_HIGHLIGHT_END]", "")
     capitalized_replacement = "[GURU_SDK_HIGHLIGHT_END]" + replacement.capitalize()
+    titlecased_replacement = "[GURU_SDK_HIGHLIGHT_END]" + replacement.title()
   elif "[GURU_SDK_HIGHLIGHT_START]" in replacement:
     replacement = replacement.replace("[GURU_SDK_HIGHLIGHT_START]", "")
     capitalized_replacement = "[GURU_SDK_HIGHLIGHT_START]" + replacement.capitalize()
+    titlecased_replacement = "[GURU_SDK_HIGHLIGHT_START]" + replacement.title()
   else:
     capitalized_replacement = replacement.capitalize()
-  if case_sensitive:
+    titlecased_replacement = replacement.title()
+  
+  if term_case_sensitive:
     text = text.replace(term, replacement)
+  elif not term_case_sensitive and replacement_case_sensitive:
+    if not capitalized_term == titlecased_term:
+      text = text.replace(lowercased_term, replacement).replace(uppercased_term, replacement).replace(titlecased_term, replacement).replace(capitalized_term, replacement)
+    else:
+      text = text.replace(lowercased_term, replacement).replace(uppercased_term, replacement).replace(capitalized_term, replacement)
   else:
-    text = text.replace(lowercased_term, lowercased_replacement).replace(uppercased_term, uppercased_replacement).replace(capitalized_term, capitalized_replacement)
+    if not capitalized_term == titlecased_term:
+      text = text.replace(lowercased_term, lowercased_replacement).replace(uppercased_term, uppercased_replacement).replace(titlecased_term, titlecased_replacement).replace(capitalized_term, capitalized_replacement)
+    else:
+      text = text.replace(lowercased_term, lowercased_replacement).replace(uppercased_term, uppercased_replacement).replace(capitalized_term, capitalized_replacement)
   
   return text
 
-def replace_text_in_html(html, term, replacement, case_sensitive=False):
+def replace_text_in_html(html, term, replacement, term_case_sensitive=False, replacement_case_sensitive=False):
   doc = html if isinstance(html, BeautifulSoup) else BeautifulSoup(html, "html.parser")
   pattern = re.compile(r'%s' % term, re.IGNORECASE)
-  text_nodes = doc.find_all(text=pattern)
+  text_nodes = doc.find_all(text=pattern) if not term_case_sensitive else doc.find_all(text=term)
   for text_node in text_nodes:
     text_node.replace_with(replace_text_in_text(
-      text_node, term, replacement, case_sensitive
+      text_node, term, replacement, replacement_case_sensitive=replacement_case_sensitive
     ))
   return str(doc)
 
@@ -60,26 +75,26 @@ def add_highlight(card, term, replacement, highlight="replacement", case_sensiti
 
   card_content = card.content if isinstance(card, Card) else card
 
-  content = replace_text_in_html(card_content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement, case_sensitive=case_sensitive)
+  content = replace_text_in_html(card_content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement, term_case_sensitive=case_sensitive)
   # do string replacements on the [start] and [end] tokens.
   if isinstance(card, Card):
-    content = replace_text_in_html(content, "[GURU_SDK_HIGHLIGHT_START]", '<span class=%s>' % highlight_class, case_sensitive=True)
-    content = replace_text_in_html(content, "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+    content = replace_text_in_html(content, "[GURU_SDK_HIGHLIGHT_START]", '<span class=%s>' % highlight_class, term_case_sensitive=True, replacement_case_sensitive=True)
+    content = replace_text_in_html(content, "[GURU_SDK_HIGHLIGHT_END]", "</span>", term_case_sensitive=True, replacement_case_sensitive=True)
   else:
-    content = replace_text_in_text(str(content), "[GURU_SDK_HIGHLIGHT_START]", '<span class=%s>' % highlight_class, case_sensitive=True)
-    content = replace_text_in_text(str(content), "[GURU_SDK_HIGHLIGHT_END]", "</span>", case_sensitive=True)
+    content = replace_text_in_text(str(content), "[GURU_SDK_HIGHLIGHT_START]", '<span class=%s>' % highlight_class, replacement_case_sensitive=True)
+    content = replace_text_in_text(str(content), "[GURU_SDK_HIGHLIGHT_END]", "</span>", replacement_case_sensitive=True)
   return content
 
 def replace_text_in_card(card, term, replacement, replace_title=True, replacement_highlight=False, orig_highlight=False, case_sensitive=False):
   if isinstance(card, Card):
     if replace_title:
-      card.title = replace_text_in_text(card.title, term, replacement, case_sensitive=case_sensitive)
+      card.title = replace_text_in_text(card.title, term, replacement, term_case_sensitive=case_sensitive)
     if replacement_highlight:
       card.content = add_highlight(card, term, replacement, case_sensitive=case_sensitive)
     elif orig_highlight:
       card.content = add_highlight(card, term, replacement, highlight="original", case_sensitive=case_sensitive)
     else:
-      card.content = replace_text_in_html(card.content, term, replacement, case_sensitive=case_sensitive)
+      card.content = replace_text_in_html(card.content, term, replacement, term_case_sensitive=case_sensitive)
     return card.content
   else:
     if replacement_highlight:
@@ -87,7 +102,7 @@ def replace_text_in_card(card, term, replacement, replace_title=True, replacemen
     elif orig_highlight:
       card = add_highlight(card, term, replacement, highlight="original", case_sensitive=case_sensitive)
     else:
-      card = replace_text_in_html(card, term, replacement, case_sensitive=case_sensitive)
+      card = replace_text_in_html(card, term, replacement, term_case_sensitive=case_sensitive)
     return card
 class PreviewData:
   def __init__(self, card, term, replacement, orig_content, new_content):
@@ -146,12 +161,12 @@ class Preview:
       write_file(orig_filepath, content_data.orig_content)
       write_file(new_filepath, content_data.new_content)
       
-      orig_content_html = load_html(orig_filepath, make_links_absolute=False)
+      orig_content_html, orig_status = load_html(orig_filepath, make_links_absolute=False)
 
       orig_content_html = replace_text_in_card(orig_content_html, self.term, self.term, replace_title=False, orig_highlight=True)
       write_file(orig_filepath, highlight_css + str(orig_content_html))
       
-      new_content_html = load_html(new_filepath, make_links_absolute=False)
+      new_content_html, new_status = load_html(new_filepath, make_links_absolute=False)
       new_content_html = replace_text_in_card(new_content_html, self.replacement, self.replacement, replace_title=False, replacement_highlight=True)
       write_file(new_filepath, highlight_css + str(new_content_html))
       term_count = content_data.original_term_count
