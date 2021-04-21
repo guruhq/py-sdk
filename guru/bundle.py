@@ -628,7 +628,7 @@ class BundleNode:
           element.attrs[attr] = "https:" + url
   
       # we want to return True if the value changed.
-      if element.attrs[attr] != initial_value:
+      if element.attrs and element.attrs[attr] != initial_value:
         url_map[initial_value] = element.attrs[attr]
         return True
     
