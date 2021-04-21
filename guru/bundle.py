@@ -1140,7 +1140,7 @@ class Bundle:
     # - the rows to be newline-delimited.
     return "\n".join([
       "\t".join([
-        str(value).replace("`", "") for value in row
+        str(value).replace("`", "").replace("${", "\\${") for value in row
       ]) for row in rows
     ])
 
