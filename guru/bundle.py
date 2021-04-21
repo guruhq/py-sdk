@@ -101,8 +101,19 @@ def clean_up_html(html):
   for ul in doc.select("td ul, td ol"):
     ul.unwrap()
 
-  for el in doc.select("colgroup, table caption, script, style"):
+  # we don't use these tags for anything but they might contain content
+  # so we call unwrap() rather than calling decompose().
+  for el in doc.select("header, nav, article"):
+    el.unwrap()
+
+  # we don't use these tags and we don't want their content either, like the JS code
+  # inside a script tag, so we call decompose() to remove them completely.
+  for el in doc.select("colgroup, table caption, script, style, meta, title, head"):
     el.decompose()
+
+  # we don't allow code blocks inside lists but we do allow inline code.
+  for pre in doc.select("li pre"):
+    pre.name = "code"
 
   # remove unnecessary things from style attributes (e.g. width/height on table cells).
   style_attrs_to_keep = [
