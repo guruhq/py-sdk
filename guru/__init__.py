@@ -35,3 +35,13 @@ from guru.util import (
   clear_dir,
   format_timestamp
 )
+
+from guru.find_and_replace import (
+  get_term_count,
+  add_highlight,
+  replace_text_in_text,
+  replace_text_in_html,
+  replace_text_in_card, 
+  Preview, 
+  PreviewData
+)
