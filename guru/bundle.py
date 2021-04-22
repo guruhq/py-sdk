@@ -112,8 +112,31 @@ def clean_up_html(html):
     el.decompose()
 
   # we don't allow code blocks inside lists but we do allow inline code.
+  # todo: get rid of this and make us break a break in the list for the code block.
   for pre in doc.select("li pre"):
     pre.name = "code"
+
+  # if a table is inside a list we need to get it out, but we want to keep it's relative
+  # position in the document (i.e. we _don't_ want to move the table to be after the whole list).
+  # todo: also make this work for code blocks, iframes, or other things we don't allow inside lists.
+  # todo: make this handle numbering for numbered lists.
+  for table in doc.select("ol table, ul table"):
+
+    # check the table's ancestors for certain elements, like <li> tags, and keep a list
+    # of all the tags we need to close to create a break for where the table goes.
+    parents_to_close = []
+    node = table
+
+    while node:
+      if node.name in ["ol", "ul", "li"]:
+        parents_to_close.append(node.name)
+      node = node.parent
+
+    # insert text strings before/after the table indicating what tags we need to close/re-open.
+    # once the doc is converted to an html string, we'll replace these markers with actual html tags.
+    for tag in parents_to_close:
+      table.insert_before("[close_%s]" % tag)
+      table.insert_after("[open_%s]" % tag)
 
   # remove unnecessary things from style attributes (e.g. width/height on table cells).
   style_attrs_to_keep = [
@@ -155,7 +178,17 @@ def clean_up_html(html):
       if all_tag_count == unimportant_tag_count:
         el.decompose()
 
-  return str(doc).replace("\\n", "\n").replace("\\'", "'")
+  return (
+    str(doc)
+      .replace("\\n", "\n")
+      .replace("\\'", "'")
+      .replace("[open_li]", "<li>")
+      .replace("[close_li]", "</li>")
+      .replace("[open_ol]", "<ol>")
+      .replace("[close_ol]", "</ol>")
+      .replace("[open_ul]", "<ul>")
+      .replace("[close_ul]", "</ul>")
+  )
 
 def traverse_tree(bundle, func, node=None, parent=None, depth=0, post=False, **kwargs):
   """internal: Does a tree traversal on the nodes and calls the provided callback (func) on each node."""

@@ -1283,3 +1283,16 @@ class TestBundle(unittest.TestCase):
       read_html("/tmp/test_removing_a_node/cards/2.html")
     with self.assertRaises(FileNotFoundError):
       read_html("/tmp/test_removing_a_node/cards/2.yaml")
+
+  @use_guru()
+  def test_handling_a_table_inside_a_list(self, g):
+    bundle = g.bundle("test_handling_a_table_inside_a_list")
+
+    # todo: add some more complicated tests here.
+    html = """<ul><li>test<table><tr><td>table</td></tr></table>after table</li><li>second item</li></ul>"""
+    new_html = """<ul><li>test</li></ul><table><tr><td>table</td></tr></table><ul><li>after table</li><li>second item</li></ul>"""
+    node1 = bundle.node(id="1", title="node 1", content=html)
+
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_handling_a_table_inside_a_list/cards/1.html"), new_html)
