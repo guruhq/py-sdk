@@ -111,32 +111,45 @@ def clean_up_html(html):
   for el in doc.select("colgroup, table caption, script, style, meta, title, head"):
     el.decompose()
 
-  # we don't allow code blocks inside lists but we do allow inline code.
-  # todo: get rid of this and make us break a break in the list for the code block.
-  for pre in doc.select("li pre"):
-    pre.name = "code"
+  # when a block item, like a table or code block, is inside a list we need to get it out.
+  # but we want to keep it's relative position (e.g. rather than moving it to be after the
+  # entire list).
+  for block in doc.select("ol table, ul table, ol iframe, ul iframe, ol pre, ul pre"):
 
-  # if a table is inside a list we need to get it out, but we want to keep it's relative
-  # position in the document (i.e. we _don't_ want to move the table to be after the whole list).
-  # todo: also make this work for code blocks, iframes, or other things we don't allow inside lists.
-  # todo: make this handle numbering for numbered lists.
-  for table in doc.select("ol table, ul table"):
-
-    # check the table's ancestors for certain elements, like <li> tags, and keep a list
-    # of all the tags we need to close to create a break for where the table goes.
+    # check the blocks's ancestors for certain elements, like <li> tags, and keep a list
+    # of all the tags we need to close to create a break for where the block goes.
     parents_to_close = []
-    node = table
+    next_ol_start = 1
+    node = block
 
     while node:
       if node.name in ["ol", "ul", "li"]:
+        # if this item is in a numbered list, we want to find out what number this item had
+        # and compute the number the list should continue at. the number the continuation
+        # starts at is based on this item's index and the number this list started at.
+        if node.name == "li" and node.parent.name == "ol":
+          ol = node.parent
+
+          # we take the ol's non-text chilren and find the index of this <li> in that list.
+          list_items = list(filter(lambda x: not isinstance(x, str), list(ol.children)))
+          li_index = list_items.index(node)
+          ol_start = int(ol.attrs.get("start", "1"))
+          next_ol_start = ol_start + li_index + 1
+
         parents_to_close.append(node.name)
       node = node.parent
 
-    # insert text strings before/after the table indicating what tags we need to close/re-open.
-    # once the doc is converted to an html string, we'll replace these markers with actual html tags.
+    # we insert text strings before/after the block indicating what tags we need to close/re-open.
+    # once the doc is converted to an html string, we'll replace these markers with < and > to
+    # create the actual html tags. this ends up being easier than doing the manipulations using
+    # beautifulsoup to move nodes around.
     for tag in parents_to_close:
-      table.insert_before("[close_%s]" % tag)
-      table.insert_after("[open_%s]" % tag)
+      block.insert_before("[[GURU[[/%s]]GURU]]" % tag)
+      if tag == "ol":
+        next_ol_start
+        block.insert_after('[[GURU[[%s start="%s"]]GURU]]' % (tag, next_ol_start))
+      else:
+        block.insert_after("[[GURU[[%s]]GURU]]" % tag)
 
   # remove unnecessary things from style attributes (e.g. width/height on table cells).
   style_attrs_to_keep = [
@@ -182,12 +195,13 @@ def clean_up_html(html):
     str(doc)
       .replace("\\n", "\n")
       .replace("\\'", "'")
-      .replace("[open_li]", "<li>")
-      .replace("[close_li]", "</li>")
-      .replace("[open_ol]", "<ol>")
-      .replace("[close_ol]", "</ol>")
-      .replace("[open_ul]", "<ul>")
-      .replace("[close_ul]", "</ul>")
+      # when we break a list around a code block, if there's no other content in the list item,
+      # either before or after, the substitutions we do create an extra, empty list item.
+      # doing these two replacements will avoid that.
+      .replace("<li>[[GURU[[/li]]GURU]]", "")
+      .replace("[[GURU[[li]]GURU]]</li>", "")
+      .replace("[[GURU[[", "<")
+      .replace("]]GURU]]", ">")
   )
 
 def traverse_tree(bundle, func, node=None, parent=None, depth=0, post=False, **kwargs):
@@ -626,6 +640,7 @@ class BundleNode:
         # if we've already downloaded this file, update the src/href.
         if resource_id in self.bundle.resources:
           element.attrs[attr] = self.bundle.resources[resource_id]
+          return True
         else:
           filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
           self.bundle.log(message="checking if we should download attachment", url=absolute_url, file=filename)
@@ -633,12 +648,14 @@ class BundleNode:
           # returning True means the file was downloaded so we need to update the src/href.
           if download_func(absolute_url, filename, self.bundle, self):
             self.bundle.log(message="download successful", url=absolute_url, file=filename)
-            self.bundle.resources[resource_id] = filename
+            self.bundle.resources[resource_id] = "resources/%s" % resource_id
             element.attrs[attr] = "resources/%s" % resource_id
+            return True
           else:
             # returning False means it didn't download so we make the url absolute.
             self.bundle.log(message="did not download", url=absolute_url, file=filename)
             element.attrs[attr] = absolute_url
+            return True
       else:
         # if we're not downloading files we still need to do some cleanup.
         #  - move referenced attachments into the resources/ folder.
@@ -653,7 +670,7 @@ class BundleNode:
           # and filename is:      /tmp/{job_id}/resources/{hash}.gif
           filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
           if copy_file(absolute_url, filename):
-            self.bundle.resources[resource_id] = filename
+            self.bundle.resources[resource_id] = "resources/%s" % resource_id
             element.attrs[attr] = "resources/%s" % resource_id
           else:
             # the element could be a link or an image.
@@ -663,13 +680,16 @@ class BundleNode:
               element.unwrap()
             else:
               element.decompose()
+            return True
         elif _is_local(url):
           # this means self.url is _not_ local but the url is, so make it absolute.
           element.attrs[attr] = absolute_url
+          return True
         # add protocols to image urls that are lacking them.
         # i'm pretty sure this is required but i forget why.
         elif url.startswith("//"):
           element.attrs[attr] = "https:" + url
+          return True
   
       # we want to return True if the value changed.
       if element.attrs and element.attrs[attr] != initial_value:
@@ -706,7 +726,7 @@ class BundleNode:
       if check_as_attachment:
         if check_element(link, "href"):
           updated = True
-    
+
     if updated:
       self.content = str(doc)
 
