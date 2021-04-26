@@ -1896,6 +1896,37 @@ class Guru:
     else:
       self.save_board(board_obj)
 
+  def make_board(self, title, collection, description=""):
+    """
+    Creates a new board in the specified collection.
+
+    Args:
+      title (str): The title of the board you're creating. Board titles are not
+        unique so we do not check if a board with the same title already exists.
+      collection (str or Collection): The name or ID of the collection you're adding
+        the board to, or a Collection object.
+      description (str, optional): The description of the board you're creating.
+
+    Returns:
+      bool: True if it was successful and false otherwise.
+    """
+    collection_obj = self.get_collection(collection)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+
+    url = "%s/boards/home/entries?collection=%s" % (self.base_url, collection_obj.id)
+    data = {
+      "actionType": "add",
+      "boardEntries": [{
+        "entryType": "board",
+        "title": title,
+        "description": description
+      }]
+    }
+
+    response = self.__put(url, data)
+    return status_to_bool(response.status_code)
+
   def save_board(self, board_obj):
     url = "%s/boards/%s" % (self.base_url, board_obj.id)
     response = self.__put(url, data=board_obj.json(include_item_id=False))
@@ -1953,6 +1984,7 @@ class Guru:
     # get the board object.
     board_obj = self.get_board(board, collection)
     if not board_obj:
+      self.__log(make_red("could not find board:", board))
       return
     
     if section:

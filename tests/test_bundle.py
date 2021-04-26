@@ -1393,7 +1393,7 @@ it's multiple lines
     new_html = """<ol>
 <li>one</li>
 <li>two</li>
-<li>three</li></ol><pre>code block</pre><ol start="4"><li></li>
+<li>three</li></ol><pre>code block</pre><ol start="4">
 <li>four</li>
 </ol>"""
 
@@ -1415,7 +1415,7 @@ it's multiple lines
     new_html = """<ol start="3">
 <li>one</li>
 <li>two</li>
-<li>three</li></ol><pre>code block</pre><ol start="6"><li></li>
+<li>three</li></ol><pre>code block</pre><ol start="6">
 <li>four</li>
 </ol>"""
 
