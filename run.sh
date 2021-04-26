@@ -1,6 +1,9 @@
 #!/bin/bash
 
 case "$1" in
+one)
+  coverage run -m unittest tests.$2
+  ;;
 test)
   coverage run -m unittest && coverage report && coverage html
   if [ "$2" = "-v" ]; then

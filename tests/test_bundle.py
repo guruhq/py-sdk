@@ -416,7 +416,6 @@ class TestBundle(unittest.TestCase):
     node3.add_to(node2)
     node2.add_to(node1)
     sync.zip()
-    sync.view_in_browser()
 
     self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/collection.yaml"), {
       "Title": "test",
@@ -1284,3 +1283,154 @@ class TestBundle(unittest.TestCase):
       read_html("/tmp/test_removing_a_node/cards/2.html")
     with self.assertRaises(FileNotFoundError):
       read_html("/tmp/test_removing_a_node/cards/2.yaml")
+
+  @use_guru()
+  def test_handling_a_table_inside_a_list(self, g):
+    bundle = g.bundle("test_handling_a_table_inside_a_list")
+
+    # todo: add some more complicated tests here.
+    html = """<ul><li>test<table><tr><td>table</td></tr></table>after table</li><li>second item</li></ul>"""
+    new_html = """<ul><li>test</li></ul><table><tr><td>table</td></tr></table><ul><li>after table</li><li>second item</li></ul>"""
+    node1 = bundle.node(id="1", title="node 1", content=html)
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_handling_a_table_inside_a_list/cards/1.html"), new_html)
+
+  @use_guru()
+  def test_handling_a_code_block_inside_a_list(self, g):
+    bundle = g.bundle("test_handling_a_code_block_inside_a_list")
+
+    html = """<ul><li>test<pre>here's a code block
+it's multiple lines
+    with indentation
+</pre>after table</li><li>second item</li></ul>"""
+    new_html = """<ul><li>test</li></ul><pre>here's a code block
+it's multiple lines
+    with indentation
+</pre><ul><li>after table</li><li>second item</li></ul>"""
+    node1 = bundle.node(id="1", title="node 1", content=html)
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_handling_a_code_block_inside_a_list/cards/1.html"), new_html)
+
+  @use_guru()
+  def test_handling_an_iframe_inside_nested_lists(self, g):
+    bundle = g.bundle("test_handling_an_iframe_inside_nested_lists")
+
+    html = """<ul>
+  <li>
+    test
+  </li>
+  <ol>
+    <li>
+      one
+    </li>
+    <li>
+      two
+    </li>
+  </ol>
+  <ul>
+    <ol>
+      <li>
+        iframe:​ ​<iframe src="https://www.example.com"></iframe>
+      </li>
+    </ol>
+  </ul>
+  <ol>
+    <li>
+      three
+    </li>
+  </ol>
+  <li>
+    end
+  </li>
+</ul>"""
+
+    new_html = """<ul>
+<li>
+    test
+  </li>
+<ol>
+<li>
+      one
+    </li>
+<li>
+      two
+    </li>
+</ol>
+<ul>
+<ol>
+<li>
+        iframe:​ ​</li></ol></ul></ul><iframe src="https://www.example.com"></iframe><ul><ul><ol start="2"><li>
+</li>
+</ol>
+</ul>
+<ol>
+<li>
+      three
+    </li>
+</ol>
+<li>
+    end
+  </li>
+</ul>"""
+    node1 = bundle.node(id="1", title="node 1", content=html)
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_handling_an_iframe_inside_nested_lists/cards/1.html"), new_html)
+
+  @use_guru()
+  def test_splitting_a_numbered_list(self, g):
+    bundle = g.bundle("test_splitting_a_numbered_list")
+
+    # todo: nest with nested <ol> tags to make sure each starts at the right number.
+    html = """<ol>
+<li>one</li>
+<li>two</li>
+<li>three<pre>code block</pre></li>
+<li>four</li>
+</ol>"""
+    new_html = """<ol>
+<li>one</li>
+<li>two</li>
+<li>three</li></ol><pre>code block</pre><ol start="4"><li></li>
+<li>four</li>
+</ol>"""
+
+    node1 = bundle.node(id="1", title="node 1", content=html)
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_splitting_a_numbered_list/cards/1.html"), new_html)
+
+  @use_guru()
+  def test_splitting_a_numbered_list_that_doesnt_start_at_1(self, g):
+    bundle = g.bundle("test_splitting_a_numbered_list_that_doesnt_start_at_1")
+
+    html = """<ol start="3">
+<li>one</li>
+<li>two</li>
+<li>three<pre>code block</pre></li>
+<li>four</li>
+</ol>"""
+    new_html = """<ol start="3">
+<li>one</li>
+<li>two</li>
+<li>three</li></ol><pre>code block</pre><ol start="6"><li></li>
+<li>four</li>
+</ol>"""
+
+    node1 = bundle.node(id="1", title="node 1", content=html)
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_splitting_a_numbered_list_that_doesnt_start_at_1/cards/1.html"), new_html)
+
+  @use_guru()
+  def test_referencing_a_resource_that_doesnt_exist(self, g):
+    bundle = g.bundle("test_referencing_a_resource_that_doesnt_exist")
+
+    html = """<a href="doesnt_exist.html">bad link</a><img src="doesnt_exist.png" />"""
+
+    node1 = bundle.node(id="1", title="node 1", url="/tmp/local.html", content=html)
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_referencing_a_resource_that_doesnt_exist/cards/1.html"), "bad link")
