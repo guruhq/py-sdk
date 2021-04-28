@@ -1155,7 +1155,7 @@ class TestCore(unittest.TestCase):
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
       "id": "2222"
-    })
+    }, status=202)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", json={})
 
     with patch("time.sleep", Mock(return_value=None)):
@@ -1270,7 +1270,7 @@ class TestCore(unittest.TestCase):
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
       "id": "2222"
-    })
+    }, status=202)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", status=204)
 
     with patch("time.sleep", Mock(return_value=None)):

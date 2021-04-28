@@ -4,6 +4,8 @@ import yaml
 import unittest
 import responses
 
+from unittest.mock import Mock, patch
+
 from tests.util import use_guru, get_calls
 
 import guru
@@ -282,12 +284,89 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_archive_invalid_card(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json=None, status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json=None, status=404)
 
     g.archive_card("1111")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_restore_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", json={
+      "id": "1111"
+    })
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/bulkop", status=200)
+
+    g.get_card("1111", is_archived=True).restore()
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/cards/bulkop",
+      "body": {
+        "action": {
+          "type": "restore-archived-card"
+        },
+        "items": {
+          "type": "id",
+          "cardIds": ["1111"]
+        }
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_restore_invalid_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111", status=404)
+
+    result = g.restore_card("1111")
+
+    self.assertEqual(result, False)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_restore_cards_and_wait(self, g):
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/bulkop", json={
+      "id": "2222"
+    }, status=202)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/bulkop/2222", json={})
+
+    with patch("time.sleep", Mock(return_value=None)):
+      g.restore_cards("1111", "2222", timeout=1)
+    
+    self.assertEqual(get_calls(), [{
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/cards/bulkop",
+      "body": {
+        "action": {
+          "type": "restore-archived-card"
+        },
+        "items": {
+          "type": "id",
+          "cardIds": ["1111", "2222"]
+        }
+      }
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/bulkop/2222"
     }])
 
   @use_guru()

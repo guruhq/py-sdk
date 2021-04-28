@@ -892,7 +892,7 @@ class Guru:
     response = self.__delete(url, data)
     return status_to_bool(response.status_code)
 
-  def get_card(self, card):
+  def get_card(self, card, is_archived=False):
     """
     Loads a single card by its ID or slug. The slug comes from the card's URL, like this:
 
@@ -905,6 +905,8 @@ class Guru:
 
     Args:
       card (str): The card's ID or slug.
+      is_archived (bool, optional): If the card you're looking for is archived or might be
+        archived, pass True for this value. Otherwise leave it False (which is the default value).
     
     Returns:
       Card: An object representing the card.
@@ -916,6 +918,15 @@ class Guru:
     response = self.__get(url)
     if status_to_bool(response.status_code):
       # todo: figure out why this is inside a 'try'.
+      try:
+        return Card(response.json(), guru=self)
+      except:
+        return None
+    elif is_archived and response.status_code == 404:
+      # if it's a 404 it might be an archived card and we need to use
+      # the regular endpoint, not the /extended one, to load it.
+      url = "%s/cards/%s" % (self.base_url, card)
+      response = self.__get(url)
       try:
         return Card(response.json(), guru=self)
       except:
@@ -1379,6 +1390,96 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
+  def restore_card(self, card):
+    """
+    Restores an archived card.
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    # you can restore cards like this:
+    g.restore_card("11111111-1111-1111-1111-111111111111")
+
+    # or like this:
+    g.get_card("11111111-1111-1111-1111-111111111111").restore()
+    ```
+
+    Args:
+      card (str or Card): The ID or slug of the card to be restored or the Card object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    card_obj = self.get_card(card, is_archived=True)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return False
+
+    return self.restore_cards(card_obj.id)
+
+  def restore_cards(self, *card_ids, timeout=0):
+    """
+    Restores many archived cards. This is done as a bulk operation
+    so this may be faster than making 10 separate calls to restore
+    10 cards.
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    g.restore_cards(
+      "11111111-1111-1111-1111-111111111111",
+      "22222222-2222-2222-2222-222222222222"
+    )
+    ```
+
+    The operation may be done synchronously or asynchronously. Meaning, if you
+    pass in a single card ID, Guru will restore that one card before returning
+    a response. If you pass in 100 cards, Guru will immediately respond to say
+    "we've queued this up" and will work on it asynchronously.
+
+    You may want to wait for the operation to complete. For example, if you're
+    restoring a bunch of cards then adding them to a board, you need to wait for
+    the 'restore' operation to finish. To make this happen you can use the
+    `timeout` parameter, which is the number of seconds to wait for the operation
+    to complete. The SDK will automatically check the bulk operation's status
+    and return once it is successful (or once the timeout has been reached).
+
+    Args:
+      *card_ids (str): Any number of card IDs. These are the IDs of the archived
+        cards that will be restored.
+      timeout (int, optional): The maximum number of seconds to wait for the bulk
+        operation to complete. By default, there is no timeout and we won't wait
+        for asynchronous bulk operations at all.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    data = {
+      "action": {
+        "type": "restore-archived-card"
+      },
+      "items": {
+        "type": "id",
+        "cardIds": card_ids
+      }
+    }
+
+    url = "%s/cards/bulkop" % self.base_url
+    response = self.__post(url, data)
+
+    # if there's a timeout and the operation is being done async, we wait.
+    if timeout and response.status_code == 202:
+      # poll and wait for the bulk operation to finish.
+      bulk_op_id = response.json().get("id")
+      url = "%s/cards/bulkop/%s" % (self.base_url, bulk_op_id)
+      return self.__wait_for_bulkop(url, timeout)
+    else:
+      # todo: make this return a more detailed status since the operation can
+      #       succeed for some cards and fail for others.
+      return status_to_bool(response.status_code)
+
   def archive_card(self, card):
     """
     Archives a card. Archived cards can still be restored.
@@ -1771,6 +1872,9 @@ class Guru:
       # "nextSiblingItem": "b93799c8-6fb7-467d-a8ea-9a6e62ff8e93"
     }
     url = "%s/boards/home/entries?collection=%s" % (self.base_url, collection_obj.id)
+
+    # this doesn't need to have a timeout or wait for a response because it's just
+    # creating one board so that should always be done synchronously.
     response = self.__put(url, data)
     if status_to_bool(response.status_code):
       return self.get_board_group(title, collection)
@@ -1924,6 +2028,8 @@ class Guru:
       }]
     }
 
+    # this doesn't need to have a timeout or wait for a response because it's just
+    # creating one board so that should always be done synchronously.
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
@@ -2253,14 +2359,16 @@ class Guru:
     url = "%s/boards/bulkop" % self.base_url
     response = self.__post(url, data)
 
-    # if there's no timeout we're done once we submit the bulk operation.
-    if not timeout:
+    # if there's a timeout and the operation is being done async, we wait.
+    if timeout and response.status_code == 202:
+      # poll and wait for the bulk operation to finish.
+      bulk_op_id = response.json().get("id")
+      url = "%s/boards/bulkop/%s" % (self.base_url, bulk_op_id)
+      return self.__wait_for_bulkop(url, timeout)
+    else:
       return status_to_bool(response.status_code)
 
-    # poll and wait for the bulk operation to finish.
-    bulk_op_id = response.json().get("id")
-    url = "%s/boards/bulkop/%s" % (self.base_url, bulk_op_id)
-
+  def __wait_for_bulkop(self, url, timeout):
     elapsed = 0
     while True:
       time.sleep(2)
