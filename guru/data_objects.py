@@ -776,6 +776,12 @@ class Card:
     """
     return self.guru.archive_card(self)
 
+  def restore(self):
+    """
+    Restores an archived card.
+    """
+    return self.guru.restore_card(self)
+
   def favorite(self):
     """
     Adds the card to your favorites list. The Guru object is given a username
