@@ -2,6 +2,7 @@ import json
 import unittest
 import responses
 
+
 from tests.util import use_guru, get_calls
 
 import guru
@@ -154,37 +155,45 @@ class TestFindAndReplace(unittest.TestCase):
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222/extended", json={
       "preferredPhrase": "Testing 1, 2, 3",
-      "content": """#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph.\n\nHere is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph."""
+      "content": """#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph.\n\nHere is a test paragraph. Here is a test paragraph."""
     })
     card = g.get_card("1111")
     markdown_card = g.get_card("2222")
 
     expected_html = """<p>PURPLE</p>"""
     expected_html_highlight = """<p><span class="sdk-replacement-highlight">PURPLE</span></p>"""
-    expected_markdown = """<p><Purple</p>"""
+    expected_title = "Purpleing 1, 2, 3"
+    expected_markdown = """#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph.\n\nHere is a purple paragraph. Here is a purple paragraph."""
     expected_markdown_highlight = """<p><span class="sdk-replacement-highlight">Purple</span></p>"""
     
     test_result = guru.replace_text_in_card(card, term, replacement)
     markdown_test_result = guru.replace_text_in_card(markdown_card, term, replacement)
-    test_highlight_result = guru.replace_text_in_card(card, term, replacement, replacement_highlight=True, orig_highlight=True)
-    markdown_highlight_test_result = guru.replace_text_in_card(markdown_card, term, replacement, replacement_highlight=True, orig_highlight=True)
+    test_orig_highlight_result = guru.replace_text_in_card(card, term, term, orig_highlight=True)
+    test_replacement_highlight_result = guru.replace_text_in_card(card, replacement, replacement, replacement_highlight=True)
+    markdown_highlight_test_result = guru.replace_text_in_card(markdown_card, replacement, replacement, replacement_highlight=True, orig_highlight=True)
     ## replace title and content
+    guru.replace_text_in_card(card, term, replacement, replace_title=True)
 
     ## content is html
     print("RESULT 1: ", test_result)
     self.assertEqual(test_result, expected_html)
     ## content is markdown
-    # print("RESULT 2: ", markdown_test_result)
-    # self.assertEqual(markdown_test_result, expected_markdown)
+    print("RESULT 2: ", markdown_test_result)
+    self.assertEqual(markdown_test_result, expected_markdown)
     ## highlighted content: is html
-    print("RESULT 3: ", test_highlight_result)
-    self.assertEqual(test_highlight_result, expected_html_highlight)
+    print("RESULT 3: ", test_replacement_highlight_result)
+    self.assertEqual(test_replacement_highlight_result, expected_html_highlight)
     ## highlighted content: is markdown
     print("RESULT 4: ", markdown_highlight_test_result)
     # self.assertEqual(markdown_highlight_test_result, expected_markdown_highlight)
+    ## replace title
+    print("RESULT 5: ", card.title)
+    self.assertEqual(card.title, expected_title)
     
   
+## Write test for get_term_count
 
+## Write test for markdown ( parse and replace with urllib.parse.quote)
 
 
   

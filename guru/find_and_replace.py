@@ -3,7 +3,7 @@ import webbrowser
 from guru.util import write_file, load_html
 from guru.data_objects import Card
 
-
+from urllib.parse import quote
 from bs4 import BeautifulSoup
 
 # for markdown_div in card.doc.select("[data-ghq-card-content-markdown-content]"):
@@ -67,6 +67,7 @@ def replace_text_in_html(html, term, replacement, term_case_sensitive=False, rep
   return str(doc)
 
 def add_highlight(card, term, replacement, highlight="replacement", case_sensitive=False):
+  ## TODO: change functionality to accept just a term or replacement, and throw exception if neither are provided
   highlight_class = None
   if highlight == "original":
     highlight_class = "sdk-orig-highlight"
