@@ -21,15 +21,16 @@ class TestFindAndReplace(unittest.TestCase):
 
     # md_content="""#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a test paragraph. Here is a test paragraph."""
 
+    test_result = guru.replace_text_in_text(content, term, replacement)
+    term_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, term_case_sensitive=True)
+    replacement_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, replacement_case_sensitive=True)
+    test_titlecase_result = guru.replace_text_in_text(titlecased_content, term_for_testing_titlecase, replacement)
+    
     expected = "PURPLE, Purple"
     expected_term_case_sensitive = "TEST, Purple"
     expected_replacement_case_sensitive = "Purple, Purple"
     expected_titlecase = "Purple"
     
-    test_result = guru.replace_text_in_text(content, term, replacement)
-    term_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, term_case_sensitive=True)
-    replacement_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, replacement_case_sensitive=True)
-    test_titlecase_result = guru.replace_text_in_text(titlecased_content, term_for_testing_titlecase, replacement)
     ## replacement is not case-sensitive
     print("RESULT 1: ", test_result)
     self.assertEqual(test_result, expected)
@@ -53,13 +54,14 @@ class TestFindAndReplace(unittest.TestCase):
     replacement = "[GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END]"
     content= "TEST, Test"
 
+    test_result = guru.replace_text_in_text(content, term, replacement)
+    term_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, term_case_sensitive=True)
+    replacement_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, replacement_case_sensitive=True)
+    
     expected = "[GURU_SDK_HIGHLIGHT_START]TEST[GURU_SDK_HIGHLIGHT_END], [GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END]"
     expected_term_case_sensitive = "TEST, [GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END]"
     expected_replacement_case_sensitive = "[GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END], [GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END]"
     
-    test_result = guru.replace_text_in_text(content, term, replacement)
-    term_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, term_case_sensitive=True)
-    replacement_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, replacement_case_sensitive=True)
     ## replacement is not case-sensitive
     print("RESULT 1: ", test_result)
     self.assertEqual(test_result, expected)
@@ -86,12 +88,13 @@ class TestFindAndReplace(unittest.TestCase):
     card_content = g.get_card("1111").doc
 
 
-    expected_html = """<p>PURPLE</p>"""
-    expected_html_replacement_case_sensitive = """<p>Purple</p>"""
-    
     test_result = guru.replace_text_in_html(html_content, term, replacement)
     card_content_test_result = guru.replace_text_in_html(card_content, term, replacement)
     replacement_case_sensitive_test_result = guru.replace_text_in_html(html_content, term, replacement, replacement_case_sensitive=True)
+    
+    expected_html = """<p>PURPLE</p>"""
+    expected_html_replacement_case_sensitive = """<p>Purple</p>"""
+    
     ## replacement term is not case-sensitive
     print("RESULT 1: ", test_result)
     self.assertEqual(test_result, expected_html)
@@ -118,15 +121,15 @@ class TestFindAndReplace(unittest.TestCase):
     term_card = g.get_card("1111")
     replacement_card = g.get_card("2222")
 
-    expected_term = """<p><span class="sdk-orig-highlight">Test</span></p>"""
-    expected_replacement = """<p><span class="sdk-replacement-highlight">Purple</span></p>"""
-    
     # card.content
     test_term_result = guru.add_highlight(term_card.content, term, term, highlight="original")
     test_replacement_result = guru.add_highlight(replacement_card.content, replacement, replacement, highlight="replacement")
     # card instance
     test_term_card_result = guru.add_highlight(term_card, term, term, highlight="original")
     test_replacement_card_result = guru.add_highlight(replacement_card, replacement, replacement, highlight="replacement")
+    
+    expected_term = """<p><span class="sdk-orig-highlight">Test</span></p>"""
+    expected_replacement = """<p><span class="sdk-replacement-highlight">Purple</span></p>"""
     
     ## term highlight
     print("RESULT 1: ", test_term_result)
@@ -160,17 +163,18 @@ class TestFindAndReplace(unittest.TestCase):
     card = g.get_card("1111")
     markdown_card = g.get_card("2222")
 
+    test_result = guru.replace_text_in_card(card, term, replacement)
+    markdown_test_result = guru.replace_text_in_card(markdown_card, term, replacement)
+    test_orig_highlight_result = guru.replace_text_in_card(card, term, term, orig_highlight=True)
+    test_replacement_highlight_result = guru.replace_text_in_card(card, replacement, replacement, replacement_highlight=True)
+    markdown_highlight_test_result = guru.replace_text_in_card(markdown_card, replacement, replacement, replacement_highlight=True, orig_highlight=True)
+
     expected_html = """<p>PURPLE</p>"""
     expected_html_highlight = """<p><span class="sdk-replacement-highlight">PURPLE</span></p>"""
     expected_title = "Purpleing 1, 2, 3"
     expected_markdown = """#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph.\n\nHere is a purple paragraph. Here is a purple paragraph."""
     expected_markdown_highlight = """<p><span class="sdk-replacement-highlight">Purple</span></p>"""
     
-    test_result = guru.replace_text_in_card(card, term, replacement)
-    markdown_test_result = guru.replace_text_in_card(markdown_card, term, replacement)
-    test_orig_highlight_result = guru.replace_text_in_card(card, term, term, orig_highlight=True)
-    test_replacement_highlight_result = guru.replace_text_in_card(card, replacement, replacement, replacement_highlight=True)
-    markdown_highlight_test_result = guru.replace_text_in_card(markdown_card, replacement, replacement, replacement_highlight=True, orig_highlight=True)
     ## replace title and content
     guru.replace_text_in_card(card, term, replacement, replace_title=True)
 
