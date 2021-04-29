@@ -7,10 +7,9 @@ from tests.util import use_guru, get_calls
 
 import guru
 
+from guru.find_and_replace import Preview, PreviewData
 
 class TestFindAndReplace(unittest.TestCase):
-
-
   @use_guru()
   def test_replace_term_in_text(self,g):
     term = "Test"
@@ -18,8 +17,6 @@ class TestFindAndReplace(unittest.TestCase):
     replacement = "Purple"
     content = "TEST, Test"
     titlecased_content = "Test Case"
-
-    # md_content="""#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a test paragraph. Here is a test paragraph."""
 
     test_result = guru.replace_text_in_text(content, term, replacement)
     term_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, term_case_sensitive=True)
@@ -37,7 +34,7 @@ class TestFindAndReplace(unittest.TestCase):
     self.assertEqual(term_case_sensitive_test_result, expected_term_case_sensitive)
     ## replacement is case-sensitive
     self.assertEqual(replacement_case_sensitive_test_result, expected_replacement_case_sensitive)
-    ## uncommon content, so need to replace will only find 
+    ## uncommon content, so will only replace exact term
     self.assertEqual(guru.replace_text_in_text("TesT test", "TesT", "PurplE", term_case_sensitive=True), "PurplE test")
     ## titlecase
     self.assertEqual(test_titlecase_result, expected_titlecase)
@@ -185,9 +182,51 @@ class TestFindAndReplace(unittest.TestCase):
     ## replace markdown in attribute on md block
     self.assertEqual(with_md_block_test_result, expected_with_md_block)
     
-  
-## Write test for get_term_count
+  @use_guru()
+  @responses.activate
+  def test_Preview(self,g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111",
+      "preferredPhrase": "Testing 1, 2, 3"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222/extended", json={
+      "id": "2222",
+      "preferredPhrase": "Testing 4, 5, 6"
+    })
 
+    card = g.get_card("1111")
+    card_2 = g.get_card("2222")
+    term = "Test"
+    replacement = "Purple"
 
+    preview_data = PreviewData(
+      card=card,
+      term=term,
+      replacement=replacement,
+      orig_content="""<h1>Testing Card</h1><p>TEST</p>""",
+      new_content="""<h1>Purpleing Card</h1><p>PURPLE</p>"""
+    )
+    preview_data_2 = PreviewData(
+      card=card_2,
+      term=term,
+      replacement=replacement,
+      orig_content="""<h1>Testing Card</h1><p>T E S T</p>""",
+      new_content="""<h1>Purpleing Card</h1><p>T E S T</p>"""
+    )
 
-  
+    # test term and replacement counts
+    self.assertEqual(preview_data.original_term_count, 2)
+    self.assertEqual(preview_data.replacement_term_count, 2)
+
+    # instantiate Preview instance
+    preview_list = [preview_data, preview_data_2]
+    preview = Preview(
+      preview_list,
+      term,
+      replacement, 
+      task_name="test_find_and_replace"
+    )
+    # build the html tree
+    preview.make_html_tree()
+    self.assertEqual(preview.html_pieces[0], '<a href="/tmp/test_find_and_replace/new_content/new_1111.html" data-original-url="/tmp/test_find_and_replace/old_content/orig_1111.html" target="iframe">Testing 1, 2, 3 (2/2)</a>')
