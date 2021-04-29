@@ -3,7 +3,7 @@ import webbrowser
 from guru.util import write_file, load_html
 from guru.data_objects import Card
 
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 from bs4 import BeautifulSoup
 
 # for markdown_div in card.doc.select("[data-ghq-card-content-markdown-content]"):
@@ -56,6 +56,15 @@ def replace_text_in_text(text, term, replacement, term_case_sensitive=False, rep
   
   return text
 
+def replace_in_markdown_block(doc, term, replacement, replacement_case_sensitive=False):
+  for markdown_div in doc.select("[data-ghq-card-content-markdown-content]"):
+    md = unquote(markdown_div.attrs.get("data-ghq-card-content-markdown-content"))
+    new_md = replace_text_in_text(md, term, replacement, replacement_case_sensitive=replacement_case_sensitive)
+    markdown_div.attrs["data-ghq-card-content-markdown-content"] = quote(new_md)
+
+
+
+
 def replace_text_in_html(html, term, replacement, term_case_sensitive=False, replacement_case_sensitive=False):
   doc = html if isinstance(html, BeautifulSoup) else BeautifulSoup(html, "html.parser")
   pattern = re.compile(r'%s' % term, re.IGNORECASE)
@@ -64,6 +73,7 @@ def replace_text_in_html(html, term, replacement, term_case_sensitive=False, rep
     text_node.replace_with(replace_text_in_text(
       text_node, term, replacement, replacement_case_sensitive=replacement_case_sensitive
     ))
+  replace_in_markdown_block(doc, term, replacement)
   return str(doc)
 
 def add_highlight(card, term, replacement, highlight="replacement", case_sensitive=False):

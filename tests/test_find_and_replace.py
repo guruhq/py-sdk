@@ -2,7 +2,7 @@ import json
 import unittest
 import responses
 
-
+from urllib.parse import quote
 from tests.util import use_guru, get_calls
 
 import guru
@@ -32,19 +32,14 @@ class TestFindAndReplace(unittest.TestCase):
     expected_titlecase = "Purple"
     
     ## replacement is not case-sensitive
-    print("RESULT 1: ", test_result)
     self.assertEqual(test_result, expected)
     ## term is case-sensitive
-    print("RESULT 2: ", term_case_sensitive_test_result)
     self.assertEqual(term_case_sensitive_test_result, expected_term_case_sensitive)
     ## replacement is case-sensitive
-    print("RESULT 3: ", replacement_case_sensitive_test_result)
     self.assertEqual(replacement_case_sensitive_test_result, expected_replacement_case_sensitive)
     ## uncommon content, so need to replace will only find 
-    print("RESULT 4: ", guru.replace_text_in_text("TesT test", term, replacement))
     self.assertEqual(guru.replace_text_in_text("TesT test", "TesT", "PurplE", term_case_sensitive=True), "PurplE test")
     ## titlecase
-    print("RESULT 5: ", test_titlecase_result)
     self.assertEqual(test_titlecase_result, expected_titlecase)
 
 
@@ -63,13 +58,10 @@ class TestFindAndReplace(unittest.TestCase):
     expected_replacement_case_sensitive = "[GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END], [GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END]"
     
     ## replacement is not case-sensitive
-    print("RESULT 1: ", test_result)
     self.assertEqual(test_result, expected)
     ## term is case-sensitive
-    print("RESULT 2: ", term_case_sensitive_test_result)
     self.assertNotEqual(term_case_sensitive_test_result, expected_term_case_sensitive)
     ## replacement is case-sensitive
-    print("RESULT 3: ", replacement_case_sensitive_test_result)
     self.assertNotEqual(replacement_case_sensitive_test_result, expected_replacement_case_sensitive)
 
   
@@ -96,13 +88,10 @@ class TestFindAndReplace(unittest.TestCase):
     expected_html_replacement_case_sensitive = """<p>Purple</p>"""
     
     ## replacement term is not case-sensitive
-    print("RESULT 1: ", test_result)
     self.assertEqual(test_result, expected_html)
     ## replacement term is case-sensitive
-    print("RESULT 2: ", replacement_case_sensitive_test_result)
     self.assertEqual(replacement_case_sensitive_test_result, expected_html_replacement_case_sensitive)
-    ## html is from a card (BeautifulSoup instance)
-    print("RESULT 3: ", card_content_test_result)
+    ## html is from a card (BeautifulSoup instance
     self.assertEqual(card_content_test_result, expected_html)
   
   @use_guru()
@@ -132,24 +121,22 @@ class TestFindAndReplace(unittest.TestCase):
     expected_replacement = """<p><span class="sdk-replacement-highlight">Purple</span></p>"""
     
     ## term highlight
-    print("RESULT 1: ", test_term_result)
     self.assertEqual(test_term_result, expected_term)
     ## replacement highlight
-    print("RESULT 2: ", test_replacement_result)
     self.assertEqual(test_replacement_result, expected_replacement)
     
     ## term highlight (card instance)
-    print("RESULT 3: ", test_term_card_result)
     self.assertEqual(test_term_card_result, expected_term)
     ## replacement highlight (card instance)
-    print("RESULT 4: ", test_replacement_card_result)
     self.assertEqual(test_replacement_card_result, expected_replacement)
     
   @use_guru()
   @responses.activate
   def test_replace_term_in_card(self,g):
+
     term = "Test"
     replacement = "Purple"
+    md_content = """#Header 1\n##Header2\n###Header3\n\n\n\nHere is a test paragraph. \n\nHere is a test paragraph."""
 
     # register the response for the API call we'll make.
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
@@ -158,13 +145,19 @@ class TestFindAndReplace(unittest.TestCase):
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/2222/extended", json={
       "preferredPhrase": "Testing 1, 2, 3",
-      "content": """#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph.\n\nHere is a test paragraph. Here is a test paragraph."""
+      "content": md_content
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/3333/extended", json={
+      "preferredPhrase": "Testing 1, 2, 3",
+      "content": """<p class="ghq-card-content__markdown" data-ghq-card-content-type="MARKDOWN" data-ghq-card-content-markdown-content=%s></p>""" % quote(md_content)
     })
     card = g.get_card("1111")
     markdown_card = g.get_card("2222")
+    card_with_md_block = g.get_card("3333")
 
     test_result = guru.replace_text_in_card(card, term, replacement)
     markdown_test_result = guru.replace_text_in_card(markdown_card, term, replacement)
+    with_md_block_test_result = guru.replace_text_in_card(card_with_md_block, term, replacement)
     test_orig_highlight_result = guru.replace_text_in_card(card, term, term, orig_highlight=True)
     test_replacement_highlight_result = guru.replace_text_in_card(card, replacement, replacement, replacement_highlight=True)
     markdown_highlight_test_result = guru.replace_text_in_card(markdown_card, replacement, replacement, replacement_highlight=True, orig_highlight=True)
@@ -172,32 +165,29 @@ class TestFindAndReplace(unittest.TestCase):
     expected_html = """<p>PURPLE</p>"""
     expected_html_highlight = """<p><span class="sdk-replacement-highlight">PURPLE</span></p>"""
     expected_title = "Purpleing 1, 2, 3"
-    expected_markdown = """#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph. Here is a purple paragraph.\n\nHere is a purple paragraph. Here is a purple paragraph."""
-    expected_markdown_highlight = """<p><span class="sdk-replacement-highlight">Purple</span></p>"""
+    expected_markdown = """#Header 1\n##Header2\n###Header3\n\n\n\nHere is a purple paragraph. \n\nHere is a purple paragraph."""
+    expected_with_md_block = """<p class="ghq-card-content__markdown" data-ghq-card-content-markdown-content="%s" data-ghq-card-content-type="MARKDOWN"></p>""" % quote("""#Header 1\n##Header2\n###Header3\n\n\n\nHere is a purple paragraph. \n\nHere is a purple paragraph.""")
+    expected_markdown_highlight = """#Header 1\n##Header2\n###Header3\n\n\n\nHere is a <span class="sdk-replacement-highlight">purple</span> paragraph. \n\nHere is a <span class="sdk-replacement-highlight">purple</span> paragraph."""
     
     ## replace title and content
     guru.replace_text_in_card(card, term, replacement, replace_title=True)
 
     ## content is html
-    print("RESULT 1: ", test_result)
     self.assertEqual(test_result, expected_html)
     ## content is markdown
-    print("RESULT 2: ", markdown_test_result)
     self.assertEqual(markdown_test_result, expected_markdown)
     ## highlighted content: is html
-    print("RESULT 3: ", test_replacement_highlight_result)
     self.assertEqual(test_replacement_highlight_result, expected_html_highlight)
     ## highlighted content: is markdown
-    print("RESULT 4: ", markdown_highlight_test_result)
-    # self.assertEqual(markdown_highlight_test_result, expected_markdown_highlight)
+    self.assertEqual(markdown_highlight_test_result, expected_markdown_highlight)
     ## replace title
-    print("RESULT 5: ", card.title)
     self.assertEqual(card.title, expected_title)
+    ## replace markdown in attribute on md block
+    self.assertEqual(with_md_block_test_result, expected_with_md_block)
     
   
 ## Write test for get_term_count
 
-## Write test for markdown ( parse and replace with urllib.parse.quote)
 
 
   
