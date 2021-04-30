@@ -6,17 +6,24 @@ from guru.data_objects import Card
 from urllib.parse import quote, unquote
 from bs4 import BeautifulSoup
 
-# for markdown_div in card.doc.select("[data-ghq-card-content-markdown-content]"):
-#       md = unquote(markdown_div.attrs.get("data-ghq-card-content-markdown-content"))
-#       html = markdown.markdown(md)
-#       doc = BeautifulSoup(html, "html.parser")
-
 def get_term_count(text, term):
   doc = BeautifulSoup(text, "html.parser")
   lowered_doc = doc.text.lower()
   return lowered_doc.count(term.lower())
 
 def replace_text_in_text(text, term, replacement, term_case_sensitive=False, replacement_case_sensitive=False):
+  """
+  Replaces term in text (string). Accounts for lowercase, uppercase, capitalized, and title-cased
+
+  Arguments:
+    text (str): text that contains the term we want to replace,
+    term (str): term we want to replace,
+    replacement (str): replacement term,
+    term_case_sensitive (bool): boolean for searching for the specific term or case-insensitive (defaults to false ),
+    replacement_case_sensitive (bool): boolean for replacement term case-sensitivity (defaults to false)
+
+  Returns: text (str) with replacement
+  """
   # replacement = "[start]Customer[end]".capitalize()
   lowercased_term = term.lower()
   lowercased_replacement = replacement.lower().replace("[guru_sdk_highlight_start]", "[GURU_SDK_HIGHLIGHT_START]").replace("[guru_sdk_highlight_end]", "[GURU_SDK_HIGHLIGHT_END]")
@@ -57,13 +64,19 @@ def replace_text_in_text(text, term, replacement, term_case_sensitive=False, rep
   return text
 
 def replace_in_markdown_block(doc, term, replacement, replacement_case_sensitive=False):
+  """
+  Replace text in markdown blocks (markdown content in data-ghq-card-content-markdown-content attribute)
+
+  Arguments:
+    doc (BeautifulSoup): html document object
+    term (str): term to replace
+    replacement (str): replacement term
+    replacement_case_sensitive (bool): boolean for replacement term case-sensitivity (defaults to false)
+  """
   for markdown_div in doc.select("[data-ghq-card-content-markdown-content]"):
     md = unquote(markdown_div.attrs.get("data-ghq-card-content-markdown-content"))
     new_md = replace_text_in_text(md, term, replacement, replacement_case_sensitive=replacement_case_sensitive)
     markdown_div.attrs["data-ghq-card-content-markdown-content"] = quote(new_md)
-
-
-
 
 def replace_text_in_html(html, term, replacement, term_case_sensitive=False, replacement_case_sensitive=False):
   doc = html if isinstance(html, BeautifulSoup) else BeautifulSoup(html, "html.parser")
