@@ -103,7 +103,7 @@ def clean_up_html(html):
 
   # we don't use these tags for anything but they might contain content
   # so we call unwrap() rather than calling decompose().
-  for el in doc.select("header, nav, article"):
+  for el in doc.select("html, body, header, nav, article"):
     el.unwrap()
 
   # we don't use these tags and we don't want their content either, like the JS code
@@ -230,6 +230,7 @@ def make_spreadsheet(node, parent, depth, rows):
       "External URL",
       "Type",
       "Title",
+      "# of Children",
       "HTML Length",
       "# of HTML Tags",
       "# of Essential HTML Tags",
@@ -252,6 +253,12 @@ def make_spreadsheet(node, parent, depth, rows):
     node.type,
     '"' + indent + node.title + '"'
   ]
+
+  # number of children:
+  if node.type == CARD:
+    values.append("")
+  else:
+    values.append(len(node.children))
 
   # for nodes with content we put additional values in the sheet,
   # like word count, # of headings, # of links, etc.
@@ -281,6 +288,9 @@ def make_spreadsheet(node, parent, depth, rows):
 
 def make_html_tree(node, parent, depth, html_pieces):
   """internal: This builds the board/card tree in the HTML preview page."""
+  if node.removed:
+    return
+
   if node.type == CARD:
     url = node.bundle.CARD_HTML_PATH % (node.bundle.id, node.id)
     html_pieces.append(
@@ -439,6 +449,7 @@ class BundleNode:
     self.parents = []
     self.type = NONE
     self.tags = tags
+    self.removed = False
     if index is None:
       self.index = 9999
     else:
@@ -513,18 +524,27 @@ class BundleNode:
     for id in self.children:
       node = self.bundle.node(id)
       if node.type == CARD:
-        items.append({
-          "ID": node.id,
-          "Type": "card"
-        })
+        if not node.removed:
+          items.append({
+            "ID": node.id,
+            "Type": "card"
+          })
         # if this node has nested children this'll flatten them out.
         items += node.__make_items_list()
       elif node.type == SECTION:
-        items.append({
-          "Type": "section",
-          "Title": node.title,
-          "Items": node.__make_items_list()
-        })
+        section_items = node.__make_items_list()
+
+        # we can choose to skip empty sections. if there's a sync that's likely to create
+        # empty cards, then that might make us more likely to end up with empty sections.
+        if node.bundle.skip_empty_sections and not section_items:
+          node.bundle.log(message="skipping empty section", title=self.title, id=self.id)
+          node.removed = True
+        else:
+          items.append({
+            "Type": "section",
+            "Title": node.title,
+            "Items": section_items
+          })
       elif node.type == BOARD:
         items.append(node.id)
     
@@ -606,7 +626,7 @@ class BundleNode:
     This will eventually have the ability to download images.
     """
     # we only need to clean up the html for cards that have content.
-    if not self.content or self.type != CARD:
+    if not self.content or self.type != CARD or self.removed:
       return
 
     doc = BeautifulSoup(self.content, "html.parser")
@@ -714,10 +734,17 @@ class BundleNode:
 
       # if convert_links:
       for other_node in self.bundle.nodes:
+        if other_node.removed:
+          continue
         if (compare_links and compare_links(other_node, absolute_url)) or \
             other_node.url == absolute_url:
           # print("replace link: %s  -->  cards/%s" % (href[0:80], other_node.id))
-          link.attrs["href"] = "cards/%s" % other_node.id
+          if other_node.type == BOARD:
+            link.attrs["href"] = "board/%s" % other_node.id
+          elif other_node.type == CARD:
+            link.attrs["href"] = "cards/%s" % other_node.id
+          else:
+            link.unwrap()
           updated = True
           check_as_attachment = False
           break
@@ -736,7 +763,7 @@ class BundleNode:
     Writes the files needed for this object. For cards that's a .yaml
     and .html file. For boards and board groups it's just a .yaml file.
     """
-    if self.type == CARD:
+    if self.type == CARD and not self.removed:
       write_file(self.bundle.CARD_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
       write_file(self.bundle.CARD_HTML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.content.strip() or "")
     elif self.type == BOARD:
@@ -798,12 +825,13 @@ class Bundle:
   That'll create a bundle with one card and upload it to the collection
   called "Import Test" -- if that collection doesn't exist, it'll be created.
   """
-  def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False):
+  def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False, skip_empty_sections=True):
     self.guru = guru
     self.id = slugify(id) if id else str(int(time.time()))
     self.nodes = []
     self.resources = {}
     self.verbose = verbose
+    self.skip_empty_sections = skip_empty_sections
     self.events = []
     self.start_time = time.time()
 
@@ -857,6 +885,9 @@ class Bundle:
     node.detach()
     if node in self.nodes:
       self.nodes.remove(node)
+
+  def url_to_id(self, url):
+    return _url_to_id(url, False)
 
   def node(self, id="", url="", title="", content="", desc="", tags=None, type=None, index=None, clean_html=True):
     """
@@ -1105,6 +1136,14 @@ class Bundle:
     traverse_tree(self, assign_types, post=True, favor_boards=favor_boards, favor_sections=favor_sections)
     traverse_tree(self, insert_nodes)
 
+    # remove nodes that are cards and have no content.
+    for node in self.nodes:
+      if node.type == CARD and not node.content.strip():
+        node.removed = True
+
+    # 'clean html' is a little bit of a misnomer here. when you create a node,
+    # we check the html and remove unnecessary tags and attributes. the operation
+    # we're doing here is really resolving image and file links.
     # these are done for all nodes, the tree structure doesn't matter.
     if clean_html:
       count = 0
@@ -1116,6 +1155,7 @@ class Bundle:
           convert_links=convert_links,
           compare_links=compare_links
         )
+
     for node in self.nodes:
       node.write_files()
     
