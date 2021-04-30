@@ -825,7 +825,7 @@ class Bundle:
   That'll create a bundle with one card and upload it to the collection
   called "Import Test" -- if that collection doesn't exist, it'll be created.
   """
-  def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False, skip_empty_sections=True):
+  def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False, skip_empty_sections=False):
     self.guru = guru
     self.id = slugify(id) if id else str(int(time.time()))
     self.nodes = []
