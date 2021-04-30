@@ -507,20 +507,18 @@ class TestBundle(unittest.TestCase):
         "Title": "node 3",
         "Type": "section",
         "Items": [{
-          "ID": "4",
-          "Type": "card"
-        }, {
           "ID": "5",
           "Type": "card"
         }]
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes/cards/4.yaml"), {
-      "ExternalId": "4",
-      "ExternalUrl": "https://www.example.com/4",
-      "Title": "node 4"
-    })
-    self.assertEqual(read_html("/tmp/test_sync_with_five_nodes/cards/4.html"), "")
+
+    # node 4 doesn't get included in the zip because its parent, node 3, is a section.
+    # that means node 4 has to be a card but it has no content, so we don't make a blank card.
+    with self.assertRaises(FileNotFoundError):
+      read_html("/tmp/test_sync_with_five_nodes/cards/4.html")
+    with self.assertRaises(FileNotFoundError):
+      read_html("/tmp/test_sync_with_five_nodes/cards/4.yaml")
 
     self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes/cards/5.yaml"), {
       "ExternalId": "5",
@@ -570,20 +568,18 @@ class TestBundle(unittest.TestCase):
         "Title": "node 3",
         "Type": "section",
         "Items": [{
-          "ID": "4",
-          "Type": "card"
-        }, {
           "ID": "5",
           "Type": "card"
         }]
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes_and_favor_sections/cards/4.yaml"), {
-      "ExternalId": "4",
-      "ExternalUrl": "https://www.example.com/4",
-      "Title": "node 4"
-    })
-    self.assertEqual(read_html("/tmp/test_sync_with_five_nodes_and_favor_sections/cards/4.html"), "")
+
+    # node 4 doesn't get included in the zip because its parent, node 3, is a section.
+    # that means node 4 has to be a card but it has no content, so we don't make a blank card.
+    with self.assertRaises(FileNotFoundError):
+      read_html("/tmp/test_sync_with_five_nodes/cards/4.html")
+    with self.assertRaises(FileNotFoundError):
+      read_html("/tmp/test_sync_with_five_nodes/cards/4.yaml")
 
     self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes_and_favor_sections/cards/5.yaml"), {
       "ExternalId": "5",

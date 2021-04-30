@@ -2196,17 +2196,17 @@ class Guru:
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
-  def bundle(self, id="default", clear=True, folder="/tmp/", verbose=False):
+  def bundle(self, id="default", clear=True, folder="/tmp/", verbose=False, skip_empty_sections=False):
     """
     Creates a Bundle object that can be used to bulk import content.
     """
-    return Bundle(guru=self, id=id, clear=clear, folder=folder, verbose=verbose)
+    return Bundle(guru=self, id=id, clear=clear, folder=folder, verbose=verbose, skip_empty_sections=skip_empty_sections)
   
-  def sync(self, id="default", clear=True, folder="/tmp/", verbose=False):
+  def sync(self, id="default", clear=True, folder="/tmp/", verbose=False, skip_empty_sections=False):
     """
     internal: sync() is an alias for bundle().
     """
-    return Bundle(guru=self, id=id, clear=clear, folder=folder, verbose=verbose)
+    return Bundle(guru=self, id=id, clear=clear, folder=folder, verbose=verbose, skip_empty_sections=skip_empty_sections)
 
   def get_events(self, start="", end="", max_pages=10):
     """
