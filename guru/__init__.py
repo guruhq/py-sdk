@@ -43,5 +43,6 @@ from guru.find_and_replace import (
   replace_text_in_html,
   replace_text_in_card, 
   Preview, 
-  PreviewData
+  PreviewData,
+  FindAndReplace
 )

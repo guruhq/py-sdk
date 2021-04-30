@@ -332,3 +332,45 @@ class Preview:
       if open_browser:
         webbrowser.open_new_tab("file://" + self.card_preview_path % self.task_name)
 
+class FindAndReplace:
+  def __init__(self, guru, term, replacement, term_case_sensitive=False, replacement_case_sensitive=False, replace_title=False, collection=None, folder="/tmp/", task_name=None):
+    self.guru = guru
+    self.term = term
+    self.replacement = replacement
+    self.term_case_sensitive = term_case_sensitive
+    self.replace_title = replace_title
+    self.collection = collection
+    self.task_name = task_name if task_name else "find_and_replace"
+    self.cards = []
+
+  def run(self, dry_run=True):
+    for card in self.guru.find_cards(collection=self.collection):
+      if card.has_text(self.term, case_sensitive=self.term_case_sensitive):
+        
+        original_content = card.content
+        
+        card.content = replace_text_in_card(card, self.term, self.replacement, replace_title=self.replace_title, case_sensitive=self.term_case_sensitive)
+        new_content =  card.content
+        if not dry_run:
+          # card.patch()
+          print("PATCHING: ", original_content, new_content)
+
+        self.cards.append(PreviewData(
+          card=card,
+          term=self.term,
+          replacement=self.replacement,
+          orig_content=original_content,
+          new_content=new_content
+          
+      ))
+
+    browser_preview = Preview(
+      content_list=self.cards, 
+      term=self.term,
+      replacement=self.replacement,
+      task_name=self.task_name,
+    )
+    
+    browser_preview.make_html_tree()
+
+    browser_preview.view_in_browser()
