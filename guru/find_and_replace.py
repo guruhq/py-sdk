@@ -122,9 +122,9 @@ def add_highlight(card, term, highlight="replacement", case_sensitive=False):
 
   Arguments:
     card (BeautifulSoup or str): card's html (converted to BeautifulSoup object if not already)
-    term (str): term we want to replace,
+    term (str): term we want to replace
     highlight (str, either `original` or `replacement`): determines which highlight class the term will get (defaults to replacement)
-    case_sensitive (bool): boolean, denoting whether the search term is case-insensitive or specific (defaults to false ),
+    case_sensitive (bool): boolean, denoting whether the search term is case-insensitive or specific (defaults to false )
 
   Returns: html (str) with highlighted terms
   """
@@ -145,6 +145,22 @@ def add_highlight(card, term, highlight="replacement", case_sensitive=False):
   return content
 
 def replace_text_in_card(card, term, replacement, replace_title=True, replacement_highlight=False, orig_highlight=False, case_sensitive=False):
+  """
+  Replaces term in card content. Accounts for lowercase, uppercase, capitalized, and title-cased.
+  Optional replacement of term in card title.
+  Could also choose to add a highlight class to a term ( replacement term and/or original term ).
+
+  Arguments:
+    card (Card instance or str): Card instance or text string (i.e., card.content)
+    term (str): term we want to replace,
+    replacement (str): replacement term,
+    replace_title (bool): boolean for replacing term in card title ( defaults to false )
+    replacement_highlight (bool): determines whether to apply a highlight class to the replacement term (defaults to false)
+    orig_highlight (bool): determines whether to apply a highlight class to the original term (defaults to false)
+    case_sensitive (bool): boolean, denoting whether the search term is case-insensitive or specific (defaults to false )
+
+  Returns: html (str) with replacement
+  """
   if isinstance(card, Card):
     if replace_title:
       card.title = replace_text_in_text(card.title, term, replacement, term_case_sensitive=case_sensitive)
