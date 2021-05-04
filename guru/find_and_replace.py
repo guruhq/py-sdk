@@ -251,13 +251,13 @@ class Preview:
         color: rgba(0, 0, 0, 0.3) !important;
       }
       .sdk-replacement-highlight {
-        background-color: #4a7; 
-        color: #fff;
+        background-color: #4a7 !important; 
+        color: #fff !important;
         filter: drop-shadow(6px 6px 4px #4444dd);
       }
       .sdk-orig-highlight {
-        background-color: #E81456; 
-        color: #fff;
+        background-color: #E81456 !important; 
+        color: #fff !important;
         filter: drop-shadow(6px 6px 4px #4444dd);
       }
       </style>
