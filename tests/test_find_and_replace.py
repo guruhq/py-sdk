@@ -108,11 +108,11 @@ class TestFindAndReplace(unittest.TestCase):
     replacement_card = g.get_card("2222")
 
     # card.content
-    test_term_result = guru.add_highlight(term_card.content, term, term, highlight="original")
-    test_replacement_result = guru.add_highlight(replacement_card.content, replacement, replacement, highlight="replacement")
+    test_term_result = guru.add_highlight(term_card.content, term, highlight="original")
+    test_replacement_result = guru.add_highlight(replacement_card.content, replacement, highlight="replacement")
     # card instance
-    test_term_card_result = guru.add_highlight(term_card, term, term, highlight="original")
-    test_replacement_card_result = guru.add_highlight(replacement_card, replacement, replacement, highlight="replacement")
+    test_term_card_result = guru.add_highlight(term_card, term, highlight="original")
+    test_replacement_card_result = guru.add_highlight(replacement_card, replacement, highlight="replacement")
     
     expected_term = """<p><span class="sdk-orig-highlight">Test</span></p>"""
     expected_replacement = """<p><span class="sdk-replacement-highlight">Purple</span></p>"""

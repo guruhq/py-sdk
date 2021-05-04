@@ -111,8 +111,24 @@ def replace_text_in_html(html, term, replacement, term_case_sensitive=False, rep
   replace_in_markdown_block(doc, term, replacement)
   return str(doc)
 
-def add_highlight(card, term, replacement, highlight="replacement", case_sensitive=False):
-  ## TODO: change functionality to accept just a term or replacement, and throw exception if neither are provided
+def add_highlight(card, term, highlight="replacement", case_sensitive=False):
+  """
+  Wraps term with a span element, with a highlight class
+
+  example:
+  ```
+  add_highlight(card, "Trust score", case_sensitive=case_sensitive)
+  ```
+
+  Arguments:
+    card (BeautifulSoup or str): card's html (converted to BeautifulSoup object if not already)
+    term (str): term we want to replace,
+    highlight (str, either `original` or `replacement`): determines which highlight class the term will get (defaults to replacement)
+    case_sensitive (bool): boolean, denoting whether the search term is case-insensitive or specific (defaults to false ),
+
+  Returns: html (str) with highlighted terms
+  """
+  
   highlight_class = None
   if highlight == "original":
     highlight_class = "sdk-orig-highlight"
@@ -121,7 +137,7 @@ def add_highlight(card, term, replacement, highlight="replacement", case_sensiti
 
   card_content = card.content if isinstance(card, Card) else card
 
-  content = replace_text_in_html(card_content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % replacement, term_case_sensitive=case_sensitive)
+  content = replace_text_in_html(card_content, term, "[GURU_SDK_HIGHLIGHT_START]%s[GURU_SDK_HIGHLIGHT_END]" % term, term_case_sensitive=case_sensitive)
   
   # do string replacements on the [start] and [end] tokens.
   content = replace_text_in_text(str(content), "[GURU_SDK_HIGHLIGHT_START]", '<span class="%s">' % highlight_class, replacement_case_sensitive=True)
@@ -133,17 +149,17 @@ def replace_text_in_card(card, term, replacement, replace_title=True, replacemen
     if replace_title:
       card.title = replace_text_in_text(card.title, term, replacement, term_case_sensitive=case_sensitive)
     if replacement_highlight:
-      card.content = add_highlight(card, term, replacement, case_sensitive=case_sensitive)
+      card.content = add_highlight(card, replacement, case_sensitive=case_sensitive)
     elif orig_highlight:
-      card.content = add_highlight(card, term, replacement, highlight="original", case_sensitive=case_sensitive)
+      card.content = add_highlight(card, term, highlight="original", case_sensitive=case_sensitive)
     else:
       card.content = replace_text_in_html(card.content, term, replacement, term_case_sensitive=case_sensitive)
     return card.content
   else:
     if replacement_highlight:
-      card = add_highlight(card, term, replacement, case_sensitive=case_sensitive)
+      card = add_highlight(card, replacement, case_sensitive=case_sensitive)
     elif orig_highlight:
-      card = add_highlight(card, term, replacement, highlight="original", case_sensitive=case_sensitive)
+      card = add_highlight(card, term, highlight="original", case_sensitive=case_sensitive)
     else:
       card = replace_text_in_html(card, term, replacement, term_case_sensitive=case_sensitive)
     return card
