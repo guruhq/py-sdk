@@ -245,8 +245,10 @@ class Preview:
       highlight_css = """
       <style>
 
-      * {
-        color: rgba(0, 0, 0, 0.3)
+      *,
+      img,
+      iframe {
+        color: rgba(0, 0, 0, 0.3) !important;
       }
       .sdk-replacement-highlight {
         background-color: #4a7; 
