@@ -68,7 +68,8 @@ class TestFindAndReplace(unittest.TestCase):
     term = "Test"
     replacement = "Purple"
     html_content = """<p>TEST</p>"""
-    md_content="""#Header 1\n##Header2\n###Header3\n\n\n\n# Header 1\n## Header 2\n### Header 3\n\nHere is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph.\n\nHere is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph. Here is a test paragraph."""
+    quoted_content = """<p>"TEST"</p><a href="mailto:test@example.com">"Email us here"</a>"""
+    html_with_link = """<p>TEST</p><a href="mailto:test@example.com">Email us here</a>"""
     
     # register the response for the API call we'll make.
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
@@ -78,10 +79,18 @@ class TestFindAndReplace(unittest.TestCase):
 
 
     test_result = guru.replace_text_in_html(html_content, term, replacement)
+    html_with_link_test_result = guru.replace_text_in_html(html_with_link, term, replacement, replace_html_attributes=True)
+    quoted_content_result = guru.replace_text_in_html(quoted_content, term, replacement)
+    quoted_content_result_term_sensitive = guru.replace_text_in_html(quoted_content, term, replacement, term_case_sensitive=True)
+    quoted_content_result_replacement_sensitive = guru.replace_text_in_html(quoted_content, term, replacement, replacement_case_sensitive=True)
     card_content_test_result = guru.replace_text_in_html(card_content, term, replacement)
     replacement_case_sensitive_test_result = guru.replace_text_in_html(html_content, term, replacement, replacement_case_sensitive=True)
     
     expected_html = """<p>PURPLE</p>"""
+    expected_html_with_link = """<p>PURPLE</p><a href="mailto:purple@example.com">Email us here</a>"""
+    expected_quoted = """<p>"PURPLE"</p><a href="mailto:test@example.com">"Email us here"</a>"""
+    expected_quoted_term_sensitive = """<p>"TEST"</p><a href="mailto:test@example.com">"Email us here"</a>"""
+    expected_quoted_replacement_sensitive = """<p>"Purple"</p><a href="mailto:test@example.com">"Email us here"</a>"""
     expected_html_replacement_case_sensitive = """<p>Purple</p>"""
     
     ## replacement term is not case-sensitive
@@ -90,6 +99,14 @@ class TestFindAndReplace(unittest.TestCase):
     self.assertEqual(replacement_case_sensitive_test_result, expected_html_replacement_case_sensitive)
     ## html is from a card (BeautifulSoup instance
     self.assertEqual(card_content_test_result, expected_html)
+    ## replace term in href
+    self.assertEqual(html_with_link_test_result, expected_html_with_link)
+    ## quoted html text
+    self.assertEqual(quoted_content_result, expected_quoted)
+    ## quoted html text term-sensitive
+    self.assertEqual(quoted_content_result_term_sensitive, expected_quoted_term_sensitive)
+    ## quoted html text replacement-sensitive
+    self.assertEqual(quoted_content_result_replacement_sensitive, expected_quoted_replacement_sensitive)
   
   @use_guru()
   @responses.activate
@@ -229,4 +246,7 @@ class TestFindAndReplace(unittest.TestCase):
     )
     # build the html tree
     preview.make_html_tree()
-    self.assertEqual(preview.html_pieces[0], '<a href="/tmp/test_find_and_replace/new_content/new_1111.html" data-original-url="/tmp/test_find_and_replace/old_content/orig_1111.html" target="iframe">Testing 1, 2, 3 (2/2)</a>')
+    self.assertEqual(
+      preview.html_pieces[0], 
+      '<a href="/tmp/test_find_and_replace/new_content/new_1111.html" data-original-url="/tmp/test_find_and_replace/old_content/orig_1111.html" target="iframe">Testing 1, 2, 3 (2/2)*(0/0)</a>'
+    )
