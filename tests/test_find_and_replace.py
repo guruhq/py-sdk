@@ -1,13 +1,10 @@
-import json
 import unittest
 import responses
 
 from urllib.parse import quote
-from tests.util import use_guru, get_calls
+from tests.util import use_guru
 
-import guru
-
-from guru.find_and_replace import Preview, PreviewData
+from guru.find_and_replace import replace_text_in_text, replace_text_in_html, replace_text_in_card, add_highlight, Preview, PreviewData
 
 class TestFindAndReplace(unittest.TestCase):
   @use_guru()
@@ -18,10 +15,10 @@ class TestFindAndReplace(unittest.TestCase):
     content = "TEST, Test"
     titlecased_content = "Test Case"
 
-    test_result = guru.replace_text_in_text(content, term, replacement)
-    term_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, term_case_sensitive=True)
-    replacement_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, replacement_case_sensitive=True)
-    test_titlecase_result = guru.replace_text_in_text(titlecased_content, term_for_testing_titlecase, replacement)
+    test_result = replace_text_in_text(content, term, replacement)
+    term_case_sensitive_test_result = replace_text_in_text(content, term, replacement, term_case_sensitive=True)
+    replacement_case_sensitive_test_result = replace_text_in_text(content, term, replacement, replacement_case_sensitive=True)
+    test_titlecase_result = replace_text_in_text(titlecased_content, term_for_testing_titlecase, replacement)
     
     expected = "PURPLE, Purple"
     expected_term_case_sensitive = "TEST, Purple"
@@ -35,7 +32,7 @@ class TestFindAndReplace(unittest.TestCase):
     ## replacement is case-sensitive
     self.assertEqual(replacement_case_sensitive_test_result, expected_replacement_case_sensitive)
     ## uncommon content, so will only replace exact term
-    self.assertEqual(guru.replace_text_in_text("TesT test", "TesT", "PurplE", term_case_sensitive=True), "PurplE test")
+    self.assertEqual(replace_text_in_text("TesT test", "TesT", "PurplE", term_case_sensitive=True), "PurplE test")
     ## titlecase
     self.assertEqual(test_titlecase_result, expected_titlecase)
 
@@ -46,9 +43,9 @@ class TestFindAndReplace(unittest.TestCase):
     replacement = "[GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END]"
     content= "TEST, Test"
 
-    test_result = guru.replace_text_in_text(content, term, replacement)
-    term_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, term_case_sensitive=True)
-    replacement_case_sensitive_test_result = guru.replace_text_in_text(content, term, replacement, replacement_case_sensitive=True)
+    test_result = replace_text_in_text(content, term, replacement)
+    term_case_sensitive_test_result = replace_text_in_text(content, term, replacement, term_case_sensitive=True)
+    replacement_case_sensitive_test_result = replace_text_in_text(content, term, replacement, replacement_case_sensitive=True)
     
     expected = "[GURU_SDK_HIGHLIGHT_START]TEST[GURU_SDK_HIGHLIGHT_END], [GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END]"
     expected_term_case_sensitive = "TEST, [GURU_SDK_HIGHLIGHT_START]Test[GURU_SDK_HIGHLIGHT_END]"
@@ -81,14 +78,14 @@ class TestFindAndReplace(unittest.TestCase):
     card_content = g.get_card("1111").doc
 
 
-    test_result = guru.replace_text_in_html(html_content, term, replacement)
-    html_with_link_test_result = guru.replace_text_in_html(html_with_link, term, replacement, replace_html_attributes=True)
-    quoted_content_result = guru.replace_text_in_html(quoted_content, term, replacement)
-    quoted_content_result_term_sensitive = guru.replace_text_in_html(quoted_content, term, replacement, term_case_sensitive=True)
-    quoted_content_result_replacement_sensitive = guru.replace_text_in_html(quoted_content, term, replacement, replacement_case_sensitive=True)
-    card_content_test_result = guru.replace_text_in_html(card_content, term, replacement)
-    replacement_case_sensitive_test_result = guru.replace_text_in_html(html_content, term, replacement, replacement_case_sensitive=True)
-    html_with_special_characters_result = guru.replace_text_in_html(html_content_with_special_characters, term_with_special_characters, replacement_with_special_characters)
+    test_result = replace_text_in_html(html_content, term, replacement)
+    html_with_link_test_result = replace_text_in_html(html_with_link, term, replacement, replace_html_attributes=True)
+    quoted_content_result = replace_text_in_html(quoted_content, term, replacement)
+    quoted_content_result_term_sensitive = replace_text_in_html(quoted_content, term, replacement, term_case_sensitive=True)
+    quoted_content_result_replacement_sensitive = replace_text_in_html(quoted_content, term, replacement, replacement_case_sensitive=True)
+    card_content_test_result = replace_text_in_html(card_content, term, replacement)
+    replacement_case_sensitive_test_result = replace_text_in_html(html_content, term, replacement, replacement_case_sensitive=True)
+    html_with_special_characters_result = replace_text_in_html(html_content_with_special_characters, term_with_special_characters, replacement_with_special_characters)
     
     expected_html = """<p>PURPLE</p>"""
     expected_html_with_special_characters = """<p>Card - card$PURPLE$ (Test)</p>"""
@@ -132,11 +129,11 @@ class TestFindAndReplace(unittest.TestCase):
     replacement_card = g.get_card("2222")
 
     # card.content
-    test_term_result = guru.add_highlight(term_card.content, term, highlight="original")
-    test_replacement_result = guru.add_highlight(replacement_card.content, replacement, highlight="replacement")
+    test_term_result = add_highlight(term_card.content, term, highlight="original")
+    test_replacement_result = add_highlight(replacement_card.content, replacement, highlight="replacement")
     # card instance
-    test_term_card_result = guru.add_highlight(term_card, term, highlight="original")
-    test_replacement_card_result = guru.add_highlight(replacement_card, replacement, highlight="replacement")
+    test_term_card_result = add_highlight(term_card, term, highlight="original")
+    test_replacement_card_result = add_highlight(replacement_card, replacement, highlight="replacement")
     
     expected_term = """<p><span class="sdk-orig-highlight">Test</span></p>"""
     expected_replacement = """<p><span class="sdk-replacement-highlight">Purple</span></p>"""
@@ -172,37 +169,41 @@ class TestFindAndReplace(unittest.TestCase):
       "preferredPhrase": "Testing 1, 2, 3",
       "content": """<p class="ghq-card-content__markdown" data-ghq-card-content-type="MARKDOWN" data-ghq-card-content-markdown-content=%s></p>""" % quote(md_content)
     })
-    card = g.get_card("1111")
+    card1 = g.get_card("1111")
+    card2 = g.get_card("1111")
     markdown_card = g.get_card("2222")
     card_with_md_block = g.get_card("3333")
 
-    test_result = guru.replace_text_in_card(card, term, replacement)
-    markdown_test_result = guru.replace_text_in_card(markdown_card, term, replacement)
-    with_md_block_test_result = guru.replace_text_in_card(card_with_md_block, term, replacement)
-    test_orig_highlight_result = guru.replace_text_in_card(card, term, term, orig_highlight=True)
-    test_replacement_highlight_result = guru.replace_text_in_card(card, replacement, replacement, replacement_highlight=True)
-    markdown_highlight_test_result = guru.replace_text_in_card(markdown_card, replacement, replacement, replacement_highlight=True, orig_highlight=True)
+    test_result = replace_text_in_card(card1, term, replacement)
+    markdown_test_result = replace_text_in_card(markdown_card, term, replacement)
+    with_md_block_test_result = replace_text_in_card(card_with_md_block, term, replacement)
+    test_replacement_highlight_result = replace_text_in_card(card1, replacement, replacement, replacement_highlight=True)
+    test_orig_highlight_result = replace_text_in_card(card2, term, term, orig_highlight=True)
+    markdown_highlight_test_result = replace_text_in_card(markdown_card, replacement, replacement, replacement_highlight=True, orig_highlight=True)
 
     expected_html = """<p>PURPLE</p>"""
-    expected_html_highlight = """<p><span class="sdk-replacement-highlight">PURPLE</span></p>"""
+    expected_html_orig_highlight = """<p><span class="sdk-orig-highlight">TEST</span></p>"""
+    expected_html_replacement_highlight = """<p><span class="sdk-replacement-highlight">PURPLE</span></p>"""
     expected_title = "Purpleing 1, 2, 3"
     expected_markdown = """#Header 1\n##Header2\n###Header3\n\n\n\nHere is a purple paragraph. \n\nHere is a purple paragraph."""
     expected_with_md_block = """<p class="ghq-card-content__markdown" data-ghq-card-content-markdown-content="%s" data-ghq-card-content-type="MARKDOWN"></p>""" % quote("""#Header 1\n##Header2\n###Header3\n\n\n\nHere is a purple paragraph. \n\nHere is a purple paragraph.""")
     expected_markdown_highlight = """#Header 1\n##Header2\n###Header3\n\n\n\nHere is a <span class="sdk-replacement-highlight">purple</span> paragraph. \n\nHere is a <span class="sdk-replacement-highlight">purple</span> paragraph."""
     
     ## replace title and content
-    guru.replace_text_in_card(card, term, replacement, replace_title=True)
+    replace_text_in_card(card1, term, replacement, replace_title=True)
 
     ## content is html
     self.assertEqual(test_result, expected_html)
     ## content is markdown
     self.assertEqual(markdown_test_result, expected_markdown)
-    ## highlighted content: is html
-    self.assertEqual(test_replacement_highlight_result, expected_html_highlight)
+    ## highlighted replacement term: is html
+    self.assertEqual(test_replacement_highlight_result, expected_html_replacement_highlight)
+    ## highlighted original term: is html
+    self.assertEqual(test_orig_highlight_result, expected_html_orig_highlight)
     ## highlighted content: is markdown
     self.assertEqual(markdown_highlight_test_result, expected_markdown_highlight)
     ## replace title
-    self.assertEqual(card.title, expected_title)
+    self.assertEqual(card1.title, expected_title)
     ## replace markdown in attribute on md block
     self.assertEqual(with_md_block_test_result, expected_with_md_block)
     

@@ -175,12 +175,21 @@ def replace_text_in_card(card, term, replacement, replace_title=True, replacemen
       card.title = replace_text_in_text(card.title, term, replacement, term_case_sensitive=case_sensitive, replacement_case_sensitive=replacement_case_sensitive)
   else:
     content = card
+
   if replacement_highlight:
     content = add_highlight(content, replacement, case_sensitive=case_sensitive)
   elif orig_highlight:
     content = add_highlight(content, term, highlight="original", case_sensitive=case_sensitive)
   else:
-    content = replace_text_in_html(content, term, replacement, term_case_sensitive=case_sensitive, replacement_case_sensitive=replacement_case_sensitive, replace_html_attributes=replace_html_attributes)
+    content = replace_text_in_html(
+      content, 
+      term, 
+      replacement, 
+      term_case_sensitive=case_sensitive, 
+      replacement_case_sensitive=replacement_case_sensitive, 
+      replace_html_attributes=replace_html_attributes
+    )
+    
   if isinstance(card, Card):
     card.content = content
   return content
