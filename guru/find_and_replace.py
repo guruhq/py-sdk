@@ -36,7 +36,8 @@ def replace_text_in_text(text, term, replacement, term_case_sensitive=False, rep
   """
   # replacement = "[start]Customer[end]".capitalize()
   lowercased_term = term.lower()
-  lowercased_replacement = replacement.lower().replace("[guru_sdk_highlight_start]", "[GURU_SDK_HIGHLIGHT_START]").replace("[guru_sdk_highlight_end]", "[GURU_SDK_HIGHLIGHT_END]")
+  lowercased_replacement = replacement.lower().replace("[guru_sdk_highlight_start]", "[GURU_SDK_HIGHLIGHT_START]")
+  lowercased_replacement = lowercased_replacement.replace("[guru_sdk_highlight_end]", "[GURU_SDK_HIGHLIGHT_END]")
   uppercased_term = term.upper()
   uppercased_replacement = replacement.upper()
   capitalized_term = term.capitalize()
@@ -61,16 +62,18 @@ def replace_text_in_text(text, term, replacement, term_case_sensitive=False, rep
   if term_case_sensitive:
     text = text.replace(term, replacement)
   elif not term_case_sensitive and replacement_case_sensitive:
+    text = text.replace(lowercased_term, replacement)
+    text = text.replace(uppercased_term, replacement)
+    text = text.replace(capitalized_term, replacement)
     if not capitalized_term == titlecased_term:
-      text = text.replace(lowercased_term, replacement).replace(uppercased_term, replacement).replace(titlecased_term, replacement).replace(capitalized_term, replacement)
-    else:
-      text = text.replace(lowercased_term, replacement).replace(uppercased_term, replacement).replace(capitalized_term, replacement)
+      text = text.replace(titlecased_term, replacement)
   else:
+    text = text.replace(lowercased_term, lowercased_replacement)
+    text = text.replace(uppercased_term, uppercased_replacement)
+    text = text.replace(capitalized_term, capitalized_replacement)
     if not capitalized_term == titlecased_term:
-      text = text.replace(lowercased_term, lowercased_replacement).replace(uppercased_term, uppercased_replacement).replace(titlecased_term, titlecased_replacement).replace(capitalized_term, capitalized_replacement)
-    else:
-      text = text.replace(lowercased_term, lowercased_replacement).replace(uppercased_term, uppercased_replacement).replace(capitalized_term, capitalized_replacement)
-  
+      text = text.replace(titlecased_term, titlecased_replacement)
+
   return text
 
 def replace_in_markdown_block(doc, term, replacement, replacement_case_sensitive=False):
@@ -103,7 +106,7 @@ def replace_text_in_html(html, term, replacement, term_case_sensitive=False, rep
   Returns: html (str) with replacement
   """
   doc = html if isinstance(html, BeautifulSoup) else BeautifulSoup(html, "html.parser")
-  pattern = re.compile(r'%s' % term, re.IGNORECASE)
+  pattern = re.compile(r'%s' % re.escape(term), re.IGNORECASE)
   text_nodes = doc.find_all(text=term) if term_case_sensitive else doc.find_all(text=pattern)
   if replace_html_attributes:
     return replace_text_in_text(str(doc), term, replacement, replacement_case_sensitive=replacement_case_sensitive)
@@ -167,23 +170,20 @@ def replace_text_in_card(card, term, replacement, replace_title=True, replacemen
   Returns: html (str) with replacement
   """
   if isinstance(card, Card):
+    content = card.content
     if replace_title:
       card.title = replace_text_in_text(card.title, term, replacement, term_case_sensitive=case_sensitive, replacement_case_sensitive=replacement_case_sensitive)
-    if replacement_highlight:
-      card.content = add_highlight(card, replacement, case_sensitive=case_sensitive)
-    elif orig_highlight:
-      card.content = add_highlight(card, term, highlight="original", case_sensitive=case_sensitive)
-    else:
-      card.content = replace_text_in_html(card.content, term, replacement, term_case_sensitive=case_sensitive, replacement_case_sensitive=replacement_case_sensitive, replace_html_attributes=replace_html_attributes)
-    return card.content
   else:
-    if replacement_highlight:
-      card = add_highlight(card, replacement, case_sensitive=case_sensitive)
-    elif orig_highlight:
-      card = add_highlight(card, term, highlight="original", case_sensitive=case_sensitive)
-    else:
-      card = replace_text_in_html(card, term, replacement, term_case_sensitive=case_sensitive, replacement_case_sensitive=replacement_case_sensitive, replace_html_attributes=replace_html_attributes)
-    return card
+    content = card
+  if replacement_highlight:
+    content = add_highlight(content, replacement, case_sensitive=case_sensitive)
+  elif orig_highlight:
+    content = add_highlight(content, term, highlight="original", case_sensitive=case_sensitive)
+  else:
+    content = replace_text_in_html(content, term, replacement, term_case_sensitive=case_sensitive, replacement_case_sensitive=replacement_case_sensitive, replace_html_attributes=replace_html_attributes)
+  if isinstance(card, Card):
+    card.content = content
+  return content
 class PreviewData:
   """
   Class that holds a card's preview data.

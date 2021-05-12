@@ -66,10 +66,13 @@ class TestFindAndReplace(unittest.TestCase):
   @responses.activate
   def test_replace_term_in_html(self,g):
     term = "Test"
+    term_with_special_characters = "$Test$"
     replacement = "Purple"
+    replacement_with_special_characters = "$Purple$"
     html_content = """<p>TEST</p>"""
     quoted_content = """<p>"TEST"</p><a href="mailto:test@example.com">"Email us here"</a>"""
     html_with_link = """<p>TEST</p><a href="mailto:test@example.com">Email us here</a>"""
+    html_content_with_special_characters = """<p>Card - card$TEST$ (Test)</p>"""
     
     # register the response for the API call we'll make.
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
@@ -85,8 +88,10 @@ class TestFindAndReplace(unittest.TestCase):
     quoted_content_result_replacement_sensitive = guru.replace_text_in_html(quoted_content, term, replacement, replacement_case_sensitive=True)
     card_content_test_result = guru.replace_text_in_html(card_content, term, replacement)
     replacement_case_sensitive_test_result = guru.replace_text_in_html(html_content, term, replacement, replacement_case_sensitive=True)
+    html_with_special_characters_result = guru.replace_text_in_html(html_content_with_special_characters, term_with_special_characters, replacement_with_special_characters)
     
     expected_html = """<p>PURPLE</p>"""
+    expected_html_with_special_characters = """<p>Card - card$PURPLE$ (Test)</p>"""
     expected_html_with_link = """<p>PURPLE</p><a href="mailto:purple@example.com">Email us here</a>"""
     expected_quoted = """<p>"PURPLE"</p><a href="mailto:test@example.com">"Email us here"</a>"""
     expected_quoted_term_sensitive = """<p>"TEST"</p><a href="mailto:test@example.com">"Email us here"</a>"""
@@ -107,6 +112,8 @@ class TestFindAndReplace(unittest.TestCase):
     self.assertEqual(quoted_content_result_term_sensitive, expected_quoted_term_sensitive)
     ## quoted html text replacement-sensitive
     self.assertEqual(quoted_content_result_replacement_sensitive, expected_quoted_replacement_sensitive)
+    ## term contains symbols that should be escaped
+    self.assertEqual(html_with_special_characters_result, expected_html_with_special_characters)
   
   @use_guru()
   @responses.activate
