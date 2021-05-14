@@ -101,6 +101,7 @@ class Guru:
     self.username = username or os.environ.get("PYGURU_USER", "") or os.environ.get("GURU_USER", "")
     self.api_token = api_token or os.environ.get("PYGURU_TOKEN", "") or os.environ.get("GURU_TOKEN", "")
     self.base_url = "https://qaapi.getguru.com/api/v1" if qa else "https://api.getguru.com/api/v1"
+    self.hostname = "qaapi.getguru.com" if qa else "api.getguru.com"
     self.dry_run = dry_run
     self.__cache = {}
     self.__upload_key = None
@@ -369,6 +370,8 @@ class Guru:
 
     url = "%s/collections/%s/groups" % (self.base_url, collection_obj.id)
     response = self.__get(url)
+    if response.status_code == 204:
+      return []
     return [CollectionAccess(ca) for ca in response.json()]
 
   def add_group_to_collection(self, group, collection, role):
@@ -479,7 +482,7 @@ class Guru:
 
       # there's a slightly different url for syncs vs. imports.
       route = "contentsyncupload" if is_sync else "contentupload"
-      url = "https://api.getguru.com/app/%s?collectionId=%s" % (route, collection_obj.id)
+      url = "https://%s/app/%s?collectionId=%s" % (self.hostname, route, collection_obj.id)
       response = self.__post(url, files=files)
 
       if not status_to_bool(response.status_code):
@@ -614,6 +617,8 @@ class Guru:
 
     url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
     response = self.__get(url)
+    if response.status_code == 204:
+      return []
     return [User(u) for u in response.json() or []]
 
   def get_members(self, search="", cache=False):
