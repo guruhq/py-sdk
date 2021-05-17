@@ -205,7 +205,8 @@ def compare_datetime_string(date_to_compare, comparison, date_to_compare_against
   Args:
     date_to_compare (str): date string to compare
     comparison (str): comparison operator (i.e. lt, lt_or_eq, eq, ne, gt, or gt_or_eq)
-    date_to_compare_against (str or datetime obj): 
+    date_to_compare_against (str or datetime obj): date to compare against
+    tz_aware (bool, optional): `is date_to_compare` time-zone aware
   
   Default:
     Compares date provided to the current datetime
