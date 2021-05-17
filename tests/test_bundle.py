@@ -835,19 +835,15 @@ class TestBundle(unittest.TestCase):
 <a href="mailto:user@example.com">user@example.com</a>
 <a>no href</a>
 </p>
-
 <p><img src="https://www.example.com/test"/></p>
 <table>
-
 <tr>
 <td>
 <p>test</p>
-
 <br/>- One
 <br/>- Two
 
 </td>
-
 </tr></table>""")
 
   @use_guru()
