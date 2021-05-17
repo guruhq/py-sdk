@@ -56,24 +56,22 @@ class TestUtil(unittest.TestCase):
     date_str = "2021-03-18"
     datetime_str = "2021-03-18T17:29:04.527+0000"
     comparison_date_str = "2020-01-18"
-    date_format_1 = "%Y-%m-%d"
-    date_format_2 = "%Y-%m-%dT%H:%M:%S.%f%z"
     
     ## if no date_to_compare_against is provided, it will compare against datetime.now()
-    self.assertTrue(guru.compare_datetime_string(date_str, "lt", date_format_1))
-    self.assertTrue(guru.compare_datetime_string(date_str, "lt_or_eq", date_format_1))
-    self.assertFalse(guru.compare_datetime_string(date_str, "gt", date_format_1))
-    self.assertFalse(guru.compare_datetime_string(date_str, "gt_or_eq", date_format_1))
-    self.assertFalse(guru.compare_datetime_string(date_str, "eq", date_format_1))
-    self.assertTrue(guru.compare_datetime_string(date_str, "ne", date_format_1))
+    self.assertTrue(guru.compare_datetime_string(date_str, "lt"))
+    self.assertTrue(guru.compare_datetime_string(date_str, "lt_or_eq"))
+    self.assertFalse(guru.compare_datetime_string(date_str, "gt"))
+    self.assertFalse(guru.compare_datetime_string(date_str, "gt_or_eq"))
+    self.assertFalse(guru.compare_datetime_string(date_str, "eq"))
+    self.assertTrue(guru.compare_datetime_string(date_str, "ne"))
     ## pass in comparison date
-    self.assertFalse(guru.compare_datetime_string(date_str, "lt_or_eq", date_format_1, date_to_compare_against=comparison_date_str))
-    self.assertTrue(guru.compare_datetime_string(date_str, "gt_or_eq", date_format_1, date_to_compare_against=comparison_date_str))
-    self.assertTrue(guru.compare_datetime_string(date_str, "ne", date_format_1, date_to_compare_against=comparison_date_str))
+    self.assertFalse(guru.compare_datetime_string(date_str, "lt_or_eq", date_to_compare_against=comparison_date_str))
+    self.assertTrue(guru.compare_datetime_string(date_str, "gt_or_eq", date_to_compare_against=comparison_date_str))
+    self.assertTrue(guru.compare_datetime_string(date_str, "ne", date_to_compare_against=comparison_date_str))
     ## pass a different string format
-    self.assertTrue(guru.compare_datetime_string(datetime_str, "lt_or_eq", date_format_2, tz_aware=True))
-    self.assertFalse(guru.compare_datetime_string(datetime_str, "gt_or_eq", date_format_2, tz_aware=True))
-    self.assertTrue(guru.compare_datetime_string(datetime_str, "ne", date_format_2, tz_aware=True))
+    self.assertTrue(guru.compare_datetime_string(datetime_str, "lt_or_eq", tz_aware=True))
+    self.assertFalse(guru.compare_datetime_string(datetime_str, "gt_or_eq", tz_aware=True))
+    self.assertTrue(guru.compare_datetime_string(datetime_str, "ne", tz_aware=True))
 
   def test_edge_cases(self):
     guru.clear_dir("/tmp/this_does_not_exist/test")

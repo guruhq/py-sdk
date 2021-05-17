@@ -198,7 +198,7 @@ def format_timestamp(timestamp):
   """
   return "%s-00:00" % dateutil.parser.parse(timestamp).isoformat()
 
-def compare_datetime_string(date_to_compare, comparison, date_str_format, date_to_compare_against="", tz_aware=False):
+def compare_datetime_string(date_to_compare, comparison, date_to_compare_against="", tz_aware=False):
   """
   Compares 2 datetime strings
 
@@ -206,8 +206,6 @@ def compare_datetime_string(date_to_compare, comparison, date_str_format, date_t
     date_to_compare (str): date string to compare
     comparison (str): comparison operator (i.e. lt, lt_or_eq, eq, ne, gt, or gt_or_eq)
     date_to_compare_against (str or datetime obj): 
-    format (str): a datetime string format ( i.e. '%Y-%m-%d' or '%Y-%m-%dT%H:%M:%S.%f'). 
-      If providing date_to_compare_against, format must match date_to_compare
   
   Default:
     Compares date provided to the current datetime
@@ -215,9 +213,9 @@ def compare_datetime_string(date_to_compare, comparison, date_str_format, date_t
   Returns:
     bool: True or False, depending on comparison evaluation
   """
-  date_to_compare = datetime.strptime(date_to_compare, date_str_format)
+  date_to_compare = dateutil.parser.parse(date_to_compare)
   if date_to_compare_against:
-    date_to_compare_against = date_to_compare_against if isinstance(date_to_compare_against, datetime) else datetime.strptime(date_to_compare_against, date_str_format)
+    date_to_compare_against = dateutil.parser.parse(date_to_compare_against)
   elif tz_aware and not date_to_compare_against:
     date_to_compare_against = datetime.now(pytz.utc)
   else:
