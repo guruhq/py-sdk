@@ -231,6 +231,7 @@ def make_spreadsheet(node, parent, depth, rows):
       "Type",
       "Title",
       "# of Children",
+      "# of Sections",
       "HTML Length",
       "# of HTML Tags",
       "# of Essential HTML Tags",
@@ -254,11 +255,21 @@ def make_spreadsheet(node, parent, depth, rows):
     '"' + indent + node.title + '"'
   ]
 
-  # number of children:
+  # number of children and sections:
   if node.type == CARD:
     values.append("")
-  else:
+    values.append("")
+  elif node.type == BOARD_GROUP:
     values.append(len(node.children))
+    values.append("")
+  elif node.type == BOARD:
+    all_children = node.get_children_recursively()
+    sections = list(filter(lambda n: n.type == SECTION, all_children))
+    values.append(len(all_children))
+    values.append(len(sections))
+  else:
+    values.append(len(node.get_children_recursively()))
+    values.append("")
 
   # for nodes with content we put additional values in the sheet,
   # like word count, # of headings, # of links, etc.
@@ -518,6 +529,15 @@ class BundleNode:
     
     return self
   
+  def get_children_recursively(self):
+    all_children = []
+    for id in self.children:
+      child = self.bundle.node(id)
+      if not child.removed:
+        all_children.append(child)
+      all_children += child.get_children_recursively()
+    return all_children
+
   def __make_items_list(self):
     """internal: This is used internally when we're building the .yaml files."""
     items = []
@@ -748,14 +768,13 @@ class BundleNode:
           updated = True
           check_as_attachment = False
           break
-      
+
       # find links to local files and add these files as resources.
       if check_as_attachment:
         if check_element(link, "href"):
           updated = True
-
-    if updated:
-      self.content = str(doc)
+      
+    self.content = str(doc)
 
   def write_files(self):
     """
