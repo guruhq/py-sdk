@@ -49,6 +49,33 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_make_board(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home/entries?collection=1234", json=[])
+
+    result = g.make_board("New Board", collection="General", description="test")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/boards/home/entries?collection=1234",
+      "body": {
+        "actionType": "add",
+        "boardEntries": [{
+          "entryType": "board",
+          "title": "New Board",
+          "description": "test"
+        }]
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_get_board_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
@@ -1128,7 +1155,7 @@ class TestCore(unittest.TestCase):
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
       "id": "2222"
-    })
+    }, status=202)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", json={})
 
     with patch("time.sleep", Mock(return_value=None)):
@@ -1243,7 +1270,7 @@ class TestCore(unittest.TestCase):
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
       "id": "2222"
-    })
+    }, status=202)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", status=204)
 
     with patch("time.sleep", Mock(return_value=None)):
