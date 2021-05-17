@@ -3,7 +3,7 @@ import markdown
 from urllib.parse import quote
 from bs4 import BeautifulSoup
 
-from guru.util import find_by_name_or_id, find_by_id
+from guru.util import find_by_name_or_id, find_by_id, compare_datetime_string
 
 
 def find_urls_in_doc(doc):
