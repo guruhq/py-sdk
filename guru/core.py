@@ -4,6 +4,7 @@ import re
 import sys
 import time
 import requests
+import mimetypes
 
 from requests.auth import HTTPBasicAuth
 
@@ -1214,9 +1215,11 @@ class Guru:
 
     # read the file and upload it to filestack.
     with open(filename, "rb") as file_in:
-      url = "https://www.filepicker.io/api/store/S3?key=%s&filename=%s&path=%s&signature=%s&policy=%s" % (
+      file_mimetype, file_encoding = mimetypes.guess_type(filename)
+      url = "https://www.filepicker.io/api/store/S3?key=%s&filename=%s&mimetype=%s&path=%s&signature=%s&policy=%s" % (
         upload_key.get("apiKey"),
         os.path.basename(filename),
+        file_mimetype,
         upload_key.get("path"),
         upload_key.get("signature"),
         upload_key.get("policy")
