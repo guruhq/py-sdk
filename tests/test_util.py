@@ -52,6 +52,27 @@ class TestUtil(unittest.TestCase):
     bundle.download_file("https://www.example.com/example.html", "./tests/example.html")
     self.assertEqual(read_html("./tests/example.html"), html)
 
+  def test_compare_datetime_string(self):
+    date_str = "2021-03-18"
+    datetime_str = "2021-03-18T17:29:04.527+0000"
+    comparison_date_str = "2020-01-18"
+    
+    ## if no date_to_compare_against is provided, it will compare against datetime.now()
+    self.assertTrue(guru.compare_datetime_string(date_str, "lt"))
+    self.assertTrue(guru.compare_datetime_string(date_str, "lt_or_eq"))
+    self.assertFalse(guru.compare_datetime_string(date_str, "gt"))
+    self.assertFalse(guru.compare_datetime_string(date_str, "gt_or_eq"))
+    self.assertFalse(guru.compare_datetime_string(date_str, "eq"))
+    self.assertTrue(guru.compare_datetime_string(date_str, "ne"))
+    ## pass in comparison date
+    self.assertFalse(guru.compare_datetime_string(date_str, "lt_or_eq", date_to_compare_against=comparison_date_str))
+    self.assertTrue(guru.compare_datetime_string(date_str, "gt_or_eq", date_to_compare_against=comparison_date_str))
+    self.assertTrue(guru.compare_datetime_string(date_str, "ne", date_to_compare_against=comparison_date_str))
+    ## pass a different string format
+    self.assertTrue(guru.compare_datetime_string(datetime_str, "lt_or_eq", tz_aware=True))
+    self.assertFalse(guru.compare_datetime_string(datetime_str, "gt_or_eq", tz_aware=True))
+    self.assertTrue(guru.compare_datetime_string(datetime_str, "ne", tz_aware=True))
+
   def test_edge_cases(self):
     guru.clear_dir("/tmp/this_does_not_exist/test")
     guru.read_file("/tmp/this_does_not_exist")

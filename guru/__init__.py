@@ -33,5 +33,6 @@ from guru.util import (
   read_file,
   copy_file,
   clear_dir,
-  format_timestamp
+  format_timestamp,
+  compare_datetime_string
 )
