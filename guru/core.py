@@ -1189,28 +1189,8 @@ class Guru:
     self.__upload_key = self.__get(url).json()
     return self.__upload_key
 
-  def upload_file(self, filename):
-    """
-    Uploads a file, like an image or pdf, to Guru so you can reference it in cards.
-
-    ```
-    # load a card and add a pdf to it.
-    card = g.get_card("Tbbqo5pc")
-    url = g.upload_file("/Users/rob/Documents/getting-started.pdf")
-    card.content += '<a href="%s">getting-started.pdf</a>' % url
-    card.save()
-    ```
-
-    Args:
-      filename (str): The file on your computer that you want to upload to Guru.
-
-    Returns:
-      str: The Guru URL for the attachment, something like: https://content.api.getguru.com/files/view/3886ec47-a99d-4431-848e-cff2d73a49f3
-    """
-    # there are three steps here:
-    # 1. make sure we have an upload key for filestack, we get this from our API.
-    # 2. make the /S3 call to upload the file to filestack (FS gives us the attachment URL in their response).
-    # 3. make the /attachment call to tell guru about the newly created attachment.
+  def upload_to_filestack(self, filename):
+    # get an upload key, read the file, do the call to filestack, return fs_data.
     upload_key = self.__get_upload_key()
 
     # read the file and upload it to filestack.
@@ -1243,6 +1223,10 @@ class Guru:
       #     "size": 4083
       #   }
       fs_data = response.json()
+      return fs_data
+  
+  def create_attachment(self, fs_data):
+    # make the /attachments call and return the 'link' value we get back.
 
     # make the call to our backend so we know the attachment was uploaded
     # and what its filestack url is.
@@ -1271,6 +1255,32 @@ class Guru:
     #   }
     if status_to_bool(response.status_code):
       return response.json().get("link")
+
+  def upload_file(self, filename):
+    """
+    Uploads a file, like an image or pdf, to Guru so you can reference it in cards.
+
+    ```
+    # load a card and add a pdf to it.
+    card = g.get_card("Tbbqo5pc")
+    url = g.upload_file("/Users/rob/Documents/getting-started.pdf")
+    card.content += '<a href="%s">getting-started.pdf</a>' % url
+    card.save()
+    ```
+
+    Args:
+      filename (str): The file on your computer that you want to upload to Guru.
+
+    Returns:
+      str: The Guru URL for the attachment, something like: https://content.api.getguru.com/files/view/3886ec47-a99d-4431-848e-cff2d73a49f3
+    """
+    # there are three steps here:
+    # 1. make sure we have an upload key for filestack, we get this from our API. ( handled in `upload_to_filestack()`)
+    # 2. make the /S3 call to upload the file to filestack (FS gives us the attachment URL in their response). ( handled in `upload_to_filestack()`)
+    # 3. make the /attachment call to tell guru about the newly created attachment. ( handled in `create_attachment()`)
+
+    fs_data = self.upload_to_filestack(filename)
+    return self.create_attachment(fs_data)
 
   def patch_card(self, card, keep_verification=True):
     """
