@@ -1324,11 +1324,26 @@ this card has a <a href="https://www.example.com">guru markdown block</a>.
           "id": "jchappelle@getguru.com"
         }
     })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard2/extended", json={
+      "originalOwner": {
+          "type": "user",
+          "user": {
+            "status": "ACTIVE",
+            "email": "jdoe@getguru.com",
+            "firstName": "",
+            "lastName": "",
+            "profilePicUrl": "/assets/common/images/default-user-pic.png"
+          },
+          "id": "jdoe@getguru.com"
+        }
+    })
 
     # this should trigger the GET call we're expecting.
     card1 = g.get_card("mycard1")
+    card2 = g.get_card("mycard2")
 
-    self.assertEqual(card1.get_full_name("original_owner"), "John Chappelle")
+    self.assertEqual(card1.original_owner.full_name, "John Chappelle")
+    self.assertEqual(card2.original_owner.full_name, "jdoe@getguru.com")
 
   @use_guru()
   @responses.activate

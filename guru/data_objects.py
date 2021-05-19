@@ -575,6 +575,18 @@ class User:
     self.status = user_obj.get("status")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
+  @property
+  def full_name(self):
+    """String combining first and last name of `User`
+
+    Returns:
+        str | None: first and last name ( if none exists, will return `None`)
+    """
+    if self.first_name and self.last_name:
+      return '%s %s' % (self.first_name, self.last_name)
+    else:
+      return self.email
+
   def has_group(self, group):
     """
     Returns True if the user is a member of the specified group.
@@ -804,18 +816,6 @@ class Card:
       365: interval_string % "year",
     }
     return interval_map.get(interval, "On a specific date")
-
-  def get_full_name(self, card_property):
-    """
-    Returns the full name (first and last) from the given card property
-
-    ```
-    print(card.get_full_name('last_modified_by'))
-    ```
-    """
-    fname = getattr(self, card_property).first_name
-    lname = getattr(self, card_property).last_name
-    return "%s %s" % (fname, lname)
 
   def archive(self):
     """
