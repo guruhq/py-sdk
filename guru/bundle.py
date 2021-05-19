@@ -236,7 +236,10 @@ def make_spreadsheet(node, parent, depth, rows):
       "# of HTML Tags",
       "# of Essential HTML Tags",
       "Word Count",
-      "Headings",
+      "H1s",
+      "H2s",
+      "H3s",
+      "All Headings",
       "Iframes",
       "All Links",
       "Guru Card Links",
@@ -285,6 +288,9 @@ def make_spreadsheet(node, parent, depth, rows):
       len(doc.select("*")),                      # number of tags
       len(doc.select(essential_tags)),           # number of essential tags (p, img, table, etc.)
       len(re.split("\s+", doc.text)),            # word count
+      len(doc.select("h1")),                     # number of H1s
+      len(doc.select("h2")),                     # number of H2s
+      len(doc.select("h3")),                     # number of H3s
       len(doc.select("h1, h2, h3, h4, h5, h6")), # number of headings
       len(doc.select("iframe")),                 # number of iframes
       len(doc.select("a[href]")),                # all links
@@ -685,8 +691,10 @@ class BundleNode:
           filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
           self.bundle.log(message="checking if we should download attachment", url=absolute_url, file=filename)
 
-          # returning True means the file was downloaded so we need to update the src/href.
-          if download_func(absolute_url, filename, self.bundle, self):
+          # you can either return True or return the http status code.
+          # if the file was downloaded we need to update the src/href.
+          download_result = download_func(absolute_url, filename, self.bundle, self)
+          if (isinstance(download_result, int) and int(download_result / 100) == 2) or download_result:
             self.bundle.log(message="download successful", url=absolute_url, file=filename)
             self.bundle.resources[resource_id] = "resources/%s" % resource_id
             element.attrs[attr] = "resources/%s" % resource_id

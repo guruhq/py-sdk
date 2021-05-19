@@ -3,7 +3,7 @@ import markdown
 from urllib.parse import quote
 from bs4 import BeautifulSoup
 
-from guru.util import find_by_name_or_id, find_by_id
+from guru.util import find_by_name_or_id, find_by_id, compare_datetime_string
 
 
 def find_urls_in_doc(doc):
@@ -994,6 +994,12 @@ class Card:
     """
     return self.guru.add_comment_to_card(self, comment)
 
+  def get_open_card_comments(self):
+    return self.guru.get_card_comments(self, status="OPEN")
+
+  def get_resolved_card_comments(self):
+    return self.guru.get_card_comments(self, status="RESOLVED")
+
   def add_to_board(self, board, section=None):
     """
     Adds the card to a board.
@@ -1061,9 +1067,21 @@ class CardComment:
 
   def delete(self):
     return self.guru.delete_card_comment(self.card.id, self.id)
+
+  def resolve(self):
+    return self.guru.resolve_card_comment(self)
+
+  def unresolve(self):
+    return self.guru.reopen_card_comment(self)
   
   def save(self):
     return self.guru.update_card_comment(self)
+  
+  def is_before(self, date):
+    return compare_datetime_string(self.created_date, "lt", date_to_compare_against=date)
+  
+  def is_after(self, date):
+    return compare_datetime_string(self.created_date, "gt", date_to_compare_against=date)
   
   def json(self):
     return {
