@@ -1,6 +1,7 @@
 
 import unittest
 import requests
+import mimetypes
 
 from tests.util import use_guru
 
@@ -511,6 +512,37 @@ class TestEndToEnd(unittest.TestCase):
     # download the file to check that it worked.
     response = requests.get(guru_url, auth=(SDK_E2E_USER, SDK_E2E_TOKEN))
     self.assertEqual(response.content.decode("utf-8"), "sample file")
+  
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_mimetype_return(self, g):
+    # write a local text file.
+    filename = "/tmp/upload.txt"
+    
+    guru.write_file(filename, "sample file")
+    file_mimetype, file_encoding = mimetypes.guess_type(filename)
+
+    upload_key_url = "https://api.getguru.com/api/v1/attachments/policy"
+    upload_key = requests.get(upload_key_url, auth=(SDK_E2E_USER, SDK_E2E_TOKEN)).json()
+
+    # read the file and upload it to filestack.
+    with open(filename, "rb") as file_in:
+      upload_url = "https://www.filepicker.io/api/store/S3?key=%s&filename=%s&mimetype=%s&path=%s&signature=%s&policy=%s" % (
+        upload_key.get("apiKey"),
+        os.path.basename(filename),
+        file_mimetype,
+        upload_key.get("path"),
+        upload_key.get("signature"),
+        upload_key.get("policy")
+      )
+      files = {
+        "fileUpload": (filename, file_in)
+      }
+      response = requests.post(upload_url, files=files, auth=(SDK_E2E_USER, SDK_E2E_TOKEN))
+      fs_data = response.json()
+
+      # assert that the mimetype we pass in the query string is what is returned as `type` in the response
+      self.assertEqual(fs_data.get("type"), file_mimetype)
+  
 
 # these are the methods that aren't tested yet:
 # add_users_to_group
