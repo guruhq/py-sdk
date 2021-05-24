@@ -6,8 +6,10 @@ import time
 import yaml
 import shutil
 import requests
+import pytz
 import dateutil.parser
 
+from datetime import datetime
 from bs4 import BeautifulSoup
 
 if sys.version_info.major >= 3:
@@ -198,3 +200,46 @@ def format_timestamp(timestamp):
   or it could be more complete.
   """
   return "%s-00:00" % dateutil.parser.parse(timestamp).isoformat()
+
+def compare_datetime_string(date_to_compare, comparison, date_to_compare_against="", tz_aware=False):
+  """
+  Compares 2 datetime strings
+
+  Args:
+    date_to_compare (str): date string to compare
+    comparison (str): comparison operator (i.e. lt, lt_or_eq, eq, ne, gt, or gt_or_eq)
+    date_to_compare_against (str or datetime obj): date to compare against
+    tz_aware (bool, optional): is `date_to_compare` time-zone aware
+  
+  Default:
+    Compares date provided to the current datetime
+
+  Returns:
+    bool: True or False, depending on comparison evaluation
+  """
+  date_to_compare = dateutil.parser.parse(date_to_compare)
+  if date_to_compare_against:
+    date_to_compare_against = dateutil.parser.parse(date_to_compare_against)
+  elif tz_aware and not date_to_compare_against:
+    date_to_compare_against = datetime.now(pytz.utc)
+  else:
+    date_to_compare_against = datetime.now()
+  
+
+  if comparison == "gt":
+    return date_to_compare > date_to_compare_against
+  elif comparison == "gt_or_eq":
+    return date_to_compare >= date_to_compare_against
+  elif comparison == "lt":
+    return date_to_compare < date_to_compare_against
+  elif comparison == "lt_or_eq":
+    return date_to_compare <= date_to_compare_against
+  elif comparison == "eq":
+    return date_to_compare == date_to_compare_against
+  elif comparison == "ne":
+    return date_to_compare != date_to_compare_against
+  else:
+    raise ValueError("Please provide a valid comparison option (lt, gt, lt_or_eq, gt_or_eq, eq, ne")
+
+
+
