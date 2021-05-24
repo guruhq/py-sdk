@@ -419,6 +419,7 @@ def insert_nodes(node, parent, depth):
       url=node.url,
       title=node.title,
       content=node.content,
+      alt_urls=node.alt_urls,
       type=CARD
     )
     bundle.node(board_id).add_child(content_node, first=True)
@@ -438,6 +439,7 @@ def insert_nodes(node, parent, depth):
       url=node.url,
       title=node.title,
       content=node.content,
+      alt_urls=node.alt_urls,
       type=CARD
     )
     node.add_child(content_node, first=True)
@@ -455,7 +457,7 @@ def insert_nodes(node, parent, depth):
 
 
 class BundleNode:
-  def __init__(self, id, bundle, url="", title="", desc="", content="", tags=None, index=None):
+  def __init__(self, id, bundle, url="", title="", desc="", content="", tags=None, alt_urls=None, index=None):
     self.id = id
     self.bundle = bundle
     self.url = ""
@@ -466,6 +468,7 @@ class BundleNode:
     self.parents = []
     self.type = NONE
     self.tags = tags
+    self.alt_urls = alt_urls
     self.removed = False
     if index is None:
       self.index = 9999
@@ -641,7 +644,7 @@ class BundleNode:
       for parent_node in self.parents:
         parent_node.add_child(new_node, after=self)
 
-  def html_cleanup(self, download_func=None, convert_links=True, compare_links=None):
+  def html_cleanup(self, download_func=None, compare_links=None):
     """
     internal:
     This adjusts image and link URLs to either be absolute or refer to
@@ -694,7 +697,15 @@ class BundleNode:
           # you can either return True or return the http status code.
           # if the file was downloaded we need to update the src/href.
           download_result = download_func(absolute_url, filename, self.bundle, self)
-          if (isinstance(download_result, int) and int(download_result / 100) == 2) or download_result:
+
+          is_successful = False
+          if type(download_result) == type(True):
+            is_successful = download_result
+          elif isinstance(download_result, int):
+            if int(download_result / 100) == 2:
+              is_successful = True
+
+          if is_successful:
             self.bundle.log(message="download successful", url=absolute_url, file=filename)
             self.bundle.resources[resource_id] = "resources/%s" % resource_id
             element.attrs[attr] = "resources/%s" % resource_id
@@ -760,19 +771,21 @@ class BundleNode:
       check_as_attachment = True
       absolute_url = urljoin(self.url, href)
 
-      # if convert_links:
       for other_node in self.bundle.nodes:
         if other_node.removed:
           continue
+        if other_node.type == SECTION:
+          continue
         if (compare_links and compare_links(other_node, absolute_url)) or \
-            other_node.url == absolute_url:
+            other_node.url == absolute_url or \
+            (other_node.alt_urls and absolute_url in other_node.alt_urls):
           # print("replace link: %s  -->  cards/%s" % (href[0:80], other_node.id))
           if other_node.type == BOARD:
             link.attrs["href"] = "board/%s" % other_node.id
           elif other_node.type == CARD:
             link.attrs["href"] = "cards/%s" % other_node.id
-          else:
-            link.unwrap()
+          elif other_node.type == BOARD_GROUP:
+            link.attrs["href"] = "board-groups/%s" % other_node.id
           updated = True
           check_as_attachment = False
           break
@@ -916,7 +929,7 @@ class Bundle:
   def url_to_id(self, url):
     return _url_to_id(url, False)
 
-  def node(self, id="", url="", title="", content="", desc="", tags=None, type=None, index=None, clean_html=True):
+  def node(self, id="", url="", title="", content="", desc="", tags=None, alt_urls=None, type=None, index=None, clean_html=True):
     """
     This method makes a node or updates one. Nodes may have content but some
     may just have titles -- nodes with just titles can be used to group the
@@ -953,7 +966,7 @@ class Bundle:
         title = "%s..." % title[0:197]
     
     if not node:
-      node = BundleNode(id, bundle=self, title=title, desc=desc, content=content, tags=tags, index=index)
+      node = BundleNode(id, bundle=self, title=title, desc=desc, content=content, tags=tags, alt_urls=alt_urls, index=index)
       self.nodes.append(node)
     
     if url:
@@ -969,6 +982,8 @@ class Bundle:
       node.type = type
     if tags:
       node.tags = tags
+    if alt_urls:
+      node.alt_urls = alt_urls
     if index is not None:
       node.index = index
     
@@ -1141,7 +1156,7 @@ class Bundle:
 
     return to_yaml(data)
 
-  def zip(self, download_func=None, convert_links=True, compare_links=None, favor_boards=None, favor_sections=None, clean_html=True):
+  def zip(self, download_func=None, compare_links=None, favor_boards=None, favor_sections=None, clean_html=True):
     """
     This wraps up the sync process. Calling this lets us know you're
     done adding content so we can do these things:
@@ -1179,7 +1194,6 @@ class Bundle:
         self.log(message="post-processing node %s / %s" % (count, len(self.nodes)), node=node.id)
         node.html_cleanup(
           download_func=download_func,
-          convert_links=convert_links,
           compare_links=compare_links
         )
 
