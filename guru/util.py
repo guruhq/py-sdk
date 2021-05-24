@@ -87,8 +87,11 @@ def http_post(url, data=None, cache=False, headers=None):
 
   return html, response.status_code
 
-def download_file(url, filename, headers=None):
+def download_file(url, filename, headers=None, cache=False):
   """Downloads an image and saves it as the full filename you provide."""
+  if cache and os.path.isfile(filename):
+    return 200, os.path.getsize(filename)
+
   response = requests.get(url, headers=headers, allow_redirects=True)
   file_size = 0
   if response.status_code == 200:

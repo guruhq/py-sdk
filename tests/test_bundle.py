@@ -731,7 +731,7 @@ class TestBundle(unittest.TestCase):
 </p>""")
 
     download_mock = Mock()
-    download_mock.return_value = True
+    download_mock.return_value = 200
     sync.zip(download_func=download_mock)
 
     self.assertEqual(download_mock.call_args.args, (
