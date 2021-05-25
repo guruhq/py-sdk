@@ -524,6 +524,28 @@ class TestEndToEnd(unittest.TestCase):
     fs_data = g.upload_to_filestack(filename)
     self.assertEqual(fs_data.get("type"), file_mimetype)
 
+  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
+  def test_find_and_replace_e2e(self, g):
+    # do a dry run of find and replace
+    term = "card"
+    replacement = "guru-knowledge"
+    existing_card_id = "9220612a-f3e6-4fe4-984c-045df329c0aa"
+
+    find_and_replace = guru.FindAndReplace(g, term, replacement, replace_title=True, collection="Getting Started with Guru", task_name="find_and_replace_e2e", show_preview=False)
+    find_and_replace_with_exclusions = guru.FindAndReplace(g, term, replacement, replace_title=True, collection="Getting Started with Guru", task_name="find_and_replace_e2e_with_exclusions", excluded_ids=[existing_card_id], show_preview=False)
+
+    # assert that the replacement content file is generated and contains the replacement term
+    find_and_replace.run()
+    self.assertIn(f'<span class="sdk-replacement-highlight">{replacement}</span>'.lower(), guru.read_file(f"/tmp/find_and_replace_e2e/new_content/new_{existing_card_id}.html").lower())
+    
+    # assert that the excluded card's html file doesn't exist
+    find_and_replace_with_exclusions.run()
+    with self.assertRaises(FileNotFoundError):
+      with open(f"/tmp/find_and_replace_e2e_with_exclusions/new_content/new_{existing_card_id}.html", "r") as file_in:
+        return file_in.read()
+    
+
+  
 # these are the methods that aren't tested yet:
 # add_users_to_group
 # make_board_group (there is no 'delete_board_group' yet)

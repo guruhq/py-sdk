@@ -465,7 +465,7 @@ class FindAndReplace:
       cache (bool, optional): If we're looking up a collection by name we'll
         fetch all collections and then look for a match in the results and this
         flag tells us whether we should use the results from the previous
-        /collections API call or make a new call. Defaults to False.
+        `/collections` API call or make a new call. Defaults to False.
     
     Returns:
       Collection: An object representing the collection.
@@ -475,13 +475,15 @@ class FindAndReplace:
     replacement (str): replacement term
     term_case_sensitive (bool): boolean for searching for the specific term or case-insensitive (defaults to false ),
     replacement_case_sensitive (bool): boolean for replacement term case-sensitivity (defaults to false)
-    replace_title (bool): boolean for replacing term in card title ( defaults to false )
-    replace_html_attributes (bool): determines whether to replace term in html attributes or not
-    collection (str): Either a collection name or ID. If it's a name, it'll
+    replace_title (bool, optional): boolean for replacing term in card title ( defaults to false )
+    replace_html_attributes (bool, optional): determines whether to replace term in html attributes or not
+    collection (str, optional): Either a collection name or ID. If it's a name, it'll
         return the first matching collection and the comparison is not case
         sensitive.
-    folder (str): destination folder for preview files
-    task_name (str): name to be included in preview file path ( i.e., /tmp/find_and_replace/new_content/new_1111.html )
+    folder (str, optional): destination folder for preview files (defaults to `/tmp/`)
+    task_name (str, optional): name to be included in preview file path ( i.e., `/tmp/find_and_replace/new_content/new_1111.html` )
+    excluded_ids (str[]): list of card IDs to exclude from find and replace
+    show_preview (bool, optional): boolean for showing preview in browser (defaults to True)
     
   Methods:
     run: Run a find and replace, with the parameters provided, and previews in the browser. 
@@ -500,7 +502,9 @@ class FindAndReplace:
     replace_html_attributes=False, 
     collection=None, 
     folder="/tmp/", 
-    task_name=None
+    task_name=None,
+    excluded_ids=None,
+    show_preview=True
   ):
     self.guru = guru
     self.term = term
@@ -513,6 +517,30 @@ class FindAndReplace:
     self.folder = folder
     self.task_name = task_name if task_name else "find_and_replace"
     self.cards = []
+    self.excluded_ids = excluded_ids if excluded_ids else []
+    self.show_preview = show_preview
+
+  def replace_term(self, card, dry_run=True):
+    original_content = card.content
+    card.content = replace_text_in_card(
+      card, 
+      self.term, 
+      self.replacement, 
+      replace_title=self.replace_title, 
+      replace_html_attributes=self.replace_attributes, 
+      case_sensitive=self.term_case_sensitive,
+      replacement_case_sensitive=self.replacement_case_sensitive
+    )
+    new_content =  card.content
+    if not dry_run:
+      card.patch()
+    self.cards.append(PreviewData(
+      card=card,
+      term=self.term,
+      replacement=self.replacement,
+      orig_content=original_content,
+      new_content=new_content
+    ))
 
   def run(self, dry_run=True):
     """
@@ -522,31 +550,9 @@ class FindAndReplace:
     
     """
     for card in self.guru.find_cards(collection=self.collection):
-      if card.has_text(self.term, case_sensitive=self.term_case_sensitive):
-        
-        original_content = card.content
-        
-        card.content = replace_text_in_card(
-          card, 
-          self.term, 
-          self.replacement, 
-          replace_title=self.replace_title, 
-          replace_html_attributes=self.replace_attributes, 
-          case_sensitive=self.term_case_sensitive,
-          replacement_case_sensitive=self.replacement_case_sensitive
-        )
-        new_content =  card.content
-        if not dry_run:
-          card.patch()
-
-        self.cards.append(PreviewData(
-          card=card,
-          term=self.term,
-          replacement=self.replacement,
-          orig_content=original_content,
-          new_content=new_content
-          
-        ))
+      card_id = card.id or card.slug.split("/")[0]
+      if card.has_text(self.term) and not card_id in self.excluded_ids:
+        self.replace_term(card, dry_run=dry_run)
 
     browser_preview = Preview(
       content_list=self.cards, 
@@ -558,4 +564,4 @@ class FindAndReplace:
     
     browser_preview.make_html_tree()
 
-    browser_preview.view_in_browser()
+    browser_preview.view_in_browser(open_browser=self.show_preview)
