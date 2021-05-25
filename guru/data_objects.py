@@ -575,6 +575,18 @@ class User:
     self.status = user_obj.get("status")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
+  @property
+  def full_name(self):
+    """String combining first and last name of `User`
+
+    Returns:
+        str | None: first and last name ( if none exists, will return `None`)
+    """
+    if self.first_name and self.last_name:
+      return '%s %s' % (self.first_name, self.last_name)
+    else:
+      return self.email
+
   def has_group(self, group):
     """
     Returns True if the user is a member of the specified group.
@@ -697,6 +709,7 @@ class Card:
     self.last_modified_date = data.get("lastModified")
     self.last_modified_by = User(data.get("lastModifiedBy")) if data.get("lastModifiedBy") else None
     self.last_verified_by = User(data.get("lastVerifiedBy")) if data.get("lastVerifiedBy") else None
+    self.last_verified_date = data.get("lastVerified")
     self.next_verification_date = data.get("nextVerificationDate")
     self.owner = User(data.get("owner")) if data.get("owner") else None
     self.original_owner = User(data.get("originalOwner")) if data.get("originalOwner") else None
@@ -769,6 +782,40 @@ class Card:
       return verifier.group.name
     else:
       return verifier.user.email
+
+  @property
+  def interval_label(self):
+    """
+    This is a string that represents the card's verification interval,
+    like it is displayed in Card Manager.
+    It can be used like this:
+
+    ```
+    import guru
+    g = guru.Guru()
+
+    # print the text representation of the verification interval 
+    # for each card in the Engineering collection:
+    for card in g.find_cards(collection="Engineering"):
+      print(card.interval_label)
+
+    # outputs: 3 months, etc...
+    ```
+
+    If a card has an absolute date interval, the label will be
+    the string `"On a specific date"`.
+    """
+    interval = self.verification_interval
+    interval_string = "Every %s"
+    interval_map = {
+      7: interval_string % "week",
+      14: interval_string % "2 weeks",
+      30: interval_string % "month",
+      90: interval_string % "3 months",
+      180: interval_string % "6 months",
+      365: interval_string % "year",
+    }
+    return interval_map.get(interval, "On a specific date")
 
   def archive(self):
     """

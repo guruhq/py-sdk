@@ -1306,3 +1306,60 @@ this card has a <a href="https://www.example.com">guru markdown block</a>.
 </p>
 <p class="ghq-card-content__paragraph" data-ghq-card-content-type="paragraph">test</p><div class="ghq-card-content__markdown" data-ghq-card-content-type="MARKDOWN" data-ghq-card-content-markdown-content="this%20has%20a%20%5Bmarkdown%20link%5D%28https%3A//www.example.com/new-link%29%20and%20an%20image%3A%0A%0A%21%5B%5D%28https%3A//www.example.com/image1.png%29%0A%0Ait%20also%20has%20inline%20html%20for%20a%20%3Ca%20href%3D%22https%3A//www.example.com/link2%22%3Elink%3C/a%3E%20and%20image%3A%0A%0A%3Cimg%20src%3D%22https%3A//www.example.com/image2.png%22%20/%3E"><p>this has a <a href="https://www.example.com/new-link" target="_blank" rel="noopener noreferrer">markdown link</a> and an image:</p><p><img src="https://www.example.com/image1.png" alt=""></p><p>it also has inline html for a <a href="https://www.example.com/link2" target="_blank" rel="noopener noreferrer">link</a> and image:</p><img src="https://www.example.com/image2.png"></div>
 """)
+
+  @use_guru()
+  @responses.activate
+  def test_get_full_name_of_card_creator(self, g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard1/extended", json={
+      "originalOwner": {
+          "type": "user",
+          "user": {
+            "status": "ACTIVE",
+            "email": "jchappelle@getguru.com",
+            "firstName": "John",
+            "lastName": "Chappelle",
+            "profilePicUrl": "/assets/common/images/default-user-pic.png"
+          },
+          "id": "jchappelle@getguru.com"
+        }
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard2/extended", json={
+      "originalOwner": {
+          "type": "user",
+          "user": {
+            "status": "ACTIVE",
+            "email": "jdoe@getguru.com",
+            "firstName": "",
+            "lastName": "",
+            "profilePicUrl": "/assets/common/images/default-user-pic.png"
+          },
+          "id": "jdoe@getguru.com"
+        }
+    })
+
+    # this should trigger the GET call we're expecting.
+    card1 = g.get_card("mycard1")
+    card2 = g.get_card("mycard2")
+
+    self.assertEqual(card1.original_owner.full_name, "John Chappelle")
+    self.assertEqual(card2.original_owner.full_name, "jdoe@getguru.com")
+
+  @use_guru()
+  @responses.activate
+  def test_get_verification_interval_label(self, g):
+    # register the response for the API call we'll make.
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard1/extended", json={
+      "verificationInterval": 90
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/mycard2/extended", json={
+      "verificationInterval": 18543
+    })
+
+    # this should trigger the GET call we're expecting.
+    card1 = g.get_card("mycard1")
+    card2 = g.get_card("mycard2")
+
+    self.assertEqual(card1.interval_label, "Every 3 months")
+    self.assertEqual(card2.interval_label, "On a specific date")
+
