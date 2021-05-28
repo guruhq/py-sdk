@@ -707,7 +707,7 @@ class BundleNode:
 
           if is_successful:
             self.bundle.log(message="download successful", url=absolute_url, file=filename)
-            self.bundle.resources[resource_id] = "resources/%s" % resource_id
+            self.bundle.resources[resource_id] = filename
             element.attrs[attr] = "resources/%s" % resource_id
             return True
           else:
@@ -729,7 +729,7 @@ class BundleNode:
           # and filename is:      /tmp/{job_id}/resources/{hash}.gif
           filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
           if copy_file(absolute_url, filename):
-            self.bundle.resources[resource_id] = "resources/%s" % resource_id
+            self.bundle.resources[resource_id] = filename
             element.attrs[attr] = "resources/%s" % resource_id
           else:
             # the element could be a link or an image.
