@@ -28,6 +28,30 @@ import guru
 import requests
 
 
+def convert_card_to_article(card):
+  """
+  Guru cards have a title and content but Salesforce Knowledge objects
+  can have many fields.
+  """
+  return {
+    "title": card.title,
+
+    # this is the Knowledge object's rich text field which is not configured by default.
+    # i called mine 'Body' so that's why this is 'Body__c'.
+    "Body__c": card.content,
+
+    # the UrlName is like the title but meant to be displayed in a URL, in Guru
+    # we have the card's slug which serves the same purpose. the slug has two
+    # parts, an ID and title, so we just need the second part here.
+    "UrlName": card.slug.split("/")[1],
+
+    # Guru cards just have one field for their HTML content. if you want to set
+    # additional fields, like the summary, you'll need some convention. like, you
+    # could start each card with a blockquote as the summary, then in this function
+    # you'd separate the content into 'summary' and 'body'.
+    "summary": ""
+  }
+
 class SalesforcePublisher(guru.Publisher):
   def __init__(self, g):
     super().__init__(g)
@@ -72,14 +96,7 @@ class SalesforcePublisher(guru.Publisher):
     that it knows hasn't been published before. This means we need
     to use SFDC's POST endpoint to create a new Knowledge object.
     """
-    data = {
-      "title": card.title,
-      "summary" : "",
-      "UrlName": card.slug.split("/")[1],
-      # this is the Knowledge object's rich text field which is not configured by default.
-      # i called mine 'Body' so that's why this is 'Body__c'.
-      "Body__c": card.content
-    }
+    data = convert_card_to_article(card)
     headers = {
       "Authorization": "Bearer %s" % self.sfdc_token
     }
@@ -100,12 +117,7 @@ class SalesforcePublisher(guru.Publisher):
     that _has_ been published before. We know its Salesforce ID so
     we can make the PUT call to update the Knowledge object.
     """
-    data = {
-      "title": card.title,
-      "summary" : "",
-      "UrlName": card.slug.split("/")[1],
-      "Body__c": card.content
-    }
+    data = convert_card_to_article(card)
     headers = {
       "Authorization": "Bearer %s" % self.sfdc_token
     }
