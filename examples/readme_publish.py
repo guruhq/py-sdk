@@ -19,7 +19,7 @@ a few parts to this:
    published before and needs to be updated in Readme or is
    a brand new card and we need to create a doc in Readme.
 
-The SDK orchestrates everything and this file just neesd to
+The SDK orchestrates everything and this file just needs to
 implement methods that call Readme's API to do specific tasks.
 When the SDK sees a card that's never been published before,
 it'll call create_external_card and we need to implement how
