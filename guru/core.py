@@ -242,7 +242,8 @@ class Guru:
       page += 1
       self.__log("loading page:", page)
       response = self.__post(url, data)
-      results += response.json()
+      if response.status_code != 204:
+        results += response.json()
       url = get_link_header(response)
     
     return results
@@ -2194,7 +2195,7 @@ class Guru:
     board_obj = self.get_board(board, collection)
     if not board_obj:
       return
-    
+
     url = "%s/boards/%s/entries" % (
       self.base_url,
       board_obj.id

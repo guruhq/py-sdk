@@ -802,7 +802,7 @@ class TestBundle(unittest.TestCase):
   <a name="test">no href</a>
 </p>
 <p><br></p>
-<p><img src="https://www.example.com/test"/></p>
+<nav><img src="https://www.example.com/test"/></nav>
 <table>
   <caption>test</caption>
   <tr>
@@ -835,7 +835,7 @@ class TestBundle(unittest.TestCase):
 <a href="mailto:user@example.com">user@example.com</a>
 <a>no href</a>
 </p>
-<p><img src="https://www.example.com/test"/></p>
+<img src="https://www.example.com/test"/>
 <table>
 <tr>
 <td>
@@ -1244,6 +1244,150 @@ class TestBundle(unittest.TestCase):
     self.assertEqual(read_html("/tmp/test_splitting_a_node_twice/cards/2_part2.html"), "<table><tr><td>third card</td></tr></table>")
 
   @use_guru()
+  def test_splitting_a_node_on_all_headings(self, g):
+    sync = g.bundle("test_splitting_a_node_on_all_headings")
+
+    # make two nodes, one with content, and add that one to the other.
+    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
+    node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2", content="""<p>first card</p>
+<h2>split here</h2>
+<p>second card</p>
+<h1>also split here</h1>
+<table><tr><td>third card</td></tr></table>
+    """)
+    node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content")
+    node2.add_to(node1)
+    node3.add_to(node1)
+
+    node2.split_all("h1, h2")
+
+    sync.zip()
+
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings/collection.yaml"), {
+      "Title": "test",
+      "Tags": [],
+      "Items": [{
+        "ID": "1",
+        "Title": "node 1",
+        "Type": "board"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings/boards/1.yaml"), {
+      "ExternalId": "1",
+      "ExternalUrl": "https://www.example.com/1",
+      "Title": "node 1",
+      "Items": [{
+        "ID": "2",
+        "Type": "card"
+      }, {
+        "ID": "2_part1",
+        "Type": "card"
+      }, {
+        "ID": "2_part2",
+        "Type": "card"
+      }, {
+        "ID": "3",
+        "Type": "card"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings/cards/2.yaml"), {
+      "ExternalId": "2",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "node 2"
+    })
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_on_all_headings/cards/2.html"), "<p>first card</p>")
+
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings/cards/2_part1.yaml"), {
+      "ExternalId": "2_part1",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "split here"
+    })
+    # we make sure the <h2> tag is removed since it matches the card's title.
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_on_all_headings/cards/2_part1.html"), "<p>second card</p>")
+
+    # we didn't specify a title so this part inherits "node 2" as its title
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings/cards/2_part2.yaml"), {
+      "ExternalId": "2_part2",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "also split here"
+    })
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_on_all_headings/cards/2_part2.html"), "<table><tr><td>third card</td></tr></table>")
+
+  @use_guru()
+  def test_splitting_a_node_on_all_headings_and_nesting(self, g):
+    sync = g.bundle("test_splitting_a_node_on_all_headings_and_nesting")
+
+    # make two nodes, one with content, and add that one to the other.
+    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
+    node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2", content="""<p>first card</p>
+<h2>split here</h2>
+<p>second card</p>
+<h1>also split here</h1>
+<table><tr><td>third card</td></tr></table>
+    """)
+    node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content")
+    node2.add_to(node1)
+    node3.add_to(node1)
+
+    node2.split_all("h1, h2", nest=True)
+
+    sync.zip(favor_sections=True)
+
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings_and_nesting/collection.yaml"), {
+      "Title": "test",
+      "Tags": [],
+      "Items": [{
+        "ID": "1",
+        "Title": "node 1",
+        "Type": "board"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings_and_nesting/boards/1.yaml"), {
+      "ExternalId": "1",
+      "ExternalUrl": "https://www.example.com/1",
+      "Title": "node 1",
+      "Items": [{
+        "Title": "node 2",
+        "Type": "section",
+        "Items": [{
+          "ID": "2_content",
+          "Type": "card"
+        }, {
+          "ID": "2_part1",
+          "Type": "card"
+        }, {
+          "ID": "2_part2",
+          "Type": "card"
+        }]
+      }, {
+        "ID": "3",
+        "Type": "card"
+      }]
+    })
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings_and_nesting/cards/2_content.yaml"), {
+      "ExternalId": "2_content",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "node 2"
+    })
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_on_all_headings_and_nesting/cards/2_content.html"), "<p>first card</p>")
+
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings_and_nesting/cards/2_part1.yaml"), {
+      "ExternalId": "2_part1",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "split here"
+    })
+    # we make sure the <h2> tag is removed since it matches the card's title.
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_on_all_headings_and_nesting/cards/2_part1.html"), "<p>second card</p>")
+
+    # we didn't specify a title so this part inherits "node 2" as its title
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings_and_nesting/cards/2_part2.yaml"), {
+      "ExternalId": "2_part2",
+      "ExternalUrl": "https://www.example.com/2",
+      "Title": "also split here"
+    })
+    self.assertEqual(read_html("/tmp/test_splitting_a_node_on_all_headings_and_nesting/cards/2_part2.html"), "<table><tr><td>third card</td></tr></table>")
+
+  @use_guru()
   def test_removing_a_node(self, g):
     sync = g.bundle("test_removing_a_node")
 
@@ -1426,3 +1570,81 @@ it's multiple lines
     bundle.zip()
 
     self.assertEqual(read_html("/tmp/test_referencing_a_resource_that_doesnt_exist/cards/1.html"), "bad link")
+
+  @use_guru()
+  def test_empty_and_removed_nodes(self, g):
+    bundle = g.bundle("test_empty_and_removed_nodes", skip_empty_sections=True)
+
+    board = bundle.node(id="board", title="board")
+    section1 = bundle.node(id="section1", title="section1")
+    section2 = bundle.node(id="section2", title="section2")
+    card1 = bundle.node(id="card1", title="card 1", content="""card 1""")
+    card2 = bundle.node(id="card2", title="card 2")
+
+    section1.add_to(board)
+    section2.add_to(board)
+    card1.add_to(board)
+    card2.add_to(section2)
+
+    bundle.zip(favor_sections=True)
+
+    self.assertEqual(read_yaml("/tmp/test_empty_and_removed_nodes/collection.yaml"), {
+      "Title": "test",
+      "Tags": [],
+      "Items": [{
+        "ID": "board",
+        "Title": "board",
+        "Type": "board"
+      }]
+    })
+
+    # card2 is removed because it has no content.
+    # section2 is removed because removing card2 leaves it empty.
+    # section1 is removed because it was always empty.
+    self.assertEqual(read_yaml("/tmp/test_empty_and_removed_nodes/boards/board.yaml"), {
+      "Title": "board",
+      "ExternalId": "board",
+      "Items": [{
+        "ID": "card1",
+        "Type": "card"
+      }]
+    })
+
+  @use_guru()
+  def test_linking_edge_cases(self, g):
+    bundle = g.bundle("test_linking_edge_cases")
+
+    # edge cases:
+    # linking to a board
+    # linking to a board group
+    # a link with no href
+    # linking to a node's alt_url
+    # linking to a removed node.
+    # linking to a section's url.
+
+    board_group = bundle.node(id="node1", title="node 1", url="https://www.example.com/node1")
+    board = bundle.node(id="node2", title="node 2", url="https://www.example.com/node2", alt_urls=["https://www.example.com/board"])
+    section = bundle.node(id="node3", title="node 3", url="https://www.example.com/section")
+    card = bundle.node(id="node4", title="node 4", content="""<p>
+<a href="https://www.example.com/node1">board group link</a>
+<a href="https://www.example.com/board">board link</a>
+<a href="https://www.example.com/section">section link</a>
+<a href="https://www.example.com/removed_card">removed card</a>
+<a href="">link with no href</a>
+</p>""")
+    removed_card = bundle.node(id="node5", title="node 5", url="https://www.example.com/removed_card")
+
+    card.add_to(section)
+    section.add_to(board)
+    removed_card.add_to(board)
+    board.add_to(board_group)
+
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_linking_edge_cases/cards/node4.html"), """<p>
+<a href="board-groups/node1">board group link</a>
+<a href="boards/node2">board link</a>
+<a href="https://www.example.com/section">section link</a>
+<a href="https://www.example.com/removed_card">removed card</a>
+<a href="">link with no href</a>
+</p>""")
