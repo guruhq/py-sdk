@@ -345,10 +345,8 @@ class TestCore(unittest.TestCase):
     }])
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222/resolve")
   
-
     card = g.get_card("1111")
     open_comments = card.get_open_card_comments()
-    
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
@@ -358,11 +356,8 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/cards/1111/comments?status=OPEN"
     }])
 
-    self.assertTrue(open_comments[0].is_before("2021-03-20"))
-    self.assertFalse(open_comments[0].is_after("2021-03-20"))
-
-
-
+    self.assertTrue(open_comments[0].is_before("2021-03-20 00:00:00+0000"))
+    self.assertFalse(open_comments[0].is_after("2021-03-20 00:00:00+0000"))
 
   @use_guru()
   @responses.activate

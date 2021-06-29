@@ -166,7 +166,7 @@ class Board:
     Returns:
       bool: True if the board contains the section and False otherwise.
     """
-    return True if find_by_name_or_id(board_obj.sections, section) else False
+    return True if find_by_name_or_id(self.sections, section) else False
 
   def add_section(self, name):
     """
@@ -945,8 +945,9 @@ class Card:
     # this checks images, iframes, and links.
     urls = find_urls_in_doc(self.doc)
 
-    # if the card is entirely markdown, we need to convert it to html then look for urls.
-    html = markdown.markdown(self.content)
+    # the card may be entirely markdown or just contain some markdown so we convert its text
+    # to html then look for urls there.
+    html = markdown.markdown(self.doc.text)
     doc = BeautifulSoup(html, "html.parser")
     urls = urls.union(find_urls_in_doc(doc))
 

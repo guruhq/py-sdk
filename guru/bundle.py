@@ -455,6 +455,17 @@ def insert_nodes(node, parent, depth):
     node.move_to(content_board)
     parent.add_child(content_board, first=True)
 
+  # i forget why this was needed.
+  # i think this was because of a problem i ran into while doing a google sites migration.
+  elif node.type == CARD and node.children and parent.type == BOARD:
+    section_node = bundle.node(
+      id="%s_section" % node.id,
+      title=node.title,
+      type=SECTION
+    )
+    parent.add_child(section_node, after=node)
+    node.move_to(section_node)
+
 
 class BundleNode:
   def __init__(self, id, bundle, url="", title="", desc="", content="", tags=None, alt_urls=None, index=None):
@@ -462,7 +473,7 @@ class BundleNode:
     self.bundle = bundle
     self.url = ""
     self.desc = desc
-    self.title = title
+    self.title = title or id
     self.content = content
     self.children = []
     self.parents = []
@@ -574,10 +585,51 @@ class BundleNode:
             "Title": node.title,
             "Items": section_items
           })
-      elif node.type == BOARD:
-        items.append(node.id)
+      # we'd never hit this case because only a board group would have boards as its
+      # children and we don't need to call __make_items_list for a board group because
+      # its list of children _is_ its list of items -- board group yaml files don't
+      # need a nested list of items.
+      # elif node.type == BOARD:
+      #   items.append(node.id)
     
     return items
+
+  def split_all(self, selector, nest=False):
+    doc = BeautifulSoup(self.content, "html.parser")
+
+    for element in doc.select(selector):
+      element.insert_before("[GURU_SDK_BREAKPOINT]")
+
+    html = str(doc)
+    parts = html.split("[GURU_SDK_BREAKPOINT]")
+
+    self.content = parts[0]
+
+    # we go backwards so the parts end up in the correct order.
+    for index in range(len(parts) - 1, 0, -1):
+      new_content = parts[index]
+      new_doc = BeautifulSoup(new_content, "html.parser")
+      new_title = self.title
+
+      # if we split on h2s, find the first h2 in the doc and use that as the title.
+      for element in new_doc.select(selector):
+        new_title = element.text.strip()
+        element.decompose()
+        break
+
+      new_node = self.bundle.node(
+        id="%s_part%s" % (self.id, index),
+        url=self.url,
+        title=new_title or self.title,
+        content=str(new_doc)
+      )
+
+      # add the new node after this existing node so it's on all the same boards.
+      if nest:
+        self.add_child(new_node, first=True)
+      else:
+        for parent_node in self.parents:
+          parent_node.add_child(new_node, after=self)
 
   def split(self, *args):
     """
@@ -659,7 +711,6 @@ class BundleNode:
       return
 
     doc = BeautifulSoup(self.content, "html.parser")
-    updated = False
     url_map = {}
 
     # this function can work on image and link URLs.
@@ -676,7 +727,7 @@ class BundleNode:
       # this way if they have two links to the same file we only download it once.
       if initial_value in url_map:
         element.attrs[attr] = url_map[initial_value]
-        return True
+        return
 
       absolute_url = urljoin(self.url, url)
       resource_id = _url_to_id(absolute_url)
@@ -689,7 +740,6 @@ class BundleNode:
         # if we've already downloaded this file, update the src/href.
         if resource_id in self.bundle.resources:
           element.attrs[attr] = self.bundle.resources[resource_id]
-          return True
         else:
           filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
           self.bundle.log(message="checking if we should download attachment", url=absolute_url, file=filename)
@@ -709,12 +759,10 @@ class BundleNode:
             self.bundle.log(message="download successful", url=absolute_url, file=filename)
             self.bundle.resources[resource_id] = "resources/%s" % resource_id
             element.attrs[attr] = "resources/%s" % resource_id
-            return True
           else:
             # returning False means it didn't download so we make the url absolute.
             self.bundle.log(message="did not download", url=absolute_url, file=filename)
             element.attrs[attr] = absolute_url
-            return True
       else:
         # if we're not downloading files we still need to do some cleanup.
         #  - move referenced attachments into the resources/ folder.
@@ -739,27 +787,22 @@ class BundleNode:
               element.unwrap()
             else:
               element.decompose()
-            return True
         elif _is_local(url):
           # this means self.url is _not_ local but the url is, so make it absolute.
           element.attrs[attr] = absolute_url
-          return True
         # add protocols to image urls that are lacking them.
         # i'm pretty sure this is required but i forget why.
         elif url.startswith("//"):
           element.attrs[attr] = "https:" + url
-          return True
   
       # we want to return True if the value changed.
       if element.attrs and element.attrs[attr] != initial_value:
         url_map[initial_value] = element.attrs[attr]
-        return True
     
     # images and iframes can both have src attributes that might reference files we need
     # to download or we may need to adjust ther urls (e.g. make them absolute).
     for el in doc.select("[src]"):
-      if check_element(el, "src"):
-        updated = True
+      check_element(el, "src")
     
     # look for links to files that need to be downloaded.
     # also convert doc-to-doc links to be card-to-card.
@@ -779,21 +822,18 @@ class BundleNode:
         if (compare_links and compare_links(other_node, absolute_url)) or \
             other_node.url == absolute_url or \
             (other_node.alt_urls and absolute_url in other_node.alt_urls):
-          # print("replace link: %s  -->  cards/%s" % (href[0:80], other_node.id))
           if other_node.type == BOARD:
-            link.attrs["href"] = "board/%s" % other_node.id
+            link.attrs["href"] = "boards/%s" % other_node.id
           elif other_node.type == CARD:
             link.attrs["href"] = "cards/%s" % other_node.id
           elif other_node.type == BOARD_GROUP:
             link.attrs["href"] = "board-groups/%s" % other_node.id
-          updated = True
           check_as_attachment = False
           break
 
       # find links to local files and add these files as resources.
       if check_as_attachment:
-        if check_element(link, "href"):
-          updated = True
+        check_element(link, "href")
       
     self.content = str(doc)
 
@@ -827,18 +867,29 @@ class BundleNode:
         data["Tags"] = self.tags
       
       return to_yaml(data)
-    elif self.type == BOARD or self.type == BOARD_GROUP:
-      items_key = "Items" if self.type == BOARD else "Boards"
+    elif self.type == BOARD:
       data = {
         "Title": self.title,
         "ExternalId": self.id,
-        items_key: self.__make_items_list()
+        "Items": self.__make_items_list()
       }
       if self.url:
         data["ExternalUrl"] = self.url
       if self.desc:
         data["Description"] = self.desc
       
+      return to_yaml(data)
+    elif self.type == BOARD_GROUP:
+      data = {
+        "Title": self.title,
+        "ExternalId": self.id,
+        "Boards": self.children
+      }
+      if self.url:
+        data["ExternalUrl"] = self.url
+      if self.desc:
+        data["Description"] = self.desc
+
       return to_yaml(data)
 
 
@@ -964,7 +1015,7 @@ class Bundle:
       title = str(title).strip()
       if len(title) > 200:
         title = "%s..." % title[0:197]
-    
+
     if not node:
       node = BundleNode(id, bundle=self, title=title, desc=desc, content=content, tags=tags, alt_urls=alt_urls, index=index)
       self.nodes.append(node)
@@ -1228,7 +1279,7 @@ class Bundle:
 
     zip_file.close()
     self.__write_csv()
-  
+
   def upload(self, is_sync=False, name="", color="", desc="", collection_id=""):
     """
     Uploads the zip file you generated to Guru.
