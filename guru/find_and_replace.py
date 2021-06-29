@@ -91,7 +91,7 @@ def replace_in_markdown_block(doc, term, replacement, replacement_case_sensitive
     new_md = replace_text_in_text(md, term, replacement, replacement_case_sensitive=replacement_case_sensitive)
     markdown_div.attrs["data-ghq-card-content-markdown-content"] = quote(new_md)
 
-def replace_text_in_html(html, term, replacement, term_case_sensitive=False, replacement_case_sensitive=False, replace_html_attributes=False):
+def replace_text_in_html(html, term, replacement, term_case_sensitive=False, replacement_case_sensitive=False, replace_in_html=False):
   """
   Replaces term in html (string). Accounts for lowercase, uppercase, capitalized, and title-cased
 
@@ -101,14 +101,14 @@ def replace_text_in_html(html, term, replacement, term_case_sensitive=False, rep
     replacement (str): replacement term,
     term_case_sensitive (bool): boolean for searching for the specific term or case-insensitive (defaults to false ),
     replacement_case_sensitive (bool): boolean for replacement term case-sensitivity (defaults to false)
-    replace_html_attributes (bool): determines whether to replace term in html attributes
+    replace_in_html (bool): determines whether to also replace term in html attributes
 
   Returns: html (str) with replacement
   """
   doc = html if isinstance(html, BeautifulSoup) else BeautifulSoup(html, "html.parser")
   pattern = re.compile(r'%s' % re.escape(term), re.IGNORECASE)
   text_nodes = doc.find_all(text=term) if term_case_sensitive else doc.find_all(text=pattern)
-  if replace_html_attributes:
+  if replace_in_html:
     return replace_text_in_text(str(doc), term, replacement, replacement_case_sensitive=replacement_case_sensitive)
   else:
     for text_node in text_nodes:
@@ -151,7 +151,7 @@ def add_highlight(card, term, highlight="replacement", case_sensitive=False):
   content = replace_text_in_text(str(content), "[GURU_SDK_HIGHLIGHT_END]", "</span>", replacement_case_sensitive=True)
   return content
 
-def replace_text_in_card(card, term, replacement, replace_title=True, replacement_highlight=False, orig_highlight=False, case_sensitive=False, replacement_case_sensitive=False, replace_html_attributes=False):
+def replace_text_in_card(card, term, replacement, replace_title=True, replacement_highlight=False, orig_highlight=False, case_sensitive=False, replacement_case_sensitive=False, replace_in_html=False, just_replace_html_attributes=False):
   """
   Replaces term in card content. Accounts for lowercase, uppercase, capitalized, and title-cased.
   Optional replacement of term in card title.
@@ -165,7 +165,8 @@ def replace_text_in_card(card, term, replacement, replace_title=True, replacemen
     replacement_highlight (bool): determines whether to apply a highlight class to the replacement term (defaults to false)
     orig_highlight (bool): determines whether to apply a highlight class to the original term (defaults to false)
     case_sensitive (bool): boolean, denoting whether the search term is case-insensitive or specific (defaults to false )
-    replace_html_attributes (bool): determines whether to replace term in html attributes
+    replace_in_html (bool): determines whether to also replace term in html
+    just_replace_html_attributes (bool): determines whether to only replace term in html attributes
 
   Returns: html (str) with replacement
   """
@@ -180,6 +181,17 @@ def replace_text_in_card(card, term, replacement, replace_title=True, replacemen
     content = add_highlight(content, replacement, case_sensitive=case_sensitive)
   elif orig_highlight:
     content = add_highlight(content, term, highlight="original", case_sensitive=case_sensitive)
+  elif just_replace_html_attributes:
+    urls_in_card = card.find_urls()
+    replaced_urls_count = 0
+    for url in urls_in_card:
+      orig_url = url
+      if term in orig_url:
+        new_url = url.replace(term, replacement)
+        url_replaced = card.replace_url(orig_url, new_url)
+        if url_replaced:
+          replaced_urls_count += 1
+    content = card.content
   else:
     content = replace_text_in_html(
       content, 
@@ -187,7 +199,7 @@ def replace_text_in_card(card, term, replacement, replace_title=True, replacemen
       replacement, 
       term_case_sensitive=case_sensitive, 
       replacement_case_sensitive=replacement_case_sensitive, 
-      replace_html_attributes=replace_html_attributes
+      replace_in_html=replace_in_html
     )
     
   if isinstance(card, Card):
@@ -476,7 +488,7 @@ class FindAndReplace:
     term_case_sensitive (bool): boolean for searching for the specific term or case-insensitive (defaults to false ),
     replacement_case_sensitive (bool): boolean for replacement term case-sensitivity (defaults to false)
     replace_title (bool, optional): boolean for replacing term in card title ( defaults to false )
-    replace_html_attributes (bool, optional): determines whether to replace term in html attributes or not
+    just_replace_html_attributes (bool, optional): determines whether to only replace term in html attributes or not
     collection (str, optional): Either a collection name or ID. If it's a name, it'll
         return the first matching collection and the comparison is not case
         sensitive.
@@ -499,7 +511,8 @@ class FindAndReplace:
     term_case_sensitive=False, 
     replacement_case_sensitive=False, 
     replace_title=False, 
-    replace_html_attributes=False, 
+    just_replace_html_attributes=False,
+    replace_in_html=False,
     collection=None, 
     folder="/tmp/", 
     task_name=None,
@@ -512,7 +525,8 @@ class FindAndReplace:
     self.term_case_sensitive = term_case_sensitive
     self.replacement_case_sensitive = replacement_case_sensitive
     self.replace_title = replace_title
-    self.replace_attributes = replace_html_attributes
+    self.just_replace_attributes = just_replace_html_attributes
+    self.replace_in_html=replace_in_html
     self.collection = collection
     self.folder = folder
     self.task_name = task_name if task_name else "find_and_replace"
@@ -520,18 +534,23 @@ class FindAndReplace:
     self.excluded_ids = excluded_ids if excluded_ids else []
     self.show_preview = show_preview
 
-  def replace_term(self, card, dry_run=True):
+  def replace_term(self, card, replace_html=False, dry_run=True):
     original_content = card.content
-    card.content = replace_text_in_card(
-      card, 
-      self.term, 
-      self.replacement, 
-      replace_title=self.replace_title, 
-      replace_html_attributes=self.replace_attributes, 
-      case_sensitive=self.term_case_sensitive,
-      replacement_case_sensitive=self.replacement_case_sensitive
-    )
-    new_content =  card.content
+    if replace_html:
+      replaced_content = card.content.replace(self.term, self.replacement)
+      card.content = replaced_content
+    else:
+      card.content = replace_text_in_card(
+        card, 
+        self.term, 
+        self.replacement, 
+        replace_title=self.replace_title, 
+        just_replace_html_attributes=self.just_replace_attributes,
+        # replace_in_html=self.replace_in_html,
+        case_sensitive=self.term_case_sensitive,
+        replacement_case_sensitive=self.replacement_case_sensitive
+      )
+    new_content = card.content
     if not dry_run:
       card.patch()
     self.cards.append(PreviewData(
@@ -551,8 +570,11 @@ class FindAndReplace:
     """
     for card in self.guru.find_cards(collection=self.collection):
       card_id = card.id or card.slug.split("/")[0]
-      if card.has_text(self.term) and not card_id in self.excluded_ids:
-        self.replace_term(card, dry_run=dry_run)
+      if self.replace_in_html and self.term in card.content:
+        self.replace_term(card, replace_html=self.replace_in_html, dry_run=dry_run)
+      else:
+        if card.has_text(self.term) and not card_id in self.excluded_ids:
+          self.replace_term(card, dry_run=dry_run)
 
     browser_preview = Preview(
       content_list=self.cards, 

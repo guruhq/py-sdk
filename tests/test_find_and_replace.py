@@ -79,7 +79,7 @@ class TestFindAndReplace(unittest.TestCase):
 
 
     test_result = replace_text_in_html(html_content, term, replacement)
-    html_with_link_test_result = replace_text_in_html(html_with_link, term, replacement, replace_html_attributes=True)
+    html_with_link_test_result = replace_text_in_html(html_with_link, term, replacement, replace_in_html=True)
     quoted_content_result = replace_text_in_html(quoted_content, term, replacement)
     quoted_content_result_term_sensitive = replace_text_in_html(quoted_content, term, replacement, term_case_sensitive=True)
     quoted_content_result_replacement_sensitive = replace_text_in_html(quoted_content, term, replacement, replacement_case_sensitive=True)
