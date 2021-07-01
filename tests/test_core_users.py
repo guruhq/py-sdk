@@ -21,8 +21,90 @@ class TestCore(unittest.TestCase):
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/members/invite",
       "body": {
-        "emails": "user@example.com"
+        "emails": "user@example.com",
+        "teamMemberType": "CORE"
       }
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_invite_core_user(self, g):
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/invite", json={})
+
+    g.invite_core_user("user@example.com")
+
+    self.assertEqual(get_calls(), [{
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/members/invite",
+      "body": {
+        "emails": "user@example.com",
+        "teamMemberType": "CORE"
+      }
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_invite_light_user(self, g):
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/invite", json={})
+
+    g.invite_light_user("user@example.com")
+
+    self.assertEqual(get_calls(), [{
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/members/invite",
+      "body": {
+        "emails": "user@example.com",
+        "teamMemberType": "LIGHT"
+      }
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_upgrade_light_user(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
+      "id": "user@example.com",
+      "user": {"email": "user@example.com"},
+      "userAttributes": {
+        "BILLING_TYPE": "FREE",
+        "ACCESS_TYPE": "READ_ONLY"
+      }
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/user@example.com/upgrade", json={})
+
+    g.upgrade_light_user("user@example.com")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/members/user@example.com/upgrade",
+      "body": {}
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_downgrade_core_user(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
+      "id": "user@example.com",
+      "user": {"email": "user@example.com"},
+      "groups": [],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/user@example.com/downgrade", json={})
+
+    g.downgrade_core_user("user@example.com")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/members/user@example.com/downgrade",
+      "body": {}
     }])
   
   @use_guru()
@@ -38,7 +120,11 @@ class TestCore(unittest.TestCase):
     responses.add(responses.POST, "https://api.getguru.com/api/v1/members/invite", json={})
     responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
-      "groups": []
+      "groups": [],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/1234/members")
     responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/5678/members")
@@ -49,7 +135,9 @@ class TestCore(unittest.TestCase):
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/members/invite",
       "body": {
-        "emails": "user@example.com"
+        "emails": "user@example.com",
+        "teamMemberType": "CORE"
+
       }
     }, {
       "method": "GET",
@@ -81,7 +169,11 @@ class TestCore(unittest.TestCase):
     responses.add(responses.POST, "https://api.getguru.com/api/v1/members/invite", json={})
     responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
-      "groups": []
+      "groups": [],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
     }])
 
     g.invite_user("user@example.com", "other group")
@@ -90,7 +182,8 @@ class TestCore(unittest.TestCase):
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/members/invite",
       "body": {
-        "emails": "user@example.com"
+        "emails": "user@example.com",
+        "teamMemberType": "CORE"
       }
     }, {
       "method": "GET",
@@ -105,7 +198,11 @@ class TestCore(unittest.TestCase):
   def test_add_user_to_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
-      "groups": []
+      "groups": [],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
     }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",
@@ -134,7 +231,11 @@ class TestCore(unittest.TestCase):
   def test_add_user_to_invalid_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
-      "groups": []
+      "groups": [],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
     }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",
@@ -156,7 +257,11 @@ class TestCore(unittest.TestCase):
   def test_add_user_to_groups(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
-      "groups": []
+      "groups": [],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
     }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",
@@ -195,7 +300,11 @@ class TestCore(unittest.TestCase):
   def test_add_user_to_groups_where_first_one_is_invalid(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
-      "groups": []
+      "groups": [],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
     }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "5678",
@@ -229,7 +338,11 @@ class TestCore(unittest.TestCase):
   def test_add_user_to_groups_where_second_one_is_invalid(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
-      "groups": []
+      "groups": [],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
     }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1234",
@@ -278,7 +391,11 @@ class TestCore(unittest.TestCase):
       "groups": [{
         "id": "1111",
         "name": "Experts"
-      }]
+      }],
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
     }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1111",

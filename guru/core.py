@@ -642,7 +642,7 @@ class Guru:
     users = [User(u) for u in users]
     return users
 
-  def __invite_user(self, email, is_light_user=False, *groups):
+  def __invite_user(self, email, *groups, is_light_user=False):
     """
     Internal
 
@@ -794,7 +794,7 @@ class Guru:
       return
   
     data = {}
-    url = "%s/members/%s/upgrade/" % (self.base_url, email)
+    url = "%s/members/%s/upgrade" % (self.base_url, email)
     response = self.__post(url, data)
 
     return response.json(), response.status_code 
@@ -829,7 +829,7 @@ class Guru:
       return
   
     data = {}
-    url = "%s/members/%s/downgrade/" % (self.base_url, email)
+    url = "%s/members/%s/downgrade" % (self.base_url, email)
     response = self.__post(url, data)
 
     return response.json(), response.status_code 
