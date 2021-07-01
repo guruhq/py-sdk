@@ -568,7 +568,7 @@ class User:
 
   def __init__(self, data):
     user_obj = data.get("user") or data or {}
-    user_attr = data.get("userAttributes")
+    user_attr = data.get("userAttributes", {})
     self.email = user_obj.get("email")
     self.first_name = user_obj.get("firstName")
     self.last_name = user_obj.get("lastName")
