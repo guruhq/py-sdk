@@ -731,9 +731,9 @@ class Guru:
       status (int): response status code
     """
 
-    res, status = self.__invite_user(email, is_light_user=True)
+    response, status = self.__invite_user(email, is_light_user=True)
     # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
-    return res, status
+    return response, status
   
   def invite_core_user(self, email, *groups):
     """
@@ -760,9 +760,9 @@ class Guru:
       status (int): response status code
     """
     
-    res, status = self.__invite_user(email, *groups)
+    response, status = self.__invite_user(email, *groups)
 
-    return res, status
+    return response, status
 
   def upgrade_light_user(self, email):
     """
