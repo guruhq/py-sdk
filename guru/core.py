@@ -775,7 +775,8 @@ class Guru:
     Args:
       email (str): The email address of the light user.
     Returns:
-      todo: fill this out.
+      response (str): parsed JSON response.
+      status (int): response status code
     """
 
     # check if user is Light user first, then upgrade
@@ -794,6 +795,41 @@ class Guru:
   
     data = {}
     url = "%s/members/%s/upgrade/" % (self.base_url, email)
+    response = self.__post(url, data)
+
+    return response.json(), response.status_code 
+  
+  def downgrade_core_user(self, email):
+    """
+    Downgrades a core user to a light user.
+
+    ```
+    g.downgrade_core_user("user1@example.com")
+    ```
+
+    Args:
+      email (str): The email address of the core user.
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+
+    # check if user is Light user first, then upgrade
+
+    # load the user list so we can check if any of these assignments were already made.
+    users = self.get_members(email, cache=False)
+    user = find_by_email(users, email)
+
+    if not user:
+      self.__log(make_red("could not find user:", email))
+      return
+
+    if user.access_type != "CORE" and user.billing_type != "CORE":
+      self.__log(make_red("user is not a core user:", email))
+      return
+  
+    data = {}
+    url = "%s/members/%s/downgrade/" % (self.base_url, email)
     response = self.__post(url, data)
 
     return response.json(), response.status_code 
