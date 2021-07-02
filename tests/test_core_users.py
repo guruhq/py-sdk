@@ -61,50 +61,80 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_upgrade_light_user(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
-      "id": "user@example.com",
-      "user": {"email": "user@example.com"},
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=light%40example.com", json=[{
+      "id": "light@example.com",
+      "user": {"email": "light@example.com"},
       "userAttributes": {
         "BILLING_TYPE": "FREE",
         "ACCESS_TYPE": "READ_ONLY"
       }
     }])
-    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/user@example.com/upgrade", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=core%40example.com", json=[{
+      "id": "core@example.com",
+      "user": {"email": "core@example.com"},
+      "userAttributes": {
+        "BILLING_TYPE": "CORE",
+        "ACCESS_TYPE": "CORE"
+      }
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/light@example.com/upgrade", json={})
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/core@example.com/upgrade", json={})
 
-    g.upgrade_light_user("user@example.com")
+    light_user_result = g.upgrade_light_user("light@example.com")
+    core_user_result = g.upgrade_light_user("core@example.com")
 
+    self.assertEqual(light_user_result, True)
+    self.assertIsNone(core_user_result)
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=light%40example.com"
     }, {
       "method": "POST",
-      "url": "https://api.getguru.com/api/v1/members/user@example.com/upgrade",
+      "url": "https://api.getguru.com/api/v1/members/light@example.com/upgrade",
       "body": {}
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=core%40example.com"
     }])
   
   @use_guru()
   @responses.activate
   def test_downgrade_core_user(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
-      "id": "user@example.com",
-      "user": {"email": "user@example.com"},
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=core%40example.com", json=[{
+      "id": "core@example.com",
+      "user": {"email": "core@example.com"},
       "groups": [],
       "userAttributes": {
         "BILLING_TYPE": "CORE",
         "ACCESS_TYPE": "CORE"
       }
     }])
-    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/user@example.com/downgrade", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=light%40example.com", json=[{
+      "id": "light@example.com",
+      "user": {"email": "light@example.com"},
+      "userAttributes": {
+        "BILLING_TYPE": "FREE",
+        "ACCESS_TYPE": "READ_ONLY"
+      }
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/core@example.com/downgrade", json={})
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/members/light@example.com/downgrade", json={})
 
-    g.downgrade_core_user("user@example.com")
+    core_user_result = g.downgrade_core_user("core@example.com")
+    light_user_result = g.downgrade_core_user("light@example.com")
 
+    self.assertEqual(core_user_result, True)
+    self.assertIsNone(light_user_result)
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
+      "url": "https://api.getguru.com/api/v1/members?search=core%40example.com"
     }, {
       "method": "POST",
-      "url": "https://api.getguru.com/api/v1/members/user@example.com/downgrade",
+      "url": "https://api.getguru.com/api/v1/members/core@example.com/downgrade",
       "body": {}
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=light%40example.com"
     }])
   
   @use_guru()
