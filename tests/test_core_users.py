@@ -228,6 +228,31 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_add_light_user_to_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
+      "user": {"email": "user@example.com"},
+      "userAttributes": {
+        "BILLING_TYPE": "FREE",
+        "ACCESS_TYPE": "READ_ONLY"
+      }
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "id": "1234",
+      "name": "Experts"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/groups/1234/members")
+
+    result = g.add_user_to_group("user@example.com", "Experts")
+    
+    self.assertIsNone(result)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/members?search=user%40example.com"
+    }])
+    
+
+  @use_guru()
+  @responses.activate
   def test_add_user_to_invalid_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/members?search=user%40example.com", json=[{
       "user": {"email": "user@example.com"},
