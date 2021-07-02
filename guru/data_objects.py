@@ -568,11 +568,14 @@ class User:
 
   def __init__(self, data):
     user_obj = data.get("user") or data or {}
+    user_attr = data.get("userAttributes", {})
     self.email = user_obj.get("email")
     self.first_name = user_obj.get("firstName")
     self.last_name = user_obj.get("lastName")
     self.image = user_obj.get("profilePicUrl")
     self.status = user_obj.get("status")
+    self.billing_type = user_attr.get("BILLING_TYPE")
+    self.access_type = user_attr.get("ACCESS_TYPE")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
   @property
@@ -586,6 +589,16 @@ class User:
       return '%s %s' % (self.first_name, self.last_name)
     else:
       return self.email
+
+  @property
+  def is_light(self):
+    """Boolean telling if user is a light user"""
+    return self.access_type == "READ_ONLY" and self.billing_type == "FREE"
+  
+  @property
+  def is_core(self):
+    """Boolean telling if user is a core user"""
+    return self.access_type == "CORE" and self.billing_type == "CORE"
 
   def has_group(self, group):
     """

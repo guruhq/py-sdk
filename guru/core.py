@@ -642,6 +642,46 @@ class Guru:
     users = [User(u) for u in users]
     return users
 
+  def __invite_user(self, email, *groups, is_light_user=False):
+    """
+    Internal
+
+    Args:
+      email (str): The email address of the user to add to the team.
+      *groups (str): Any number of groups to add the user to.
+    
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+    groups = list(groups)
+
+    if not is_email(email):
+      raise ValueError("invalid email '%s'" % email)
+    
+    if groups:
+      self.__log("invite user", make_blue(email), "and then add them to:", make_blue(groups))
+    else:
+      self.__log("invite user", make_blue(email))
+    
+    if is_light_user:
+      data = { "emails": email, "teamMemberType": "LIGHT" }
+    else:
+      data = { "emails": email, "teamMemberType": "CORE" }
+    url = "%s/members/invite" % self.base_url
+    response = self.__post(url, data)
+
+    # if there are remaining groups, call add_user_to_groups() for that.
+    if groups:
+      # todo: when we call this, it'll make a GET call to load this user to see if they're
+      #       already in any of the groups we're trying to add them to -- in this case, since
+      #       we _just_ invited them, we know they won't be. it'd be great to be able to skip
+      #       that GET call in this situation.
+      self.add_user_to_groups(email, *groups)
+    
+    # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
+    return response.json(), response.status_code
+  
   def invite_user(self, email, *groups):
     """
     Adds a user to the team and adds them to the groups provided.
@@ -663,32 +703,136 @@ class Guru:
       *groups (str): Any number of groups to add the user to.
     
     Returns:
-      todo: fill this out.
+      response (str): parsed JSON response.
+      status (int): response status code
     """
-    groups = list(groups)
 
-    if not is_email(email):
-      raise ValueError("invalid email '%s'" % email)
+    response, status = self.__invite_user(email, *groups)
+
+    return response, status
+
+  def invite_light_user(self, email):
+    """
+    Adds a user to the team as a light user.
+    Light users can't belong to groups, so they automatically go into the All Members group.
+    The user may receive an email because of this -- this is configured
+    in the webapp's Team Settings section.
+
+    ```
+    g.invite_light_user("user1@example.com")
+
+    ```
+
+    Args:
+      email (str): The email address of the user to add to the team.
     
-    if groups:
-      self.__log("invite user", make_blue(email), "and then add them to:", make_blue(groups))
-    else:
-      self.__log("invite user", make_blue(email))
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+
+    response, status = self.__invite_user(email, is_light_user=True)
+    # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
+    return response, status
+  
+  def invite_core_user(self, email, *groups):
+    """
+    Adds a user to the team as a core user and adds them to the groups provided.
+    The user may receive an email because of this -- this is configured
+    in the webapp's Team Settings section.
+
+    If the user is already on the team this still adds them to the
+    groups.
+
+    ```
+    g.invite_core_user("user1@example.com")
+
+    # invite a user and add them to some groups.
+    g.invite_core_user("user2@example.com", "Experts", "Engineering")
+    ```
+
+    Args:
+      email (str): The email address of the user to add to the team.
+      *groups (str): Any number of groups to add the user to.
     
-    data = { "emails": email }
-    url = "%s/members/invite" % self.base_url
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+    
+    response, status = self.__invite_user(email, *groups)
+
+    return response, status
+
+  def upgrade_light_user(self, email):
+    """
+    Upgrades a light user to a core user.
+
+    ```
+    g.upgrade_light_user("user1@example.com")
+    ```
+
+    Args:
+      email (str): The email address of the light user.
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+
+    # check if user is Light user first, then upgrade
+
+    # load the user list so we can check if the user is a member and a light user.
+    users = self.get_members(email, cache=False)
+    user = find_by_email(users, email)
+
+    if not user:
+      self.__log(make_red("could not find user:", email))
+      return
+
+    if not user.is_light:
+      self.__log(make_red("user is not a light user:", email))
+      return
+  
+    data = {}
+    url = "%s/members/%s/upgrade" % (self.base_url, email)
     response = self.__post(url, data)
 
-    # if there are remaining groups, call add_user_to_groups() for that.
-    if groups:
-      # todo: when we call this, it'll make a GET call to load this user to see if they're
-      #       already in any of the groups we're trying to add them to -- in this case, since
-      #       we _just_ invited them, we know they won't be. it'd be great to be able to skip
-      #       that GET call in this situation.
-      self.add_user_to_groups(email, *groups)
-    
-    # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
-    return response.json(), response.status_code
+    return status_to_bool(response.status_code)
+  
+  def downgrade_core_user(self, email):
+    """
+    Downgrades a core user to a light user.
+
+    ```
+    g.downgrade_core_user("user1@example.com")
+    ```
+
+    Args:
+      email (str): The email address of the core user.
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+
+    # check if user is Core user first, then downgrade
+
+    # load the user list so we can check if the user is a member and a core user.
+    users = self.get_members(email, cache=False)
+    user = find_by_email(users, email)
+
+    if not user:
+      self.__log(make_red("could not find user:", email))
+      return
+
+    if not user.is_core:
+      self.__log(make_red("user is not a core user:", email))
+      return
+  
+    data = {}
+    url = "%s/members/%s/downgrade" % (self.base_url, email)
+    response = self.__post(url, data)
+
+    return status_to_bool(response.status_code)
   
   def add_users_to_group(self, emails, group):
     """
@@ -787,7 +931,11 @@ class Guru:
     if not user:
       self.__log(make_red("could not find user:", email))
       return
-  
+
+    if user.is_light:
+      self.__log(make_red("user is a light user, and cannot belong to groups:", email))
+      return
+
     # for each group, track whether the addition was successful or not.
     result = {}
     for group in groups:
