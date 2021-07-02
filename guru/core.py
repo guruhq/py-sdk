@@ -781,7 +781,7 @@ class Guru:
 
     # check if user is Light user first, then upgrade
 
-    # load the user list so we can check if any of these assignments were already made.
+    # load the user list so we can check if the user is a member and a light user.
     users = self.get_members(email, cache=False)
     user = find_by_email(users, email)
 
@@ -814,9 +814,9 @@ class Guru:
       status (int): response status code
     """
 
-    # check if user is Light user first, then upgrade
+    # check if user is Core user first, then downgrade
 
-    # load the user list so we can check if any of these assignments were already made.
+    # load the user list so we can check if the user is a member and a core user.
     users = self.get_members(email, cache=False)
     user = find_by_email(users, email)
 
@@ -931,7 +931,11 @@ class Guru:
     if not user:
       self.__log(make_red("could not find user:", email))
       return
-  
+
+    if user.access_type == "READ_ONLY" and user.billing_type == "FREE":
+      self.__log(make_red("user is a light user, and cannot belong to groups:", email))
+      return
+
     # for each group, track whether the addition was successful or not.
     result = {}
     for group in groups:
