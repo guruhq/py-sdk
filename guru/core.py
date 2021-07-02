@@ -789,7 +789,7 @@ class Guru:
       self.__log(make_red("could not find user:", email))
       return
 
-    if user.access_type != "READ_ONLY" and user.billing_type != "FREE":
+    if not user.is_light:
       self.__log(make_red("user is not a light user:", email))
       return
   
@@ -797,7 +797,7 @@ class Guru:
     url = "%s/members/%s/upgrade" % (self.base_url, email)
     response = self.__post(url, data)
 
-    return response.json(), response.status_code 
+    return status_to_bool(response.status_code)
   
   def downgrade_core_user(self, email):
     """
@@ -824,7 +824,7 @@ class Guru:
       self.__log(make_red("could not find user:", email))
       return
 
-    if user.access_type != "CORE" and user.billing_type != "CORE":
+    if not user.is_core:
       self.__log(make_red("user is not a core user:", email))
       return
   
@@ -832,7 +832,7 @@ class Guru:
     url = "%s/members/%s/downgrade" % (self.base_url, email)
     response = self.__post(url, data)
 
-    return response.json(), response.status_code 
+    return status_to_bool(response.status_code)
   
   def add_users_to_group(self, emails, group):
     """
@@ -932,7 +932,7 @@ class Guru:
       self.__log(make_red("could not find user:", email))
       return
 
-    if user.access_type == "READ_ONLY" and user.billing_type == "FREE":
+    if user.is_light:
       self.__log(make_red("user is a light user, and cannot belong to groups:", email))
       return
 

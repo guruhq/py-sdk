@@ -590,6 +590,16 @@ class User:
     else:
       return self.email
 
+  @property
+  def is_light(self):
+    """Boolean telling if user is a light user"""
+    return self.access_type == "READ_ONLY" and self.billing_type == "FREE"
+  
+  @property
+  def is_core(self):
+    """Boolean telling if user is a core user"""
+    return self.access_type == "CORE" and self.billing_type == "CORE"
+
   def has_group(self, group):
     """
     Returns True if the user is a member of the specified group.
