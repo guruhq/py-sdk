@@ -1695,3 +1695,16 @@ it's multiple lines
 </p>
 </div>
 </div>""")
+
+  @use_guru()
+  def test_removing_empty_lists_and_list_items(self, g):
+    bundle = g.bundle("test_removing_empty_lists_and_list_items")
+
+    # the ul contains an image, so one li is removed but the list remains.
+    # the ol only contains an li that'll be removed, so we expect the ol to be removed too.
+    html = """<ul><li><br/></li><li><img src="https://www.example.com/test.png"/></li></ul><ol><li><br/></li></ol>"""
+    new_html = """<ul><li><img src="https://www.example.com/test.png"/></li></ul>"""
+    node1 = bundle.node(id="1", title="node 1", content=html)
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_removing_empty_lists_and_list_items/cards/1.html"), new_html)

@@ -164,14 +164,11 @@ def clean_up_html(html):
       else:
         block.insert_after("[[GURU[[%s]]GURU]]" % tag)
 
-  # look for ul > ul and unwrap the child ul.
-  for child_ul in doc.select("ul > ul"):
-    child_ul.unwrap()
-
-  # remove empty ol and ul tags.
-  for ol in doc.select("ol, ul"):
-    if len(ol.select("li")) == 0:
-      ol.decompose()
+  # look for things like ul > ul and unwrap the child list.
+  # we expect nested lists to be wrapped in an <li> and if they're not,
+  # it introduces an extra blank list item when it's viewed in guru.
+  for child_list in doc.select("ul > ul, ul > ol, ol > ol, ol > ul"):
+    child_list.unwrap()
 
   # remove unnecessary things from style attributes (e.g. width/height on table cells).
   style_attrs_to_keep = [
@@ -211,13 +208,18 @@ def clean_up_html(html):
   #  - contain either no tags, or contains only br, div, or span tags.
   #
   # the second rule is important otherwise we'll remove paragraphs that contain only an image, iframe, etc.
-  for el in doc.select("p, h1, h2, h3, h4, h5, h6"):
+  for el in doc.select("p, li, h1, h2, h3, h4, h5, h6"):
     text = el.text.strip()
     if not text:
       all_tag_count = len(el.select("*"))
       unimportant_tag_count = len(el.select("br, div, span"))
       if all_tag_count == unimportant_tag_count:
         el.decompose()
+
+  # remove empty ol and ul tags.
+  for ol in doc.select("ol, ul"):
+    if len(ol.select("li")) == 0:
+      ol.decompose()
 
   return (
     str(doc)
