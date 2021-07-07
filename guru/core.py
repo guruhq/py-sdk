@@ -15,7 +15,7 @@ else:
 
 from guru.bundle import Bundle
 from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question
-from guru.util import find_by_name_or_id, find_by_email, find_by_id, format_timestamp
+from guru.util import find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -35,11 +35,6 @@ GREEN_APPLE = "#689F38"
 READ_ONLY = "MEMBER"
 AUTHOR = "AUTHOR"
 COLLECTION_OWNER = "COLL_ADMIN"
-
-TRACKING_HEADERS = {
-  "X-Guru-Application": "sdk",
-  "X-Amzn-Trace-Id": "GApp=sdk"
-}
 
 def make_blue(*args):
   return " ".join(["\033[94m%s\033[0m" % text for text in args])
