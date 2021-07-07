@@ -36,6 +36,11 @@ READ_ONLY = "MEMBER"
 AUTHOR = "AUTHOR"
 COLLECTION_OWNER = "COLL_ADMIN"
 
+TRACKING_HEADERS = {
+  "X-Guru-Application": "sdk",
+  "X-Amzn-Trace-Id": "GApp=sdk"
+}
+
 def make_blue(*args):
   return " ".join(["\033[94m%s\033[0m" % text for text in args])
 
@@ -156,13 +161,13 @@ class Guru:
       # make the call and store the response.
       if not self.__cache.get(url):
         self.__log(make_gray("  making a get call:", url))
-        self.__cache[url] = requests.get(url, auth=self.__get_auth())
+        self.__cache[url] = requests.get(url, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       else:
         self.__log(make_gray("  using cached get call:", url))
       return self.__cache[url]
     else:
       self.__log(make_gray("  making a get call:", url))
-      response = requests.get(url, auth=self.__get_auth())
+      response = requests.get(url, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__cache[url] = response
       self.__log_response(response)
       return response
@@ -174,7 +179,7 @@ class Guru:
       return DummyResponse()
 
     self.__log(make_gray("  making a put call:", url, data))
-    response = requests.put(url, json=data, auth=self.__get_auth())
+    response = requests.put(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
     self.__log_response(response)
     return response
 
@@ -185,7 +190,7 @@ class Guru:
       return DummyResponse()
 
     self.__log(make_gray("  making a patch call:", url, data))
-    response = requests.patch(url, json=data, auth=self.__get_auth())
+    response = requests.patch(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
     self.__log_response(response)
     return response
 
@@ -197,11 +202,11 @@ class Guru:
       
     self.__log(make_gray("  making a post call:", url, data))
     if files:
-      response = requests.post(url, files=files, auth=self.__get_auth())
+      response = requests.post(url, files=files, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__log_response(response)
       return response
     else:
-      response = requests.post(url, json=data, auth=self.__get_auth())
+      response = requests.post(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__log_response(response)
       return response
   
