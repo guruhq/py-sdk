@@ -1,26 +1,22 @@
 """
-This script shows how to use Guru's SDK to publish cards,
-boards, or entire collections to an external site -- in this
-case, Salesforce Knowledge.
+This script shows how to use Guru's SDK to publish cards, boards, or entire
+collections to an external site -- in this case, Salesforce Knowledge.
 
-This script takes the contents of a board in Guru and makes
-API calls to Salesforce to create or update Knowledge objects
-as needed.
+This script takes the contents of a board in Guru and makes API calls to
+Salesforce to create or update Knowledge objects as needed.
 
-1. Behind the scenes, the SDK enumerates all the sections
-   and cards on the board we specify.
-2. The SDK also writes a metadata .json file to keep track
-   of which cards have been published before.
-3. Using the metadata, the SDK knows whether a card has been
-   published before and needs to be updated in Saleforce or
-   is a brand new card and we need to create a Knowledge
-   object in Salesforce.
+1. Behind the scenes, the SDK enumerates all the sections and cards on the
+   board we specify.
+2. The SDK also writes a metadata .json file to keep track of which cards have
+   been published before.
+3. Using the metadata, the SDK knows whether a card has been published before
+   and needs to be updated in Saleforce or is a brand new card and we need to
+   create a Knowledge object in Salesforce.
 
-The SDK orchestrates everything and this file just needs to
-implement methods that call SFDC's API to do specific tasks.
-When the SDK sees a card that's never been published before,
-it'll call create_external_card and we implement the POST call
-to create the Knowledge object.
+The SDK orchestrates everything and this file just needs to implement methods
+that call SFDC's API to do specific tasks. When the SDK sees a card that's never
+been published before, it'll call create_external_card and we implement the POST
+call to create the external representation of a card (e.g. the Knowledge object)
 """
 
 import os
@@ -56,8 +52,8 @@ class SalesforcePublisher(guru.Publisher):
   def __init__(self, g):
     super().__init__(g)
 
-    # get your sfdc access token.
-    # i set this connection up in salesforce by following this guide:
+    # We need to get an SFDC access token.
+    # I set this connection up in salesforce by following this guide:
     # https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/CR_quickstart_oauth.htm
     data = {
       "grant_type": "password",
@@ -74,9 +70,11 @@ class SalesforcePublisher(guru.Publisher):
   def get_external_url(self, external_id, card):
     """
     This is used for converting card-to-card links to link from one
-    Salesforce Knowledge object to another.
+    Salesforce Knowledge object to another. When we're publishing a card
+    that links to another Guru card, we use this method to convert the
+    card-to-card link to be a link between salesforce knowledge articles.
     """
-    return "https://developer.getguru.com/docs/%s" % external_id
+    return "https://support.getguru.com/help/s/article/%s" % external_id
 
   def find_external_card(self, card):
     """
@@ -87,6 +85,9 @@ class SalesforcePublisher(guru.Publisher):
     a Knowledge object with the same title as this card. If this
     method returns the SFDC Object's ID, the SDK then knows the card
     exists in SFDC already and calls update_external_card().
+
+    If you expect all articles will be written in Guru first, then
+    you don't need to worry about this method.
     """
     pass
 
@@ -126,8 +127,15 @@ class SalesforcePublisher(guru.Publisher):
     return requests.put(url, json=data, headers=headers)
   
   def delete_external_card(self, external_id):
-    # if we want to automatically delete Salesforce Knowledge articles
-    # when the Guru cards are archived, you'd implement that here.
+    """
+    If you want to automatically delete Salesforce Knowledge articles when the
+    corresponding card is archived or removed from what you're publishing,
+    that's implemented here.
+    
+    We'll detect when a card is no longer in the set of cards being published
+    and call this method. All you need to do here is implement the SFDC API
+    call to delete the Knowledge object.
+    """
     pass
 
 
@@ -139,5 +147,8 @@ if __name__ == "__main__":
 
   # the identifier here comes from a board's URL.
   # in this case i'm publishing this board from my test team:
-  # https://app.getguru.com/boards/KieEXj9i/Managing-and-Sharing-your-Guru-team
+  # 
+  #   https://app.getguru.com/boards/KieEXj9i/Managing-and-Sharing-your-Guru-team
+  # 
+  # so we can use "KieEXj9i" as its ID.
   publisher.publish_board("KieEXj9i")
