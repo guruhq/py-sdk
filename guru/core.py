@@ -15,7 +15,7 @@ else:
 
 from guru.bundle import Bundle
 from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question
-from guru.util import find_by_name_or_id, find_by_email, find_by_id, format_timestamp
+from guru.util import find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -156,13 +156,13 @@ class Guru:
       # make the call and store the response.
       if not self.__cache.get(url):
         self.__log(make_gray("  making a get call:", url))
-        self.__cache[url] = requests.get(url, auth=self.__get_auth())
+        self.__cache[url] = requests.get(url, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       else:
         self.__log(make_gray("  using cached get call:", url))
       return self.__cache[url]
     else:
       self.__log(make_gray("  making a get call:", url))
-      response = requests.get(url, auth=self.__get_auth())
+      response = requests.get(url, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__cache[url] = response
       self.__log_response(response)
       return response
@@ -174,7 +174,7 @@ class Guru:
       return DummyResponse()
 
     self.__log(make_gray("  making a put call:", url, data))
-    response = requests.put(url, json=data, auth=self.__get_auth())
+    response = requests.put(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
     self.__log_response(response)
     return response
 
@@ -185,7 +185,7 @@ class Guru:
       return DummyResponse()
 
     self.__log(make_gray("  making a patch call:", url, data))
-    response = requests.patch(url, json=data, auth=self.__get_auth())
+    response = requests.patch(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
     self.__log_response(response)
     return response
 
@@ -197,11 +197,11 @@ class Guru:
       
     self.__log(make_gray("  making a post call:", url, data))
     if files:
-      response = requests.post(url, files=files, auth=self.__get_auth())
+      response = requests.post(url, files=files, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__log_response(response)
       return response
     else:
-      response = requests.post(url, json=data, auth=self.__get_auth())
+      response = requests.post(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__log_response(response)
       return response
   
