@@ -82,13 +82,26 @@ def clean_up_html(html):
     "src",     # for images...
     "alt",
     "height",
-    "width"
+    "width",
+    "class",   # for guru elements...
+    "data-ghq-card-content-type",
+    "data-ghq-card-content-markdown-content"
   ]
   for el in doc.select("*"):
     for attr in list(el.attrs.keys()):
       if attr not in attributes_to_keep:
         del el.attrs[attr]
-  
+
+    # keep any class name that starts with 'ghq-'
+    old_class_list = el.attrs.get("class") or []
+    new_class_list = list(filter(lambda c: c.startswith("ghq-"), old_class_list))
+
+    if new_class_list:
+      el.attrs["class"] = new_class_list
+    elif old_class_list:
+      # we only remove the 'class' attribute if it was there in the first place.
+      del el.attrs["class"]
+
   # clean up lists inside table cells.
   for li in doc.select("td li"):
     # todo: only add the br tag if the list has a previous sibling.
@@ -151,6 +164,12 @@ def clean_up_html(html):
       else:
         block.insert_after("[[GURU[[%s]]GURU]]" % tag)
 
+  # look for things like ul > ul and unwrap the child list.
+  # we expect nested lists to be wrapped in an <li> and if they're not,
+  # it introduces an extra blank list item when it's viewed in guru.
+  for child_list in doc.select("ul > ul, ul > ol, ol > ol, ol > ul"):
+    child_list.unwrap()
+
   # remove unnecessary things from style attributes (e.g. width/height on table cells).
   style_attrs_to_keep = [
     "background",
@@ -162,6 +181,12 @@ def clean_up_html(html):
   ]
 
   for el in doc.select("[style]"):
+    # style attributes are ok if the element is inside a guru markdown block.
+    # the styles you'll usually see are the ones in the encoded markdown attribute but
+    # the ones on the nested HTML might be used somewhere (maybe public cards?).
+    if el.find_parent("div", attrs={"class": "ghq-card-content__markdown"}):
+      continue
+
     values = _parse_style(el.attrs["style"])
     for attr in list(values.keys()):
       if attr not in style_attrs_to_keep:
@@ -183,13 +208,18 @@ def clean_up_html(html):
   #  - contain either no tags, or contains only br, div, or span tags.
   #
   # the second rule is important otherwise we'll remove paragraphs that contain only an image, iframe, etc.
-  for el in doc.select("p, h1, h2, h3, h4, h5, h6"):
+  for el in doc.select("p, li, h1, h2, h3, h4, h5, h6"):
     text = el.text.strip()
     if not text:
       all_tag_count = len(el.select("*"))
       unimportant_tag_count = len(el.select("br, div, span"))
       if all_tag_count == unimportant_tag_count:
         el.decompose()
+
+  # remove empty ol and ul tags.
+  for ol in doc.select("ol, ul"):
+    if len(ol.select("li")) == 0:
+      ol.decompose()
 
   return (
     str(doc)
@@ -1134,7 +1164,7 @@ class Bundle:
       else:
         return content
 
-  def download_file(self, url, filename, headers=None, wait=5, timeout=0):
+  def download_file(self, url, filename, headers=None, cache=False, wait=5, timeout=0):
     """
     Makes an HTTP get call to load a remote file and save it to a local file.
 
@@ -1146,7 +1176,7 @@ class Bundle:
     self.log(message="calling download_file", url=url, filename=filename)
 
     while True:
-      status_code, file_size = download_file(url, filename, headers)
+      status_code, file_size = download_file(url, filename, headers, cache=cache)
       self.log(message="download_file response", url=url, filename=filename, status_code=status_code, file_size=file_size)
 
       if self.__wait_and_retry(status_code, wait):

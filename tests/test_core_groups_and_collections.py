@@ -401,6 +401,31 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_get_group_members_edge_cases(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "name": "Experts",
+      "id": "1111"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups/1111/members", status=204)
+
+    result1 = g.get_group_members("Doesn't Exist")
+    result2 = g.get_group("Experts").get_members()
+
+    self.assertEqual(result1, False)
+    self.assertEqual(result2, [])
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups/1111/members"
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_delete_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1111",
