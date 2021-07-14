@@ -49,8 +49,8 @@ def convert_card_to_article(card):
   }
 
 class SalesforcePublisher(guru.Publisher):
-  def __init__(self, g):
-    super().__init__(g)
+  def __init__(self, g, dry_run=False):
+    super().__init__(g, dry_run=dry_run)
 
     # We need to get an SFDC access token.
     # I set this connection up in salesforce by following this guide:
@@ -143,7 +143,7 @@ if __name__ == "__main__":
   guru_user = os.environ.get("GURU_USER")
   guru_api_token = os.environ.get("GURU_API_TOKEN")
   g = guru.Guru(guru_user, guru_api_token)
-  publisher = SalesforcePublisher(g)
+  publisher = SalesforcePublisher(g, dry_run=True)
 
   # the identifier here comes from a board's URL.
   # in this case i'm publishing this board from my test team:
