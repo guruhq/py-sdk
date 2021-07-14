@@ -17,6 +17,14 @@ The SDK orchestrates everything and this file just needs to implement methods
 that call SFDC's API to do specific tasks. When the SDK sees a card that's never
 been published before, it'll call create_external_card and we implement the POST
 call to create the external representation of a card (e.g. the Knowledge object)
+
+This script uses these environment variables:
+
+ - GURU_USER and GURU_TOKEN to authenticate Guru API calls.
+ - SFDC_CLIENT_ID
+ - SFDC_CLIENT_SECRET
+ - SFDC_USERNAME
+ - SFDC_PASSWORD
 """
 
 import os
