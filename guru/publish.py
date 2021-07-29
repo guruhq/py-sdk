@@ -132,14 +132,35 @@ class Publisher:
 
   def get_external_id(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("external_id")
-  
+
+  def get_board_names(self, guru_id):
+    return self.__metadata.get(guru_id, {}).get("boards") or []
+
+  def card_needs_publishing(self, card):
+    last_published_date = self.get_last_updated(card.id)
+    if not last_published_date or card.last_modified_date > last_published_date:
+      return True
+
+    # check if the card's list of boards has changed.
+    # todo: wrap these lists in a 'changes' object that'll get passed into the update_external_card function.
+    #       this function can return None to indicate there are no changes and we can skip the card.
+    # todo: we may need to track tags similarly.
+    # todo: we may not want to trust old_board_names and pull the list of existing data category mappings from
+    #       salesforce so it never gets out of sync.
+    old_board_names = set(self.get_board_names(card.id))
+    new_board_names = set([b.title for b in card.boards])
+    if old_board_names != new_board_names:
+      return True
+
+    return False
+
   def get_type(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("type")
 
   def get_last_updated(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("last_updated")
 
-  def __update_metadata(self, guru_id, external_id="", type="", last_modified_date=None):
+  def __update_metadata(self, guru_id, external_id="", type="", last_modified_date=None, boards=None):
     if not self.__metadata.get(guru_id):
       self.__metadata[guru_id] = {}
     
@@ -155,6 +176,9 @@ class Publisher:
     if external_id:
       self.__metadata[guru_id]["external_id"] = external_id
     
+    if boards != None:
+      self.__metadata[guru_id]["boards"] = boards
+
     write_file("./%s.json" % self.name, json.dumps(self.__metadata, indent=2))
 
   def __delete_metadata(self, guru_id, external_id):
@@ -283,6 +307,8 @@ class Publisher:
       if item.type == "section":
         self.publish_section(item, collection, board_group, board)
       else:
+        # todo: if the board has > 50 items we'll  need to load the full card object here.
+        #       we can use a single api call to bulk load cards.
         self.publish_card(item, collection, board_group, board)
 
   def publish_section(self, section, collection=None, board_group=None, board=None):
@@ -325,8 +351,7 @@ class Publisher:
 
     # if the card hasn't been updated since we last published it, we can skip it.
     # todo: could we do this by checking its version number?
-    last_published_date = self.get_last_updated(card.id)
-    if last_published_date and last_published_date >= card.last_modified_date:
+    if not self.card_needs_publishing(card):
       self.__results[card.id] = "skip"
       self.__log("skip card", card.title)
       return
@@ -358,7 +383,7 @@ class Publisher:
     successful = False
     if external_id:
       self.__results[card.id] = "update"
-      self.__log("update card", external_id, card.title)
+      self.__log("update card", external_id, card.title, card.boards)
       if not self.dry_run:
         result = self.update_external_card(external_id, card, section, board, board_group, collection)
         successful = is_successful(result)
@@ -375,5 +400,6 @@ class Publisher:
         card.id,
         external_id,
         last_modified_date=card.last_modified_date,
+        boards=[b.title for b in card.boards],
         type="card"
       )

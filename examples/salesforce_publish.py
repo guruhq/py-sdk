@@ -56,6 +56,8 @@ def convert_card_to_article(card):
     "summary": ""
   }
 
+
+
 class SalesforcePublisher(guru.Publisher):
   def __init__(self, g, dry_run=False):
     super().__init__(g, dry_run=dry_run)
@@ -74,6 +76,7 @@ class SalesforcePublisher(guru.Publisher):
     
     self.sfdc_token = sfdc_data.get("access_token")
     self.sfdc_url = sfdc_data.get("instance_url")
+    self.data_categories = self.get_data_categories()
 
   def get_external_url(self, external_id, card):
     """
@@ -99,6 +102,90 @@ class SalesforcePublisher(guru.Publisher):
     """
     pass
 
+  def sfdc_get(self, url):
+    headers = {
+      "Authorization": "Bearer %s" % self.sfdc_token
+    }
+
+    # you can pass in just "/services/data/..." as the url and we'll add the prefix.
+    if not url.startswith("https:"):
+      url = self.sfdc_url + url
+
+    return requests.get(url, headers=headers).json()
+
+  def sfdc_post(self, url, data):
+    headers = {
+      "Authorization": "Bearer %s" % self.sfdc_token
+    }
+
+    # you can pass in just "/services/data/..." as the url and we'll add the prefix.
+    if not url.startswith("https:"):
+      url = self.sfdc_url + url
+
+    response = requests.post(url, json=data, headers=headers)
+    return response.json()
+
+  def get_data_categories(self):
+    # https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_query.htm
+    data_category_groups = self.sfdc_get("/services/data/v52.0/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion&topCategoriesOnly=false").get("categoryGroups")
+
+    # data categories are arranged in a tree so we use this function to recursively
+    # find all categories and build a flat list.
+    def find_categories(group_name, objects):
+      categories = []
+
+      # each object in the list looks like this:
+      #   {
+      #     'childCategories': [],
+      #     'label': 'Known Issues',
+      #     'name': 'Known_Issues',
+      #     'url': '/services/data/v52.0/support/dataCategoryGroups/Announcements/dataCategories/Known_Issues?sObjectName=KnowledgeArticleVersion'
+      #   }
+      # so we add each one to the list and recursively add child categories.
+      for object in objects:
+        categories.append({
+          "group_name": group_name,
+          "name": object.get("name"),
+          "label": object.get("label")
+        })
+
+        # if there are child categories, add them recursively.
+        child_categories = object.get("childCategories")
+        if child_categories:
+          categories += find_categories(group_name, child_categories)
+
+      return categories
+
+    data_categories = []
+    for group in data_category_groups:
+      data_categories += find_categories(
+        group.get("name"),
+        group.get("topCategories")[0].get("childCategories")
+      )
+
+    return data_categories
+
+  def create_data_category_mapping(self, knowledge_id, data_category_name):
+    # find the data category group name.
+    data_category_group_name = ""
+    for category in self.data_categories:
+      if category.get("label") == data_category_name:
+        data_category_name = category.get("name")
+        data_category_group_name = category.get("group_name")
+        break
+
+    # if the data category name isn't found, we can stop here.
+    if not data_category_group_name:
+      return
+
+    data = {
+      "DataCategoryGroupName": data_category_group_name,
+      "DataCategoryName": data_category_name,
+      "ParentId": knowledge_id
+    }
+    url = "/services/data/v52.0/sobjects/Knowledge__DataCategorySelection/"
+    self.sfdc_post(url, data)
+
   def create_external_card(self, card, section, board, board_group, collection):
     """
     This method is called automatically when the SDK sees a card
@@ -110,7 +197,7 @@ class SalesforcePublisher(guru.Publisher):
       "Authorization": "Bearer %s" % self.sfdc_token
     }
     
-    url = "%s/services/data/v20.0/sobjects/Knowledge__kav/" % self.sfdc_url
+    url = "%s/services/data/v52.0/sobjects/Knowledge__kav/" % self.sfdc_url
 
     # the response will look like this:
     # {
@@ -118,7 +205,15 @@ class SalesforcePublisher(guru.Publisher):
     #   "success": true,
     #   "errors": []
     # }
-    return requests.post(url, json=data, headers=headers).json().get("id")
+    response = requests.post(url, json=data, headers=headers)
+    knowledge_id = response.json().get("id")
+
+    # todo: figure out what data category mappings should be removed and remove them.
+    # create the data category mappings.
+    for board in card.boards:
+      self.create_data_category_mapping(knowledge_id, board.title)
+
+    return knowledge_id
   
   def update_external_card(self, external_id, card, section, board, board_group, collection):
     """
@@ -131,8 +226,16 @@ class SalesforcePublisher(guru.Publisher):
       "Authorization": "Bearer %s" % self.sfdc_token
     }
 
-    url = "%s/services/data/v43.0/support/knowledgeArticles/%s" % (self.sfdc_url, external_id)
-    return requests.put(url, json=data, headers=headers)
+    # url = "%s/services/data/v52.0/support/knowledgeArticles/%s" % (self.sfdc_url, external_id)
+    url = "%s/services/data/v52.0/sobjects/Knowledge__kav/%s" % (self.sfdc_url, external_id)
+    response = requests.patch(url, json=data, headers=headers)
+
+    # todo: figure out what data category mappings should be removed and remove them.
+    # todo: figure out which data cateogory mappings are new and need to be added.
+    for board in card.boards:
+      self.create_data_category_mapping(external_id, board.title)
+
+    return response
   
   def delete_external_card(self, external_id):
     """
@@ -151,7 +254,7 @@ if __name__ == "__main__":
   guru_user = os.environ.get("GURU_USER")
   guru_api_token = os.environ.get("GURU_API_TOKEN")
   g = guru.Guru(guru_user, guru_api_token)
-  publisher = SalesforcePublisher(g, dry_run=True)
+  publisher = SalesforcePublisher(g, dry_run=False)
 
   # the identifier here comes from a board's URL.
   # in this case i'm publishing this board from my test team:
@@ -159,4 +262,5 @@ if __name__ == "__main__":
   #   https://app.getguru.com/boards/KieEXj9i/Managing-and-Sharing-your-Guru-team
   # 
   # so we can use "KieEXj9i" as its ID.
-  publisher.publish_board("KieEXj9i")
+  # publisher.publish_board("KieEXj9i")
+  publisher.publish_collection("Publish to Salesforce")
