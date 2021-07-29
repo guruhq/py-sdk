@@ -774,15 +774,15 @@ class BundleNode:
           filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
           self.bundle.log(message="checking if we should download attachment", url=absolute_url, file=filename)
 
-          # you can either return True or return the http status code.
+          # you can either return True or return a tuple, with the http status code as the first item.
           # if the file was downloaded we need to update the src/href.
           download_result = download_func(absolute_url, filename, self.bundle, self)
 
           is_successful = False
           if type(download_result) == type(True):
             is_successful = download_result
-          elif isinstance(download_result, int):
-            if int(download_result / 100) == 2:
+          elif download_result and isinstance(download_result[0], int):
+            if int(download_result[0] / 100) == 2:
               is_successful = True
 
           if is_successful:
