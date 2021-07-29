@@ -775,6 +775,7 @@ class BundleNode:
           self.bundle.log(message="checking if we should download attachment", url=absolute_url, file=filename)
 
           # you can either return True or return a tuple, with the http status code as the first item.
+          # if the file didn't download, you would get a return of False or None.
           # if the file was downloaded we need to update the src/href.
           download_result = download_func(absolute_url, filename, self.bundle, self)
 
