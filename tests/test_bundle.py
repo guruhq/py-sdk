@@ -808,6 +808,7 @@ class TestBundle(unittest.TestCase):
   <caption>test</caption>
   <tr>
     <td data-something="5" class="this-gets-removed">
+      <h2>heading</h2>
       <p>test</p>
       <ul>
         <li>One</li>
@@ -841,7 +842,9 @@ class TestBundle(unittest.TestCase):
 <table class="ghq-table">
 <tr>
 <td>
-<p>test</p>
+<strong>heading</strong>
+<br/>test
+
 <br/>- One
 <br/>- Two
 

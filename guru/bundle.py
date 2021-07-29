@@ -71,6 +71,16 @@ def _format_style(values):
 def clean_up_html(html):
   doc = BeautifulSoup(html, "html.parser")
 
+  # when we see 'colspan' in a table, insert extra cells so the original TD plus
+  # the extra TDs take up the expected number of columns. for colspan="3" we insert
+  # two TDs after the original one so together they span three columns.
+  # rowspan is harder because we'd have to insert TDs into the next rows.
+  for td in doc.select("[colspan]"):
+    for i in range(1, int(td.attrs.get("colspan", 1))):
+      new_td = doc.new_tag("td")
+      td.insert_after(new_td)
+    del td.attrs["colspan"]
+
   # only keep the attributes we need otherwise they just take up space.
   attributes_to_keep = [
     "style",
@@ -113,6 +123,32 @@ def clean_up_html(html):
   
   for ul in doc.select("td ul, td ol"):
     ul.unwrap()
+
+  # table cells don't really handle multiple blocks, or one block with
+  # text before or after it. so, we try to convert all blocks to inlines.
+  # <p> becomes <span>, <h1> (or any heading) becomes <strong>, <pre>
+  # becomes <code>. once those conversions are made we also insert a <br>
+  # tag between every pair of inlines to make the line breaks look like
+  # they would when the elements were block elements.
+  for td in doc.select("td"):
+
+    # we use this to look up the new tag name. if a match isn't found here
+    # we'll assume it's a heading and convert it to a <strong> tag.
+    # note: these spans will likely get unwrapped later because we unwrap
+    #       unstyled span tags later on.
+    block_to_inline = {
+      "p": "span",
+      "pre": "code"
+    }
+    had_block_elements = False
+    for block in td.select("p, pre, h1, h2, h3, h4, h5, h6"):
+      block.name = block_to_inline.get(block.name, "strong")
+      had_block_elements = True
+
+    # if any conversions happened, insert <br> tags between each pair of inlines.
+    if had_block_elements:
+      for inline in td.select("span ~ span, span ~ strong, span ~ code, strong ~ span, strong ~ strong, strong ~ code, code ~ span, code ~ strong, code ~ code"):
+        inline.insert_before(doc.new_tag("br"))
 
   # we don't use these tags for anything but they might contain content
   # so we call unwrap() rather than calling decompose().
