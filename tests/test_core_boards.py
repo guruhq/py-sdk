@@ -76,6 +76,39 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_delete_board(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+      "id": "abcd",
+      "title": "General"
+    }])
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/boards/abcd")
+
+    g.delete_board("General")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards"
+    }, {
+      "method": "DELETE",
+      "url": "https://api.getguru.com/api/v1/boards/abcd"
+    }])
+  
+  @use_guru()
+  @responses.activate
+  def test_delete_board_with_invalid_board(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/boards/abcd")
+
+    g.delete_board("General")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards"
+    }])
+
+
+  @use_guru()
+  @responses.activate
   def test_get_board_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",

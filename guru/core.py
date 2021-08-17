@@ -2419,6 +2419,39 @@ class Guru:
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
+  def delete_board(self, board, collection=None):
+    """
+    deletes board
+
+    Args:
+        board (str or Board): The name or ID of a board or a Board object
+
+        collection (str or Collection, optional): The name or ID of a collection or a Collection object
+          to filter by. If this is not provided, you'll get back a list of all boards in all collections
+          you can see.
+
+    Returns:
+        bool: True if it was successful and False otherwise.
+    """
+
+    if isinstance(board, Board):
+      url = "%s/boards/%s" % (self.base_url, board.id)
+      response = self.__delete(url)
+      return status_to_bool(response.status_code)
+
+
+    board_obj = find_by_name_or_id(self.get_boards(collection), board)
+    
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+
+
+    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
+
   def bundle(self, id="default", clear=True, folder="/tmp/", verbose=False, skip_empty_sections=False):
     """
     Creates a Bundle object that can be used to bulk import content.
