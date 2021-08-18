@@ -550,7 +550,7 @@ class Framework:
     self.name = title
 
   def import_framework(self):
-    return self.guru.make_collection(self.name, use_framework=True)
+    return self.guru.import_framework(self)
   
 class CollectionAccess:
   """

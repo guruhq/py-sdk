@@ -95,7 +95,7 @@ class TestCore(unittest.TestCase):
         "color" : "#2962ff",
         "id" : "12345678-111a-222b-333c-87654321dcba",
         "description" : "Enable your team with: product FAQs, support processes, canned responses, tech stack tips, and more.\n",
-        "slug" : "tjuii/Client-Support",
+        "slug" : "tjuii/Product-and-Process",
         "collectionType" : "INTERNAL",
         "name" : "Product & Process"
       }
@@ -113,11 +113,56 @@ class TestCore(unittest.TestCase):
       "color" : "#2962ff",
       "id" : "12345678-111a-222b-333c-87654321dcba",
       "description" : "Enable your team with: product FAQs, support processes, canned responses, tech stack tips, and more.\n",
-      "slug" : "tjuii/Client-Support",
+      "slug" : "tjuii/Product-and-Process",
       "collectionType" : "INTERNAL",
       "name" : "Product & Process"
     })
     g.make_collection("Product & Process", use_framework=True)
+
+    self.assertEqual(get_calls(), [
+      {
+        "method": "GET",
+        "url": "https://api.getguru.com/api/v1/frameworks"
+      }, {
+        "method": "POST",
+        "url": "https://api.getguru.com/api/v1/frameworks/import/1234"
+      }
+    ])
+
+  @use_guru()
+  @responses.activate
+  def test_get_frameworks_then_make_collection_with_framework(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/frameworks", json=[{
+      "id": "1234",
+      "collection": {
+        "color" : "#2962ff",
+        "id" : "12345678-111a-222b-333c-87654321dcba",
+        "description" : "Enable your team with: product FAQs, support processes, canned responses, tech stack tips, and more.\n",
+        "slug" : "tjuii/Product-and-Process",
+        "collectionType" : "INTERNAL",
+        "name" : "Product & Process"
+      }
+    },{"id": "5678",
+      "collection": {
+        "color" : "#009688",
+        "id" : "56781234-222b-111a-333c-dcba87654321",
+        "description" : "This is just a test.\n",
+        "slug" : "hynw9/Test",
+        "collectionType" : "INTERNAL",
+        "name" : "Test"
+      }
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/frameworks/import/1234", json={
+      "color" : "#2962ff",
+      "id" : "12345678-111a-222b-333c-87654321dcba",
+      "description" : "Enable your team with: product FAQs, support processes, canned responses, tech stack tips, and more.\n",
+      "slug" : "tjuii/Product-and-Process",
+      "collectionType" : "INTERNAL",
+      "name" : "Product & Process"
+    })
+    
+    framework = g.get_framework("Product & Process")
+    framework.import_framework()
 
     self.assertEqual(get_calls(), [
       {
