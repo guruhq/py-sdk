@@ -244,13 +244,15 @@ def clean_up_html(html):
   #  - contain either no tags, or contains only br, div, or span tags.
   #
   # the second rule is important otherwise we'll remove paragraphs that contain only an image, iframe, etc.
-  for el in doc.select("p, li, h1, h2, h3, h4, h5, h6"):
-    text = el.text.strip()
-    if not text:
-      all_tag_count = len(el.select("*"))
-      unimportant_tag_count = len(el.select("br, div, span"))
-      if all_tag_count == unimportant_tag_count:
-        el.decompose()
+  elements_to_remove_if_empty = ["p", "li", "h1, h2, h3, h4, h5, h6"]
+  for selector in elements_to_remove_if_empty:
+    for el in doc.select(selector):
+      text = el.text.strip()
+      if not text:
+        all_tag_count = len(el.select("*"))
+        unimportant_tag_count = len(el.select("br, div, span"))
+        if all_tag_count == unimportant_tag_count:
+          el.decompose()
 
   # remove empty ol and ul tags.
   for ol in doc.select("ol, ul"):
