@@ -15,6 +15,19 @@ def is_successful(result):
     return result
 
 
+class CardChanges:
+  def __init__(self, content_changed, boards_added, boards_removed):
+    self.content_changed = content_changed
+    self.boards_added = boards_added
+    self.boards_removed = boards_removed
+
+  def needs_publishing(self):
+    if self.content_changed or self.boards_added or self.boards_removed:
+      return True
+    else:
+      return False
+
+
 class Publisher:
   def __init__(self, g, name="", metadata=None, silent=False, dry_run=False):
     self.g = g
@@ -81,10 +94,10 @@ class Publisher:
   # these have to be implemented because you're always publishing cards.
   # sections, boards, etc. may be unimplemented because it's possible
   # thoe don't have any meaning in the system you're publishing to.
-  def create_external_card(self, card, section, board, board_group, collection):
+  def create_external_card(self, card, changes, section, board, board_group, collection):
     raise NotImplementedError()
   
-  def update_external_card(self, external_id, card, section, board, board_group, collection):
+  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
     raise NotImplementedError()
   
   def delete_external_card(self, external_id):
@@ -136,23 +149,27 @@ class Publisher:
   def get_board_names(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("boards") or []
 
-  def card_needs_publishing(self, card):
+  def get_card_changes(self, card):
+    """
+    This generates a CardChanges object which wraps up all the possible changes
+    that can happen. Notably, this includes the boards the card was added to or
+    removed from.
+    """
+    content_changed = False
     last_published_date = self.get_last_updated(card.id)
     if not last_published_date or card.last_modified_date > last_published_date:
-      return True
+      content_changed = True
 
-    # check if the card's list of boards has changed.
-    # todo: wrap these lists in a 'changes' object that'll get passed into the update_external_card function.
-    #       this function can return None to indicate there are no changes and we can skip the card.
     # todo: we may need to track tags similarly.
     # todo: we may not want to trust old_board_names and pull the list of existing data category mappings from
     #       salesforce so it never gets out of sync.
     old_board_names = set(self.get_board_names(card.id))
     new_board_names = set([b.title for b in card.boards])
-    if old_board_names != new_board_names:
-      return True
 
-    return False
+    boards_added = list(new_board_names - old_board_names)
+    boards_removed = list(old_board_names - new_board_names)
+
+    return CardChanges(content_changed, boards_added, boards_removed)
 
   def get_type(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("type")
@@ -346,15 +363,21 @@ class Publisher:
       self.publish_card(item, collection, board_group, board, section)
 
   def publish_card(self, card, collection=None, board_group=None, board=None, section=None):
-    # call create/update/delete_card as needed.
+    """
+    This method figures out if the card has changes that need to be published and
+    calls create/update_external_card based on whether the card has ever been
+    published before or not.
+    """
     external_id = self.get_external_id(card.id)
 
-    # if the card hasn't been updated since we last published it, we can skip it.
-    # todo: could we do this by checking its version number?
-    if not self.card_needs_publishing(card):
+    # if there are no publish-worthy changes we can skip this card.
+    changes = self.get_card_changes(card)
+    if not changes.needs_publishing():
       self.__results[card.id] = "skip"
       self.__log("skip card", card.title)
       return
+
+    print(card.title, "added", changes.boards_added, "removed", changes.boards_removed)
 
     # scan the guru card for card to card links.
     # these should become links between external articles.
@@ -385,13 +408,13 @@ class Publisher:
       self.__results[card.id] = "update"
       self.__log("update card", external_id, card.title, card.boards)
       if not self.dry_run:
-        result = self.update_external_card(external_id, card, section, board, board_group, collection)
+        result = self.update_external_card(external_id, card, changes, section, board, board_group, collection)
         successful = is_successful(result)
     else:
       self.__results[card.id] = "create"
       self.__log("create card", card.title)
       if not self.dry_run:
-        external_id = self.create_external_card(card, section, board, board_group, collection)
+        external_id = self.create_external_card(card, changes, section, board, board_group, collection)
         if external_id:
           successful = True
     

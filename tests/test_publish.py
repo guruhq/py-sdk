@@ -47,11 +47,11 @@ class PublisherTest(guru.Publisher):
     return card.id[0:4] if card.title in self.external_data else ""
 
   # crud operations for cards
-  def create_external_card(self, card, section, board, board_group, collection):
+  def create_external_card(self, card, changes, section, board, board_group, collection):
     self.calls.append("create card %s" % card.title)
     return card.id[0:4]
   
-  def update_external_card(self, external_id, card, section, board, board_group, collection):
+  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
     self.calls.append("update card %s" % card.title)
   
   def delete_external_card(self, external_id):

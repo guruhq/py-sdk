@@ -31,6 +31,8 @@ import os
 import guru
 import requests
 
+from urllib.parse import quote
+
 
 def convert_card_to_article(card):
   """
@@ -76,7 +78,7 @@ class SalesforcePublisher(guru.Publisher):
     
     self.sfdc_token = sfdc_data.get("access_token")
     self.sfdc_url = sfdc_data.get("instance_url")
-    self.data_categories = self.get_data_categories()
+    self.data_categories = self.get_all_data_categories()
 
   def get_external_url(self, external_id, card):
     """
@@ -103,6 +105,10 @@ class SalesforcePublisher(guru.Publisher):
     pass
 
   def sfdc_get(self, url):
+    """
+    Makes a GET call to salesforce's API. This adds some convenience by adding
+    the salesforce instance URL as a prefix and parses the JSON response.
+    """
     headers = {
       "Authorization": "Bearer %s" % self.sfdc_token
     }
@@ -114,6 +120,10 @@ class SalesforcePublisher(guru.Publisher):
     return requests.get(url, headers=headers).json()
 
   def sfdc_post(self, url, data):
+    """
+    Makes a POST call to salesforce's API. This adds some convenience by adding
+    the salesforce instance URL as a prefix and parses the JSON response.
+    """
     headers = {
       "Authorization": "Bearer %s" % self.sfdc_token
     }
@@ -125,7 +135,32 @@ class SalesforcePublisher(guru.Publisher):
     response = requests.post(url, json=data, headers=headers)
     return response.json()
 
-  def get_data_categories(self):
+  def sfdc_delete(self, url):
+    """
+    Makes a DELETE call to salesforce's API. This adds some convenience by adding
+    the salesforce instance URL as a prefix and parses the JSON response.
+    """
+    headers = {
+      "Authorization": "Bearer %s" % self.sfdc_token
+    }
+
+    # you can pass in just "/services/data/..." as the url and we'll add the prefix.
+    if not url.startswith("https:"):
+      url = self.sfdc_url + url
+
+    response = requests.delete(url, headers=headers)
+    if response.status_code == 204:
+      return True
+    else:
+      return response.json()
+
+  def get_all_data_categories(self):
+    """
+    Loads the list of all Data Categories and Data Category Groups from
+    Salesforce. When we need to map an article to a Data Category, we'll need
+    to have the Data Category's ID. By loading all of them up front, we'll be
+    able to look up the ID when we need it without making extra API calls.
+    """
     # https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_query.htm
     data_category_groups = self.sfdc_get("/services/data/v52.0/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion&topCategoriesOnly=false").get("categoryGroups")
 
@@ -165,7 +200,53 @@ class SalesforcePublisher(guru.Publisher):
 
     return data_categories
 
-  def create_data_category_mapping(self, knowledge_id, data_category_name):
+  def set_data_category_mappings(self, card, knowledge_id, remove_existing=False):
+    """
+    Updates the Date Category mappings of a Knowledge Object. These are based
+    the Guru Boards the card is on.
+
+    This method removes all existing mappings as this is an easy way to keep
+    Salesforce and Guru in sync -- remove all the mappings, then add back the
+    ones we need. That way, it doesn't matter how the Card's Board assignments
+    changed. If some were added and some were removed, this process will make
+    sure the Knowldege object has the correct Data Categories assigned.
+
+    Args:
+      card (Card): The Card object Guru's SDK provides representing the Guru
+        card that's being published.
+      knowledge_id (str): The Salesforce ID of the Knowledge object we're updating.
+      remove_existing (False, optional): True if we want to remove all existing
+        Data Category mappings. If it's a new article being created we'll leave
+        this as False.
+    """
+    # load the list of existing data category assignments.
+    query = "select id, DataCategoryName from Knowledge__DataCategorySelection where ParentId = '%s'" % knowledge_id
+    url = "/services/data/v52.0/query/?q=%s" % quote(query)
+    mappings = self.sfdc_get(url).get("records")
+    mapping_ids = [m.get("Id") for m in mappings]
+
+    # remove all of them. we may add some back but it's hard to match them by
+    # name because the names don't match exactly. also, removing all and
+    # re-adding the ones we need is the easiest way to make sure salesforce
+    # and guru are 100% in sync.
+    if remove_existing:
+      for mapping_id in mapping_ids:
+        self.remove_data_category_mapping(mapping_id)
+
+    # add all of the necessary data category mappings.
+    for board in card.boards:
+      self.add_data_category_mapping(knowledge_id, board.title)
+
+  def add_data_category_mapping(self, knowledge_id, data_category_name):
+    """
+    Maps a Salesforce Knowledge object to a Data Category. The Data Category
+    is specified by name and we'll look it up to get its Salesforce ID.
+
+    Args:
+      knowledge_id (str): The ID of the Knowledge object we're updating.
+      data_category_name (str): The name of the Data Category to map the
+        Knowledge object to.
+    """
     # find the data category group name.
     data_category_group_name = ""
     for category in self.data_categories:
@@ -186,7 +267,18 @@ class SalesforcePublisher(guru.Publisher):
     url = "/services/data/v52.0/sobjects/Knowledge__DataCategorySelection/"
     self.sfdc_post(url, data)
 
-  def create_external_card(self, card, section, board, board_group, collection):
+  def remove_data_category_mapping(self, mapping_id):
+    """
+    Removes as single Data Category mapping from a Knowledge object.
+
+    Args:
+      mapping_id (str): The Salesforce ID of the Data Category Selection object,
+        which is what maps a Knowledge object to Data Category.
+    """
+    url = "/services/data/v52.0/sobjects/Knowledge__DataCategorySelection/%s" % mapping_id
+    return self.sfdc_delete(url)
+
+  def create_external_card(self, card, changes, section, board, board_group, collection):
     """
     This method is called automatically when the SDK sees a card
     that it knows hasn't been published before. This means we need
@@ -208,32 +300,28 @@ class SalesforcePublisher(guru.Publisher):
     response = requests.post(url, json=data, headers=headers)
     knowledge_id = response.json().get("id")
 
-    # todo: figure out what data category mappings should be removed and remove them.
     # create the data category mappings.
-    for board in card.boards:
-      self.create_data_category_mapping(knowledge_id, board.title)
+    self.set_data_category_mappings(card, knowledge_id)
 
     return knowledge_id
   
-  def update_external_card(self, external_id, card, section, board, board_group, collection):
+  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
     """
-    This method is called automatically when the SDK sees a card
-    that _has_ been published before. We know its Salesforce ID so
-    we can make the PUT call to update the Knowledge object.
+    This method is called automatically when the SDK sees a card that has been
+    published before. We know its Salesforce ID so we can make the PUT call to
+    update the Knowledge object.
     """
     data = convert_card_to_article(card)
     headers = {
       "Authorization": "Bearer %s" % self.sfdc_token
     }
 
-    # url = "%s/services/data/v52.0/support/knowledgeArticles/%s" % (self.sfdc_url, external_id)
     url = "%s/services/data/v52.0/sobjects/Knowledge__kav/%s" % (self.sfdc_url, external_id)
     response = requests.patch(url, json=data, headers=headers)
 
-    # todo: figure out what data category mappings should be removed and remove them.
-    # todo: figure out which data cateogory mappings are new and need to be added.
-    for board in card.boards:
-      self.create_data_category_mapping(external_id, board.title)
+    # the boards in guru determine what data categories the knowledge article is mapped to.
+    # when you add or remove board assignments in guru, we need to update salesforce accordingly.
+    self.set_data_category_mappings(card, external_id, remove_existing=True)
 
     return response
   
@@ -263,4 +351,6 @@ if __name__ == "__main__":
   # 
   # so we can use "KieEXj9i" as its ID.
   # publisher.publish_board("KieEXj9i")
+
+  # if we're publishing an entire collection we can reference it by name.
   publisher.publish_collection("Publish to Salesforce")
