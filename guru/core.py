@@ -1097,6 +1097,22 @@ class Guru:
       except:
         return None
 
+  def get_cards(self, card_ids):
+    url = "%s/cards/bulk" % self.base_url
+    data = {
+      "ids": card_ids
+    }
+
+    response = self.__post(url, data)
+
+    # this returns a dict where each key is a card ID and the value
+    # is the card object plus a 'status' field, so we convert the
+    # nested card objects to instances of the Card class.
+    if status_to_bool(response.status_code):
+      return {id: Card(obj) for id, obj in response.json().items()}
+    else:
+      return {}
+
   def get_visible_cards(self):
     """
     Gets the count of all cards on the team where you have read access or higher.
