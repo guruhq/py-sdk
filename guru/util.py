@@ -123,9 +123,13 @@ def download_file(url, filename, headers=None, cache=False):
         file_size = len(response.content)
         file_out.write(response.content)
       else:
-        file_size = len(response.raw)
-        response.raw.decode_content = True
-        shutil.copyfileobj(response.raw, file_out)
+        # file_size = len(response.raw)
+        file_size = response.raw._fp_bytes_read
+        if file_size > 0:
+          response.raw.decode_content = True
+          shutil.copyfileobj(response.raw, file_out)
+        else:
+          print("POTENTIAL ERROR IN FILE: ", filename, "FILE_SIZE: ", file_size)
   
   return response.status_code, file_size
   
