@@ -569,7 +569,30 @@ class Collection:
       "color": self.color,
     }
 
+class Framework:
+  """
+  The Framework object is used to represent a framework, used to a import as a new collection. 
+  These objects simply have these properties:
+  - `id`
+  - `collection`
+  """
+  def __init__(self, data, guru=None):
+    self.guru = guru
+    self.id = data.get("id")
+    self.name = data.get("collection").get("name")
+    self.collection = Collection(data.get("collection"), guru=guru)
 
+  @property
+  def title(self):
+    return self.name
+
+  @title.setter
+  def title(self, title):
+    self.name = title
+
+  def import_framework(self):
+    return self.guru.import_framework(self)
+  
 class CollectionAccess:
   """
   The CollectionAccess object is used to represent a group's assignment
