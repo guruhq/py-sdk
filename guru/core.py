@@ -15,7 +15,7 @@ else:
   from urlparse import quote
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question
+from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question, Framework
 from guru.util import download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
@@ -269,6 +269,83 @@ class Guru:
     self.__log_response(response)
     return response
 
+  def get_frameworks(self, cache=False):
+    """
+    Loads a list of available collection frameworks.
+
+    ```
+    frameworks = g.get_frameworks()
+    for framework in frameworks:
+      print(framework.name)
+      print(framework.description)
+    ```
+
+    Args:
+      cache (bool, optional): Tells us whether we should reuse the results
+        from the previous call or not. Defaults to False. Set this to True
+        if it's not likely the set of frameworks has changed since the
+        previous call.
+    
+    Returns:
+      list of Framework: a list of Framework objects.
+    """
+    url = "%s/frameworks" % self.base_url
+    response = self.__get(url, cache)
+    return [Framework(f, guru=self) for f in response.json()]
+
+  def get_framework(self, framework, cache=False):
+    """
+    Loads a collection framework.
+
+    ```
+    framework = g.get_framework("Client Support")
+    print(framework.name)
+    print(framework.collection.description)
+    ```
+
+    Args:
+      framework (str): Either a framework name or ID. If it's a name, it'll
+        return the first matching collection and the comparison is not case
+        sensitive.
+      cache (bool, optional): If we're looking up a framework by name we'll
+        fetch all frameworks and then look for a match in the results and this
+        flag tells us whether we should use the results from the previous
+        /frameworks API call or make a new call. Defaults to False.
+    
+    Returns:
+      Framework: An object representing the framework.
+    """
+    if isinstance(framework, Framework):
+      return framework
+    else:
+      # we compare the name and ID because you can pass either.
+      # and if the names aren't unique, you'll need to pass an ID.
+      return find_by_name_or_id(self.get_frameworks(cache), framework)
+
+  def import_framework(self, framework):
+    """
+    imports a framework, based on the provided Framework's ID
+
+    Args:
+      framework (Framework): an object that represents a framework
+
+    Raises:
+      ValueError: must provide a valid Framework object
+
+    Returns:
+      Collection: an object that represents a collection
+    """
+
+    if isinstance(framework, Framework):
+      self.__log("import collection framework", make_blue(framework.title), "with ", make_blue(self.username), "as Collection Owner")
+      url = "%s/frameworks/import/%s" % (self.base_url, framework.id)
+      response = self.__post(url)
+      return Collection(response.json(), guru=self)
+    else:
+      raise ValueError("invalid value: %s, please provide a Framework object." % framework)
+
+
+
   def get_collection(self, collection, cache=False):
     """
     Loads a collection.
@@ -324,7 +401,7 @@ class Guru:
     response = self.__get(url, cache)
     return [Collection(c, guru=self) for c in response.json()]
 
-  def make_collection(self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True):
+  def make_collection(self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True, use_framework=False):
     """
     Creates a new collection.
 
@@ -342,10 +419,18 @@ class Guru:
         access to this collection. Defaults to All Members.
       public_cards (bool, optional): True if you want to allow cards in this collection
         to be made public and False if you don't. Defaults to True.
+      use_framework: (bool, optional): True if you are importing a framework. The name parameter will be used to find the 
+        desired framework, so make sure that the name matches the framework you want to use. Defaults to False.
     
     Returns:
       Collection: an object representing the new collection.
     """
+    # if we are importing a framework, we want to handle this a little differently, and use the frameworks endpoint
+    if use_framework:
+      self.__log("import collection framework", make_blue(name), "with ", make_blue(self.username), "as Collection Owner")
+      framework = self.get_framework(name, cache=True)
+      return self.import_framework(framework)
+
     self.__log("make collection", make_blue(name), "with ", make_blue(group), "as Collection Owner")
 
     if not color:
@@ -1096,6 +1181,22 @@ class Guru:
         return Card(response.json(), guru=self)
       except:
         return None
+
+  def get_cards(self, card_ids):
+    url = "%s/cards/bulk" % self.base_url
+    data = {
+      "ids": card_ids
+    }
+
+    response = self.__post(url, data)
+
+    # this returns a dict where each key is a card ID and the value
+    # is the card object plus a 'status' field, so we convert the
+    # nested card objects to instances of the Card class.
+    if status_to_bool(response.status_code):
+      return {id: Card(obj) for id, obj in response.json().items()}
+    else:
+      return {}
 
   def get_visible_cards(self):
     """

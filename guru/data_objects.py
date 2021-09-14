@@ -90,7 +90,7 @@ class Board:
       self.collection = Collection(data.get("collection"))
     else:
       self.collection = None
-    
+
     self.items = []
     self.__cards = []
     self.__sections = []
@@ -108,6 +108,47 @@ class Board:
         self.items.append(card)
         self.__all_items.append(card)
         self.__cards.append(card)
+
+    self.__load_all_cards()
+
+  def __update_cards_in_list(self, item_list, lookup):
+    # we scan the list and replace any partial card with its full card from the lookup.
+    # we don't bother checking if something is a partial card because if it's in the
+    # lookup dict, that means it must've been a partial card.
+    for i in range(0, len(item_list)):
+      full_item = lookup.get(item_list[i].id)
+      if full_item:
+        item_list[i] = full_item
+
+  def __load_all_cards(self):
+    # identify the partially-loaded cards.
+    # these come from boards that have more than 50 cards.
+    # sometimes the API returns a 'lite' board that doesn't have items at all. these will
+    # naturally skip over most of this logic because their items list is missing or empty
+    # so we don't have any card IDs to try to load.
+    unloaded_card_ids = []
+    for card in self.__cards:
+      if not card.title:
+        unloaded_card_ids.append(card.id)
+
+    # if the board has < 50 cards this list will be empty and we can stop early.
+    if not unloaded_card_ids:
+      return
+
+    # load the unloaded cards in batches of 50.
+    # our API does enforce a max of 50.
+    card_lookup = {}
+    for index in range(0, len(unloaded_card_ids), 50):
+      batch_ids = unloaded_card_ids[index:index + 50]
+      data = self.guru.get_cards(batch_ids)
+      for id in data:
+        card_lookup[id] = data[id]
+
+    # now that we have the full card objects, we update the entries in all the existing lists.
+    self.__update_cards_in_list(self.__cards, card_lookup)
+    self.__update_cards_in_list(self.__all_items, card_lookup)
+    for section in self.__sections:
+      self.__update_cards_in_list(section.items, card_lookup)
 
   @property
   def url(self):
@@ -537,7 +578,30 @@ class Collection:
       "color": self.color,
     }
 
+class Framework:
+  """
+  The Framework object is used to represent a framework, used to a import as a new collection. 
+  These objects simply have these properties:
+  - `id`
+  - `collection`
+  """
+  def __init__(self, data, guru=None):
+    self.guru = guru
+    self.id = data.get("id")
+    self.name = data.get("collection").get("name")
+    self.collection = Collection(data.get("collection"), guru=guru)
 
+  @property
+  def title(self):
+    return self.name
+
+  @title.setter
+  def title(self, title):
+    self.name = title
+
+  def import_framework(self):
+    return self.guru.import_framework(self)
+  
 class CollectionAccess:
   """
   The CollectionAccess object is used to represent a group's assignment
