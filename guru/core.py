@@ -66,7 +66,7 @@ def base64_encode(string):
   ).decode("ascii")
 
 def is_board_slug(value):
-  return re.match("^[a-zA-Z0-9]{5,8}$", value)
+  return re.match("^[a-zA-Z0-9]{8,9}$", value)
 
 def is_uuid(value):
   return re.match("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", value, flags=re.IGNORECASE)
@@ -2535,13 +2535,7 @@ class Guru:
         bool: True if it was successful and False otherwise.
     """
 
-    if isinstance(board, Board):
-      url = "%s/boards/%s" % (self.base_url, board.id)
-      response = self.__delete(url)
-      return status_to_bool(response.status_code)
-
-
-    board_obj = find_by_name_or_id(self.get_boards(collection), board)
+    board_obj = self.get_board(board, collection=collection)
     
     if not board_obj:
       self.__log(make_red("could not find board:", board))

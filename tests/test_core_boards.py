@@ -148,15 +148,38 @@ class TestCore(unittest.TestCase):
   def test_delete_board(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
       "id": "abcd",
-      "title": "General"
+      "title": "General",
+      "collection": {
+        "id": "ababab"
+      }
+    },
+    {
+      "id": "4321",
+      "title": "Test",
+      "collection": {
+        "id": "cdcdcd"
+      }
     }])
+    # responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/General", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/abcd", json={
+      "id": "abcd",
+      "title": "General",
+      "collection": {
+        "id": "ababab"
+      }
+    })
     responses.add(responses.DELETE, "https://api.getguru.com/api/v1/boards/abcd")
 
-    g.delete_board("General")
+    board = g.get_board("General")
+    board.delete()
+
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/abcd"
     }, {
       "method": "DELETE",
       "url": "https://api.getguru.com/api/v1/boards/abcd"
@@ -168,7 +191,7 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
     responses.add(responses.DELETE, "https://api.getguru.com/api/v1/boards/abcd")
 
-    g.delete_board("General")
+    g.delete_board("123456")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
@@ -474,7 +497,6 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/invalid", status=404)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[{
       "id": "abcd",
       "title": "Board A",
@@ -486,9 +508,6 @@ class TestCore(unittest.TestCase):
     g.set_item_order("General", "invalid", "a", "b", "c")
 
     self.assertEqual(get_calls(), [{
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/invalid"
-    }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections",
     }, {
@@ -632,21 +651,21 @@ class TestCore(unittest.TestCase):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/abcde", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/abcde123", json={
       "id": "2222",
-      "slug": "abcde/my-board",
+      "slug": "abcde123/my-board",
       "title": "my board"
     })
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
 
-    g.add_card_to_board("1111", "abcde")
+    g.add_card_to_board("1111", "abcde123")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/abcde"
+      "url": "https://api.getguru.com/api/v1/boards/abcde123"
     }, {
       "method": "PUT",
       "url": "https://api.getguru.com/api/v1/boards/2222",
@@ -1312,7 +1331,6 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_move_invalid_board_to_collection(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111", status=404)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
@@ -1323,9 +1341,6 @@ class TestCore(unittest.TestCase):
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111"
-    }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
