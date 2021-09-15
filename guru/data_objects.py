@@ -336,6 +336,15 @@ class Board:
         new collection.
     """
     self.guru.move_board_to_collection(self, collection, timeout)
+  
+  def delete(self):
+    """
+    deletes board
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    return self.guru.delete_board(self, self.collection.id)
 
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {

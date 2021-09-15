@@ -66,7 +66,7 @@ def base64_encode(string):
   ).decode("ascii")
 
 def is_board_slug(value):
-  return re.match("^[a-zA-Z0-9]{5,8}$", value)
+  return re.match("^[a-zA-Z0-9]{8,9}$", value)
 
 def is_uuid(value):
   return re.match("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", value, flags=re.IGNORECASE)
@@ -2519,6 +2519,33 @@ class Guru:
     }
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
+
+  def delete_board(self, board, collection=None):
+    """
+    deletes board
+
+    Args:
+        board (str or Board): The name or ID of a board or a Board object
+
+        collection (str or Collection, optional): The name or ID of a collection or a Collection object
+          to filter by. If this is not provided, you'll get back a list of all boards in all collections
+          you can see.
+
+    Returns:
+        bool: True if it was successful and False otherwise.
+    """
+
+    board_obj = self.get_board(board, collection=collection)
+    
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+
+
+    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
 
   def bundle(self, id="default", clear=True, folder="/tmp/", verbose=False, skip_empty_sections=False):
     """
