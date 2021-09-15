@@ -497,6 +497,7 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "General"
     }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/isinvalid", status=404)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[{
       "id": "abcd",
       "title": "Board A",
@@ -505,9 +506,12 @@ class TestCore(unittest.TestCase):
       "title": "Board B"
     }])
 
-    g.set_item_order("General", "invalid", "a", "b", "c")
+    g.set_item_order("General", "isinvalid", "a", "b", "c")
 
     self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/isinvalid"
+    }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections",
     }, {
@@ -1331,16 +1335,20 @@ class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
   def test_move_invalid_board_to_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111", status=404)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[])
 
-    result = g.move_board_to_collection("11111", "General")
+    result = g.move_board_to_collection("11111111", "General")
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/11111111"
+    }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
