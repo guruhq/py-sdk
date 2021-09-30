@@ -90,7 +90,7 @@ class Board:
       self.collection = Collection(data.get("collection"))
     else:
       self.collection = None
-    
+
     self.items = []
     self.__cards = []
     self.__sections = []
@@ -108,6 +108,47 @@ class Board:
         self.items.append(card)
         self.__all_items.append(card)
         self.__cards.append(card)
+
+    self.__load_all_cards()
+
+  def __update_cards_in_list(self, item_list, lookup):
+    # we scan the list and replace any partial card with its full card from the lookup.
+    # we don't bother checking if something is a partial card because if it's in the
+    # lookup dict, that means it must've been a partial card.
+    for i in range(0, len(item_list)):
+      full_item = lookup.get(item_list[i].id)
+      if full_item:
+        item_list[i] = full_item
+
+  def __load_all_cards(self):
+    # identify the partially-loaded cards.
+    # these come from boards that have more than 50 cards.
+    # sometimes the API returns a 'lite' board that doesn't have items at all. these will
+    # naturally skip over most of this logic because their items list is missing or empty
+    # so we don't have any card IDs to try to load.
+    unloaded_card_ids = []
+    for card in self.__cards:
+      if not card.title:
+        unloaded_card_ids.append(card.id)
+
+    # if the board has < 50 cards this list will be empty and we can stop early.
+    if not unloaded_card_ids:
+      return
+
+    # load the unloaded cards in batches of 50.
+    # our API does enforce a max of 50.
+    card_lookup = {}
+    for index in range(0, len(unloaded_card_ids), 50):
+      batch_ids = unloaded_card_ids[index:index + 50]
+      data = self.guru.get_cards(batch_ids)
+      for id in data:
+        card_lookup[id] = data[id]
+
+    # now that we have the full card objects, we update the entries in all the existing lists.
+    self.__update_cards_in_list(self.__cards, card_lookup)
+    self.__update_cards_in_list(self.__all_items, card_lookup)
+    for section in self.__sections:
+      self.__update_cards_in_list(section.items, card_lookup)
 
   @property
   def url(self):
@@ -746,12 +787,30 @@ class Card:
 
   @property
   def doc(self):
+    """
+    The `doc` property is a [BeautifulSoup object](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
+    that represents the card's content. This is created by parsing the card's
+    HTML content so you can easily do operations like finding all images in
+    a card and printing their URLs:
+
+    ```
+    for card in g.find_cards(collection="General"):
+      for image in card.doc.select("img"):
+        print(image.attrs.get("src"))
+    ```
+    """
     if not self.__doc:
       self.__doc = BeautifulSoup(self.content, "html.parser")
     return self.__doc
 
   @property
   def content(self):
+    """
+    The card's content as either HTML or Markdown. Most cards
+    have HTML content. Any card created through Guru's UI will
+    have HTML content but cards created through the API can have
+    their content as Markdown.
+    """
     return str(self.__doc) if self.__doc else self.__content
 
   @content.setter
@@ -762,6 +821,20 @@ class Card:
 
   @property
   def url(self):
+    """
+    Returns the card's URL. You can piece this together yourself
+    using the card's `slug` property, but why bother!
+
+    ```
+    card = g.get_card("Tbbqo5pc")
+
+    # prints: Tbbqo5pc/Getting-Started-with-the-Guru-SDK
+    print(card.slug)
+
+    # prints: https://app.getguru.com/card/Tbbqo5pc/Getting-Started-with-the-Guru-SDK
+    print(card.url)
+    ```
+    """
     if self.slug:
       return "https://app.getguru.com/card/%s" % self.slug
     else:
@@ -875,6 +948,15 @@ class Card:
     return saved_card, status
 
   def save(self, verify=False):
+    """
+    Saves the card. You can pass an optional `verify` parameter to say whether
+    you want to save & verify, or just save -- similar to the two buttons you'd
+    see in the editor while editing a card.
+
+    Args:
+      verify (bool, optional): True if you want to also verify the card, False if
+        you want to leave its trust state alone. Defaults to False.
+    """
     saved_card, status = self.guru.save_card(self, verify)
     # todo: figure out what all the properties are that we'd need to update.
     self.id = saved_card.id
@@ -915,18 +997,18 @@ class Card:
     """
     Checks if the card contains a particular string. This is useful when you're
     looking to update a term or name. For eample, if you changed the name of your
-    #product-feedback channel, you can use this to find the affected cards:
+    product-feedback channel, you can use this to find the affected cards:
 
     ```
     import guru
     g = guru.Guru()
 
     for card in g.find_cards():
-      if card.has_text("#product-feedback"):
+      if card.has_text("product-feedback"):
         print(card.url)
     ```
 
-    If you searched Guru for "#product-feedback" you'll find cards that contain
+    If you searched Guru for "product-feedback" you'll find cards that contain
     just the word "feedback". Using `has_text()` checks that the card contains
     this exact string.
 
@@ -955,6 +1037,13 @@ class Card:
     return text in card_content
 
   def find_urls(self):
+    """
+    Gets a list of all URLs found in the card's content. This includes
+    images, iframes, and links. It also includes links inside Markdown
+    blocks or in cards whose content is pure Markdown. It does not
+    include URLs that are just text, like if you type "https://www.example.com"
+    in a paragraph but it's not a link.
+    """
     # this checks images, iframes, and links.
     urls = find_urls_in_doc(self.doc)
 
@@ -970,7 +1059,15 @@ class Card:
     """
     Replaces the occurrence of one URL with another. This is different
     than replacing text because we want to target HTML attributes (image
-    URLs, link URLs, etc.).
+    URLs, link URLs, etc.). It also handles making replacements inside
+    of Markdown blocks.
+
+    Args:
+      old_url (str): The URL to be replaced.
+      new_url (str): The value to replace it with.
+
+    Returns:
+      bool: True if any replacements were made, False if no changes were made.
     """
     modified = False
     if old_url in self.content:
@@ -992,6 +1089,11 @@ class Card:
   def add_tag(self, tag, create=False):
     """
     Adds the tag to the card and saves this change.
+
+    Args:
+      tag (Tag or string): Either the name of the tag (e.g. "case study") or the Tag object.
+      create (bool, optional): This tells the SDK if it should create the tag if it doesn't
+        already exist. Defaults to False.
     """
     if self.has_tag(tag):
       return True
@@ -1005,6 +1107,9 @@ class Card:
     username and API token and all comments will be made as that user. If you want
     to make comments as different users, you'll need each user's username and API
     token.
+
+    Args:
+      comment (str): The content of the comment.
     """
     return self.guru.add_comment_to_card(self, comment)
 
@@ -1023,6 +1128,9 @@ class Card:
       section (str, optional): The name of the section to add this card to.
     """
     return self.guru.add_card_to_board(self, board, section, collection=self.collection)
+
+  def download_as_pdf(self, filename):
+    return self.guru.download_card_as_pdf(self, filename)
 
   def json(self, verify=False):
     """internal"""

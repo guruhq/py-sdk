@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import time
+import base64
 import requests
 import mimetypes
 
@@ -15,7 +16,7 @@ else:
 
 from guru.bundle import Bundle
 from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question
-from guru.util import find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
+from guru.util import download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -58,6 +59,11 @@ def get_link_header(response):
 def status_to_bool(status_code):
   band = int(status_code / 100)
   return (band == 2 or band == 3)
+
+def base64_encode(string):
+  return base64.b64encode(
+    string.encode("ascii")
+  ).decode("ascii")
 
 def is_board_slug(value):
   return re.match("^[a-zA-Z0-9]{5,8}$", value)
@@ -128,6 +134,10 @@ class Guru:
   def __get_auth(self):
     """internal"""
     return HTTPBasicAuth(self.username, self.api_token)
+
+  def __get_basic_auth_value(self):
+    auth_string = "%s:%s" % (self.username, self.api_token)
+    return "Basic %s" % base64_encode(auth_string)
 
   def __log(self, *args):
     """internal"""
@@ -1087,6 +1097,22 @@ class Guru:
       except:
         return None
 
+  def get_cards(self, card_ids):
+    url = "%s/cards/bulk" % self.base_url
+    data = {
+      "ids": card_ids
+    }
+
+    response = self.__post(url, data)
+
+    # this returns a dict where each key is a card ID and the value
+    # is the card object plus a 'status' field, so we convert the
+    # nested card objects to instances of the Card class.
+    if status_to_bool(response.status_code):
+      return {id: Card(obj) for id, obj in response.json().items()}
+    else:
+      return {}
+
   def get_visible_cards(self):
     """
     Gets the count of all cards on the team where you have read access or higher.
@@ -1680,6 +1706,19 @@ class Guru:
     drafts = self.__get_and_get_all(url)
     drafts = [Draft(d, guru=self) for d in drafts]
     return drafts
+
+  def create_draft(self, title, content, json_content=""):
+    data = {
+      "content": content,
+      # todo: most users won't have json content -- is that ok?
+      "jsonContent": json_content,
+      "title": title,
+      "saveType": "USER"
+    }
+    url = "%s/drafts" % self.base_url
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      return Draft(response.json())
 
   def delete_draft(self, draft):
     url = "%s/drafts/%s" % (self.base_url, draft.id)
@@ -2622,3 +2661,17 @@ class Guru:
       url = "%s/tasks/questions/%s" % (self.base_url, question)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
+
+  def download_card_as_pdf(self, card, filename):
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+
+    url = "https://api.getguru.com/api/v1/cards/%s/pdf" % card_obj.id
+    headers = {
+      "Authorization": self.__get_basic_auth_value()
+    }
+
+    status, file_size = download_file(url, filename, headers=headers)
+    return status_to_bool(status)

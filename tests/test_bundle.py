@@ -731,7 +731,7 @@ class TestBundle(unittest.TestCase):
 </p>""")
 
     download_mock = Mock()
-    download_mock.return_value = 200
+    download_mock.return_value = (200, 2355)
     sync.zip(download_func=download_mock)
 
     self.assertEqual(download_mock.call_args.args, (
@@ -808,6 +808,7 @@ class TestBundle(unittest.TestCase):
   <caption>test</caption>
   <tr>
     <td data-something="5" class="this-gets-removed">
+      <h2>heading</h2>
       <p>test</p>
       <ul>
         <li>One</li>
@@ -841,7 +842,9 @@ class TestBundle(unittest.TestCase):
 <table class="ghq-table">
 <tr>
 <td>
-<p>test</p>
+<strong>heading</strong>
+<br/>test
+
 <br/>- One
 <br/>- Two
 
@@ -1686,8 +1689,8 @@ it's multiple lines
     bundle.zip()
 
     self.assertEqual(read_html("/tmp/test_guru_markdown_blocks/cards/1.html"), """<div class="ghq-card-content__markdown" data-ghq-card-content-markdown-content="%3Cdiv%20style%3D%22background-color%3A%23F89E91%3Bcolor%3A%234A1717%3Bpadding%3A1px%3Btext-align%3Aleft%3Bfont-size%3A16px%3Bmargin-bottom%3A16px%22%3E%0A%3Cp%20style%3D%22margin%3A%2016px%22%3Etest%20content%20%3Cstrong%3Eabcd%201234.%3C%2Fstrong%3E%3C%2Fp%3E%0A%3C%2Fdiv%3E" data-ghq-card-content-type="MARKDOWN">
-<div class="" style="background-color:#F89E91;color:#4A1717;padding:1px;text-align:left;font-size:16px;margin-bottom:16px">
-<p class="" style="margin: 16px">
+<div style="background-color:#F89E91;color:#4A1717;padding:1px;text-align:left;font-size:16px;margin-bottom:16px">
+<p style="margin: 16px">
 			test content
 			<strong>
 				abcd 1234.
