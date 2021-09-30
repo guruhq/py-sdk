@@ -410,8 +410,6 @@ class Publisher:
       self.__log("skip card", card.title)
       return
 
-    print(card.title, "added", changes.boards_added, "removed", changes.boards_removed)
-
     # scan the guru card for card to card links.
     # these should become links between external articles.
     # look for the 'data-ghq-guru-card-id' attribute and
