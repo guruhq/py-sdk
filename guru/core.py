@@ -370,6 +370,8 @@ class Guru:
       return
     data["initialAdminGroupId"] = group_obj.id
 
+    self.__clear_cache("%s/collections" % self.base_url)
+
     url = "%s/collections" % self.base_url
     response = self.__post(url, data)
     return Collection(response.json(), guru=self)
@@ -2050,7 +2052,7 @@ class Guru:
     """
     # filtering by collection is optional.
     if collection:
-      collection_obj = self.get_collection(collection)
+      collection_obj = self.get_collection(collection, cache=True)
       if not collection_obj:
         self.__log(make_red("could not find collection:", collection))
         return
@@ -2096,7 +2098,7 @@ class Guru:
       bool: True if it was successful and False otherwise.
     """
     # https://api.getguru.com/api/v1/boards/home/entries?collection=fac2ed4d-a2c0-4d47-b409-5a988fe8dcf7
-    collection_obj = self.get_collection(collection)
+    collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
       return
@@ -2118,7 +2120,7 @@ class Guru:
     if status_to_bool(response.status_code):
       return self.get_board_group(title, collection)
 
-  def add_board_to_board_group(self, board, board_group, collection=""):
+  def add_board_to_board_group(self, board, board_group, collection="", last=True):
     """
     Adds an existing board to a board group. You can also load the Board and
     BoardGroup objects and add boards like this:
@@ -2161,6 +2163,11 @@ class Guru:
       # if we omit this, we get a 500 error.
       "prevSiblingItem": board_group_obj.item_id
     }
+
+    # if we're inserting it at the end, set the prevSiblingItem accordingly.
+    if last and board_group_obj.items:
+      data["prevSiblingItem"] = board_group_obj.items[-1].item_id
+
     url = "%s/boards/home/entries?collection=%s" % (self.base_url, board_obj.collection.id)
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
@@ -2178,7 +2185,7 @@ class Guru:
     Returns:
       HomeBoard: An object representing the home board.
     """
-    collection_obj = self.get_collection(collection)
+    collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
       return
@@ -2253,7 +2260,7 @@ class Guru:
     Returns:
       bool: True if it was successful and false otherwise.
     """
-    collection_obj = self.get_collection(collection)
+    collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
 
@@ -2266,6 +2273,10 @@ class Guru:
         "description": description
       }]
     }
+
+    # when we try to get a board we cache the collection's home board, so when we make
+    # a new board we need to clear that cache entry because the home board has changed.
+    self.__clear_cache("%s/boards?collection=%s" % (self.base_url, collection_obj.id))
 
     # this doesn't need to have a timeout or wait for a response because it's just
     # creating one board so that should always be done synchronously.
