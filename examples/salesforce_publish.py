@@ -25,6 +25,7 @@ This script uses these environment variables:
  - SFDC_CLIENT_SECRET
  - SFDC_USERNAME
  - SFDC_PASSWORD
+ - SFDC_TOKEN
 """
 
 import os
@@ -34,12 +35,57 @@ import requests
 from urllib.parse import quote
 
 
+# these are the names of the collections that will be published.
+# we use these to know which collections to publish and to determine
+# which cards are internal and which are external.
+INTERNAL_COLLECTION = "Publish to Salesforce (Internal)"
+EXTERNAL_COLLECTION = "Publish to Salesforce (External)"
+
+# these are the values for an article's Validation Status.
+VALIDATED_INTERNAL_ONLY = "Validated Internal only"
+VALIDATED_EXTERNAL = "Validated External"
+
+# we expect that data categories are represented in guru as board
+# assignments, but we might also want to use specific tags to also
+# represent a data category assignment.
+TAGS_THAT_ARE_DATA_CATEGORIES = [
+  "tag 1",
+  "tag 2",
+  "tag 3"
+]
+
+
+def is_external(card):
+  """
+  Some articles are internal and some are external. We determine
+  this by checking which collection the card comes from.
+  """
+  return card.collection.title == EXTERNAL_COLLECTION
+
+def get_data_categories(card):
+  """
+  This returns a list of strings that are the data category names the
+  card should be assigned to. This is a combination of the names of the
+  boards the card is on, plus some special tags.
+  """
+  # every board corresponds to a data category.
+  categories = [b.title for b in card.boards]
+
+  # there are also specific tags that also correspond to data categories.
+  for tag in card.tags:
+    if tag.value in TAGS_THAT_ARE_DATA_CATEGORIES:
+      categories.append(tag.value)
+
+  return categories
+
 def convert_card_to_article(card):
   """
-  Guru cards have a title and content but Salesforce Knowledge objects
-  can have many fields.
+  This builds the Knowledge object that'll be saved in Salesforce.
+  It's mostly setting the title and body fields but also setting
+  some other properties based on whether the card represents an
+  internal article or external one.
   """
-  return {
+  data = {
     "title": card.title,
 
     # this is the Knowledge object's rich text field which is not configured by default.
@@ -50,14 +96,25 @@ def convert_card_to_article(card):
     # we have the card's slug which serves the same purpose. the slug has two
     # parts, an ID and title, so we just need the second part here.
     "UrlName": card.slug.split("/")[1],
-
-    # Guru cards just have one field for their HTML content. if you want to set
-    # additional fields, like the summary, you'll need some convention. like, you
-    # could start each card with a blockquote as the summary, then in this function
-    # you'd separate the content into 'summary' and 'body'.
-    "summary": ""
   }
 
+  # we set some properties differently whether it's an internal or external article.
+  if is_external(card):
+    data["ValidationStatus"] = VALIDATED_EXTERNAL
+
+    # these are the article's channels.
+    data["IsVisibleInPkb"] = True  # public knowledge base
+    data["IsVisibleInCsp"] = True  # customer
+    data["IsVisibleInPrm"] = True  # partner
+  else:
+    data["ValidationStatus"] = VALIDATED_INTERNAL_ONLY
+
+    # these are the article's channels.
+    data["IsVisibleInPkb"] = False  # public knowledge base
+    data["IsVisibleInCsp"] = False  # customer
+    data["IsVisibleInPrm"] = False  # partner
+
+  return data
 
 
 class SalesforcePublisher(guru.Publisher):
@@ -72,10 +129,19 @@ class SalesforcePublisher(guru.Publisher):
       "client_id": os.environ.get("SFDC_CLIENT_ID"),
       "client_secret": os.environ.get("SFDC_CLIENT_SECRET"),
       "username": os.environ.get("SFDC_USERNAME"),
-      "password": os.environ.get("SFDC_PASSWORD")
+      "password": os.environ.get("SFDC_PASSWORD") + os.environ.get("SFDC_TOKEN")
     }
-    sfdc_data = requests.post("https://login.salesforce.com/services/oauth2/token", data=data).json()
-    
+    response = requests.post("https://login.salesforce.com/services/oauth2/token", data=data)
+
+    if response.status_code >= 400:
+      error_message = "Failed to authenticate with Salesforce, response status %s, response body %s" % (
+        response.status_code,
+        response.content
+      )
+      self.log_error(error_message)
+      raise RuntimeError(error_message)
+
+    sfdc_data = response.json()
     self.sfdc_token = sfdc_data.get("access_token")
     self.sfdc_url = sfdc_data.get("instance_url")
     self.data_categories = self.get_all_data_categories()
@@ -117,7 +183,16 @@ class SalesforcePublisher(guru.Publisher):
     if not url.startswith("https:"):
       url = self.sfdc_url + url
 
-    return requests.get(url, headers=headers).json()
+    response = requests.get(url, headers=headers)
+
+    if response.status_code >= 400:
+      return self.log_error("Salesforce API Error, URL: %s, response status %s, response body: %s" % (
+        url,
+        response.status_code,
+        response.content
+      ))
+
+    return response.json()
 
   def sfdc_post(self, url, data):
     """
@@ -133,7 +208,39 @@ class SalesforcePublisher(guru.Publisher):
       url = self.sfdc_url + url
 
     response = requests.post(url, json=data, headers=headers)
+
+    if response.status_code >= 400:
+      return self.log_error("Salesforce API Error, URL: %s, response status %s, response body: %s" % (
+        url,
+        response.status_code,
+        response.content
+      ))
+
     return response.json()
+
+  def sfdc_patch(self, url, data):
+    """
+    Makes a PATCH call to salesforce's API. This adds some convenience by adding
+    the salesforce instance URL as a prefix and parses the JSON response.
+    """
+    headers = {
+      "Authorization": "Bearer %s" % self.sfdc_token
+    }
+
+    # you can pass in just "/services/data/..." as the url and we'll add the prefix.
+    if not url.startswith("https:"):
+      url = self.sfdc_url + url
+
+    response = requests.patch(url, json=data, headers=headers)
+
+    if response.status_code >= 400:
+      return self.log_error("Salesforce API Error, URL: %s, response status %s, response body: %s" % (
+        url,
+        response.status_code,
+        response.content
+      ))
+
+    return True
 
   def sfdc_delete(self, url):
     """
@@ -234,10 +341,10 @@ class SalesforcePublisher(guru.Publisher):
         self.remove_data_category_mapping(mapping_id)
 
     # add all of the necessary data category mappings.
-    for board in card.boards:
-      self.add_data_category_mapping(knowledge_id, board.title)
+    for category_name in get_data_categories(card):
+      self.add_data_category_mapping(card, knowledge_id, category_name)
 
-  def add_data_category_mapping(self, knowledge_id, data_category_name):
+  def add_data_category_mapping(self, card, knowledge_id, data_category_name):
     """
     Maps a Salesforce Knowledge object to a Data Category. The Data Category
     is specified by name and we'll look it up to get its Salesforce ID.
@@ -257,7 +364,10 @@ class SalesforcePublisher(guru.Publisher):
 
     # if the data category name isn't found, we can stop here.
     if not data_category_group_name:
-      return
+      return self.log_error("Could not find Data Category called '%s' for the article '%s'" % (
+        data_category_name,
+        card.title
+      ))
 
     data = {
       "DataCategoryGroupName": data_category_group_name,
@@ -284,12 +394,10 @@ class SalesforcePublisher(guru.Publisher):
     that it knows hasn't been published before. This means we need
     to use SFDC's POST endpoint to create a new Knowledge object.
     """
+    self.log("Creating article '%s'" % card.title)
+
+    url = "/services/data/v52.0/sobjects/Knowledge__kav/"
     data = convert_card_to_article(card)
-    headers = {
-      "Authorization": "Bearer %s" % self.sfdc_token
-    }
-    
-    url = "%s/services/data/v52.0/sobjects/Knowledge__kav/" % self.sfdc_url
 
     # the response will look like this:
     # {
@@ -297,10 +405,13 @@ class SalesforcePublisher(guru.Publisher):
     #   "success": true,
     #   "errors": []
     # }
-    response = requests.post(url, json=data, headers=headers)
-    knowledge_id = response.json().get("id")
+    response_data = self.sfdc_post(url, data)
+
+    if not response_data:
+      return self.log_error("Error creating article '%s'" % card.title)
 
     # create the data category mappings.
+    knowledge_id = response_data.get("id")
     self.set_data_category_mappings(card, knowledge_id)
 
     return knowledge_id
@@ -311,13 +422,14 @@ class SalesforcePublisher(guru.Publisher):
     published before. We know its Salesforce ID so we can make the PUT call to
     update the Knowledge object.
     """
-    data = convert_card_to_article(card)
-    headers = {
-      "Authorization": "Bearer %s" % self.sfdc_token
-    }
+    self.log("Updating article '%s'" % card.title)
 
-    url = "%s/services/data/v52.0/sobjects/Knowledge__kav/%s" % (self.sfdc_url, external_id)
-    response = requests.patch(url, json=data, headers=headers)
+    url = "/services/data/v52.0/sobjects/Knowledge__kav/%s" % external_id
+    data = convert_card_to_article(card)
+    response = self.sfdc_patch(url, data)
+
+    if not response:
+      return self.log_error("Error updating article '%s'" % card.title)
 
     # the boards in guru determine what data categories the knowledge article is mapped to.
     # when you add or remove board assignments in guru, we need to update salesforce accordingly.
@@ -342,15 +454,16 @@ if __name__ == "__main__":
   guru_user = os.environ.get("GURU_USER")
   guru_api_token = os.environ.get("GURU_API_TOKEN")
   g = guru.Guru(guru_user, guru_api_token)
+
   publisher = SalesforcePublisher(g, dry_run=False)
+  publisher.publish_collection(INTERNAL_COLLECTION)
+  publisher.publish_collection(EXTERNAL_COLLECTION)
 
-  # the identifier here comes from a board's URL.
-  # in this case i'm publishing this board from my test team:
-  # 
-  #   https://app.getguru.com/boards/KieEXj9i/Managing-and-Sharing-your-Guru-team
-  # 
-  # so we can use "KieEXj9i" as its ID.
-  # publisher.publish_board("KieEXj9i")
+  # once we've published all cards, calling process_deletions() will make
+  # us delete any card that was previously published but was not seen in
+  # this run (meaning it used to be in Guru but isn't anymore).
+  # publisher.process_deletions()
 
-  # if we're publishing an entire collection we can reference it by name.
-  publisher.publish_collection("Publish to Salesforce")
+  # todo: read these messages and put them into an email or slack message.
+  for message in publisher.messages:
+    print(message)

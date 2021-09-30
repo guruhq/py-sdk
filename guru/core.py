@@ -37,6 +37,12 @@ READ_ONLY = "MEMBER"
 AUTHOR = "AUTHOR"
 COLLECTION_OWNER = "COLL_ADMIN"
 
+TRUSTED = "TRUSTED"
+VERIFIED = TRUSTED
+NEEDS_VERIFICATION = "NEEDS_VERIFICATION"
+UNVERIFIED = NEEDS_VERIFICATION
+
+
 def make_blue(*args):
   return " ".join(["\033[94m%s\033[0m" % text for text in args])
 
@@ -1293,13 +1299,13 @@ class Guru:
     elif verified == True or unverified == False:
       nested_expressions.append({
         "type": "trust-state",
-        "verificationState": "TRUSTED",
+        "verificationState": TRUSTED,
         "op": "EQ"
       })
     elif verified == False or unverified == True:
       nested_expressions.append({
         "type": "trust-state",
-        "verificationState": "NEEDS_VERIFICATION",
+        "verificationState": NEEDS_VERIFICATION,
         "op": "EQ"
       })
 
