@@ -452,8 +452,8 @@ class SalesforcePublisher(guru.Publisher):
 
 if __name__ == "__main__":
   guru_user = os.environ.get("GURU_USER")
-  guru_api_token = os.environ.get("GURU_API_TOKEN")
-  g = guru.Guru(guru_user, guru_api_token)
+  guru_token = os.environ.get("GURU_TOKEN")
+  g = guru.Guru(guru_user, guru_token)
 
   publisher = SalesforcePublisher(g, dry_run=False)
   publisher.publish_collection(INTERNAL_COLLECTION)
