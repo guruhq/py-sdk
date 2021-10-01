@@ -17,6 +17,10 @@ from guru.core import (
   READ_ONLY,
   AUTHOR,
   COLLECTION_OWNER,
+
+  # verification states:
+  VERIFIED,
+  UNVERIFIED,
 )
 
 from guru.publish import (

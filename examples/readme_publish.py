@@ -98,7 +98,7 @@ class ReadmePublisher(guru.Publisher):
         if doc.get("title") == card.title:
           return doc.get("slug")
 
-  def create_external_card(self, card, section, board, board_group, collection):
+  def create_external_card(self, card, changes, section, board, board_group, collection):
     """
     This method is called automatically when the SDK sees a card
     that it knows hasn't been published before. This means we need
@@ -121,7 +121,7 @@ class ReadmePublisher(guru.Publisher):
     # call to Readme to update this particular doc.
     return requests.post(url, json=data, auth=(README_API_TOKEN, "")).json().get("_id")
   
-  def update_external_card(self, external_id, card, section, board, board_group, collection):
+  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
     """
     This script stores metadata so it knows which cards have been
     published before. If a card has already been published to

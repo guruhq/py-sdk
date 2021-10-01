@@ -15,8 +15,23 @@ def is_successful(result):
     return result
 
 
+class CardChanges:
+  def __init__(self, content_changed, boards_added, boards_removed, tags_added, tags_removed):
+    self.content_changed = content_changed
+    self.boards_added = boards_added
+    self.boards_removed = boards_removed
+    self.tags_added = tags_added
+    self.tags_removed = tags_removed
+
+  def needs_publishing(self):
+    if self.content_changed or self.boards_added or self.boards_removed or self.tags_added or self.tags_removed:
+      return True
+    else:
+      return False
+
+
 class Publisher:
-  def __init__(self, g, name="", metadata=None, silent=False, dry_run=False):
+  def __init__(self, g, name="", metadata=None, silent=False, dry_run=False, skip_unverified_cards=True):
     self.g = g
     self.name = name or self.__class__.__name__
 
@@ -32,7 +47,23 @@ class Publisher:
     
     self.silent = silent
     self.dry_run = dry_run
+    self.skip_unverified_cards = skip_unverified_cards
     self.__results = {}
+    self.messages = []
+
+  def log_error(self, message):
+    print("ERROR:", message)
+    self.messages.append({
+      "type": "error",
+      "message": message
+    })
+
+  def log(self, message):
+    print("LOG:", message)
+    self.messages.append({
+      "type": "info",
+      "message": message
+    })
 
   def get_external_url(self, external_id, card):
     raise NotImplementedError("get_external_url needs to be implemented so we can convert links between guru cards to be links between external articles.")
@@ -81,10 +112,10 @@ class Publisher:
   # these have to be implemented because you're always publishing cards.
   # sections, boards, etc. may be unimplemented because it's possible
   # thoe don't have any meaning in the system you're publishing to.
-  def create_external_card(self, card, section, board, board_group, collection):
+  def create_external_card(self, card, changes, section, board, board_group, collection):
     raise NotImplementedError()
   
-  def update_external_card(self, external_id, card, section, board, board_group, collection):
+  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
     raise NotImplementedError()
   
   def delete_external_card(self, external_id):
@@ -132,14 +163,45 @@ class Publisher:
 
   def get_external_id(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("external_id")
-  
+
+  def get_board_names(self, guru_id):
+    return self.__metadata.get(guru_id, {}).get("boards") or []
+
+  def get_tags(self, guru_id):
+    return self.__metadata.get(guru_id, {}).get("tags") or []
+
+  def get_card_changes(self, card):
+    """
+    This generates a CardChanges object which wraps up all the possible changes
+    that can happen. Notably, this includes the boards the card was added to or
+    removed from.
+    """
+    content_changed = False
+    last_published_date = self.get_last_updated(card.id)
+    if not last_published_date or card.last_modified_date > last_published_date:
+      content_changed = True
+
+    # figure out which board assignments were added or removed.
+    old_board_names = set(self.get_board_names(card.id))
+    new_board_names = set([b.title for b in card.boards])
+    boards_added = list(new_board_names - old_board_names)
+    boards_removed = list(old_board_names - new_board_names)
+
+    # figure out which tags were added or removed.
+    old_tags = set(self.get_tags(card.id))
+    new_tags = set([t.value for t in card.tags])
+    tags_added = list(new_tags - old_tags)
+    tags_removed = list(old_tags - new_tags)
+
+    return CardChanges(content_changed, boards_added, boards_removed, tags_added, tags_removed)
+
   def get_type(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("type")
 
   def get_last_updated(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("last_updated")
 
-  def __update_metadata(self, guru_id, external_id="", type="", last_modified_date=None):
+  def __update_metadata(self, guru_id, external_id="", type="", last_modified_date=None, boards=None, tags=None):
     if not self.__metadata.get(guru_id):
       self.__metadata[guru_id] = {}
     
@@ -155,6 +217,12 @@ class Publisher:
     if external_id:
       self.__metadata[guru_id]["external_id"] = external_id
     
+    if boards != None:
+      self.__metadata[guru_id]["boards"] = boards
+
+    if tags != None:
+      self.__metadata[guru_id]["tags"] = tags
+
     write_file("./%s.json" % self.name, json.dumps(self.__metadata, indent=2))
 
   def __delete_metadata(self, guru_id, external_id):
@@ -283,6 +351,8 @@ class Publisher:
       if item.type == "section":
         self.publish_section(item, collection, board_group, board)
       else:
+        # todo: if the board has > 50 items we'll  need to load the full card object here.
+        #       we can use a single api call to bulk load cards.
         self.publish_card(item, collection, board_group, board)
 
   def publish_section(self, section, collection=None, board_group=None, board=None):
@@ -320,13 +390,22 @@ class Publisher:
       self.publish_card(item, collection, board_group, board, section)
 
   def publish_card(self, card, collection=None, board_group=None, board=None, section=None):
-    # call create/update/delete_card as needed.
+    """
+    This method figures out if the card has changes that need to be published and
+    calls create/update_external_card based on whether the card has ever been
+    published before or not.
+    """
     external_id = self.get_external_id(card.id)
 
-    # if the card hasn't been updated since we last published it, we can skip it.
-    # todo: could we do this by checking its version number?
-    last_published_date = self.get_last_updated(card.id)
-    if last_published_date and last_published_date >= card.last_modified_date:
+    # if we're configured to skip unverified cards and this one is unverified, skip it.
+    if self.skip_unverified_cards and card.verification_state != "TRUSTED":
+      self.__results[card.id] = "skip"
+      self.__log("skip card", card.title)
+      return
+
+    # if there are no publish-worthy changes we can skip this card.
+    changes = self.get_card_changes(card)
+    if not changes.needs_publishing():
       self.__results[card.id] = "skip"
       self.__log("skip card", card.title)
       return
@@ -358,15 +437,15 @@ class Publisher:
     successful = False
     if external_id:
       self.__results[card.id] = "update"
-      self.__log("update card", external_id, card.title)
+      self.__log("update card", external_id, card.title, card.boards)
       if not self.dry_run:
-        result = self.update_external_card(external_id, card, section, board, board_group, collection)
+        result = self.update_external_card(external_id, card, changes, section, board, board_group, collection)
         successful = is_successful(result)
     else:
       self.__results[card.id] = "create"
       self.__log("create card", card.title)
       if not self.dry_run:
-        external_id = self.create_external_card(card, section, board, board_group, collection)
+        external_id = self.create_external_card(card, changes, section, board, board_group, collection)
         if external_id:
           successful = True
     
@@ -375,5 +454,7 @@ class Publisher:
         card.id,
         external_id,
         last_modified_date=card.last_modified_date,
+        boards=[b.title for b in card.boards],
+        tags=[t.value for t in card.tags],
         type="card"
       )

@@ -2,7 +2,7 @@
 
 case "$1" in
 one)
-  coverage run -m unittest tests.$2
+  PUB=true E2E=true coverage run -m unittest tests.$2
   ;;
 test)
   coverage run -m unittest && coverage report && coverage html
