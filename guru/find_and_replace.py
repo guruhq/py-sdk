@@ -513,7 +513,7 @@ class FindAndReplace:
     replace_title=False, 
     just_replace_html_attributes=False,
     replace_in_html=False,
-    collection=None, 
+    collection=None,
     folder="/tmp/", 
     task_name=None,
     excluded_ids=None,
@@ -561,14 +561,15 @@ class FindAndReplace:
       new_content=new_content
     ))
 
-  def run(self, dry_run=True):
+  def run(self, given_card_set=None, dry_run=True):
     """
     Performs a find and replace on the given cards, 
     and previews in the browser. Defaults to a dry run, 
     but setting `dry_run=False` will make a patch request, with the card changes.
     
     """
-    for card in self.guru.find_cards(collection=self.collection):
+    card_set = given_card_set if given_card_set else self.guru.find_cards(collection=self.collection)
+    for card in card_set:
       card_id = card.id or card.slug.split("/")[0]
       if self.replace_in_html and self.term in card.content:
         self.replace_term(card, replace_html=self.replace_in_html, dry_run=dry_run)
