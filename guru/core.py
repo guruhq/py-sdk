@@ -2793,3 +2793,24 @@ class Guru:
 
     status, file_size = download_file(url, filename, headers=headers)
     return status_to_bool(status)
+
+  def delete_knowledge_trigger(self, trigger_id):
+    """
+    Deletes knowledge trigger, by trigger ID (context ID)
+
+    ```
+    ex:
+      g.delete_knowledge_trigger("aaaaaaaa-bbbb-cccc-1111-1234abcd4321")
+
+    ```
+    
+    Args:
+        trigger_id (str): ID of knowledge trigger
+
+    Returns:
+        bool: success status of call, true if successful, false if not
+    """
+    
+    url = "%s/newcontexts/%s" % (self.base_url, trigger_id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
