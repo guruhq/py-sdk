@@ -254,7 +254,10 @@ class TestFindAndReplace(unittest.TestCase):
     )
     # build the html tree
     preview.make_html_tree()
+    # test highlighting e2e
+    self.assertEqual(preview.highlighted_content[0].get('original'), """<h1><span class="sdk-orig-highlight">Test</span>ing Card</h1><p><span class="sdk-orig-highlight">TEST</span></p>""")
+    self.assertEqual(preview.highlighted_content[0].get('new'), """<h1><span class="sdk-replacement-highlight">Purple</span>ing Card</h1><p><span class="sdk-replacement-highlight">PURPLE</span></p>""")
     self.assertEqual(
       preview.html_pieces[0], 
-      '<a href="/tmp/test_find_and_replace/new_content/new_1111.html" data-original-url="/tmp/test_find_and_replace/old_content/orig_1111.html" target="iframe">Testing 1, 2, 3 (2/2)*(0/0)</a>'
+      '<a href="/tmp/test_find_and_replace/new_content/new_1111.html" data-original-url="/tmp/test_find_and_replace/old_content/orig_1111.html" target="iframe">Testing 1, 2, 3 (2/2)*(2/2)</a>'
     )

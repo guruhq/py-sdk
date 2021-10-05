@@ -312,6 +312,7 @@ class Preview:
     self.orig_content_path = folder + "%s/old_content/orig_%s.html"
     self.new_content_path = folder + "%s/new_content/new_%s.html"
     self.card_preview_path = folder + "%s/index.html"
+    self.highlighted_content = []
     self.html_pieces = []
 
   def make_html_tree(self):
@@ -346,28 +347,32 @@ class Preview:
 
       orig_content_html, orig_status = load_html(orig_filepath, make_links_absolute=False)
 
-      # orig_content_html = replace_text_in_card(orig_content_html,
-      #                                          self.term,
-      #                                          self.term,
-      #                                          replace_title=False,
-      #                                          orig_highlight=True)
-      write_file(orig_filepath, highlight_css + str(orig_content_html))
+      orig_content_html = replace_text_in_card(orig_content_html,
+                                               self.term,
+                                               self.term,
+                                               replace_title=False,
+                                               orig_highlight=True)
+      highlighted_original = str(orig_content_html)
+      write_file(orig_filepath, highlight_css + highlighted_original)
 
       new_content_html, new_status = load_html(new_filepath, make_links_absolute=False)
-      # new_content_html = replace_text_in_card(new_content_html,
-      #                                         self.replacement,
-      #                                         self.replacement,
-      #                                         replace_title=False,
-      #                                         replacement_highlight=True)
-      write_file(new_filepath, highlight_css + str(new_content_html))
+      new_content_html = replace_text_in_card(new_content_html,
+                                              self.replacement,
+                                              self.replacement,
+                                              replace_title=False,
+                                              replacement_highlight=True)
+      highlighted_new = str(new_content_html)
+      write_file(new_filepath, highlight_css + highlighted_new)
+      self.highlighted_content.append({
+        'original': highlighted_original,
+        'new': highlighted_new
+      })
       term_count = content_data.original_term_count
       replacement_count = content_data.replacement_term_count
       term_count_in_html = content_data.original_term_count_in_html
       replacement_count_in_html = content_data.replacement_term_count_in_html
 
-      self.html_pieces.append('<a href="%s" data-original-url="%s" target="iframe">%s (%s/%s)*(%s/%s)</a>' %
-                              (new_filepath, orig_filepath, content_data.title, replacement_count, term_count,
-                               replacement_count_in_html, term_count_in_html))
+      self.html_pieces.append(f'<a href="{new_filepath}" data-original-url="{orig_filepath}" target="iframe">{content_data.title} ({replacement_count}/{term_count})*({replacement_count_in_html}/{term_count_in_html})</a>')
 
   def view_in_browser(self, open_browser=True):
     """
