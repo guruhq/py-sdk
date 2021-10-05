@@ -60,7 +60,7 @@ def make_bold(*args):
 
 def get_link_header(response):
   link_header = response.headers.get("Link", "")
-  return link_header[1:link_header.find(">")]
+  return link_header[1:link_header.find(">")].strip()
 
 def status_to_bool(status_code):
   band = int(status_code / 100)
@@ -719,10 +719,8 @@ class Guru:
       return False
 
     url = "%s/groups/%s/members" % (self.base_url, group_obj.id)
-    response = self.__get(url)
-    if response.status_code == 204:
-      return []
-    return [User(u) for u in response.json() or []]
+    users = self.__get_and_get_all(url)
+    return [User(u) for u in users]
 
   def get_members(self, search="", cache=False):
     """

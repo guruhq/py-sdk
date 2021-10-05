@@ -489,6 +489,44 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_get_group_members_with_pagination(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "name": "Experts",
+      "id": "2222"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups/2222/members", match_querystring=True, json=[
+      {}, {}, {}, {}, {}
+    ], headers={
+      "Link": "< https://api.getguru.com/api/v1/groups/2222/members?token=1>"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups/2222/members?token=1", json=[
+      {}, {}, {}, {}
+    ], headers={
+      "Link": "< https://api.getguru.com/api/v1/groups/2222/members?token=2>"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups/2222/members?token=2", json=[
+      {}, {}
+    ])
+
+    users = g.get_group("Experts").get_members()
+
+    self.assertEqual(len(users), 11)
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups/2222/members"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups/2222/members?token=1"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups/2222/members?token=2"
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_get_group_members_edge_cases(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "name": "Experts",
