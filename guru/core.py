@@ -2810,11 +2810,7 @@ class Guru:
     Returns:
         bool: success status of call, true if successful, false if not
     """
-
-    # if isinstance(question, Question):
-    #   url = "%s/tasks/questions/%s" % (self.base_url, question.id)
-    # else:
-    #   url = "%s/tasks/questions/%s" % (self.base_url, question)
+    
     url = "%s/newcontexts/%s" % (self.base_url, trigger_id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
