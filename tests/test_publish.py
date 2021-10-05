@@ -47,11 +47,11 @@ class PublisherTest(guru.Publisher):
     return card.id[0:4] if card.title in self.external_data else ""
 
   # crud operations for cards
-  def create_external_card(self, card, section, board, board_group, collection):
+  def create_external_card(self, card, changes, section, board, board_group, collection):
     self.calls.append("create card %s" % card.title)
     return card.id[0:4]
   
-  def update_external_card(self, external_id, card, section, board, board_group, collection):
+  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
     self.calls.append("update card %s" % card.title)
   
   def delete_external_card(self, external_id):
@@ -200,7 +200,8 @@ class TestPublish(unittest.TestCase):
       "68fafb96-0446-46f4-b9e9-f778fdd85eb1": {
         "type": "card",
         "external_id": "1234",
-        "last_updated": "2030-01-01T00:00:00.000+0000"
+        "last_updated": "2030-01-01T00:00:00.000+0000",
+        "boards": ["SDK"]
       }
     }
     
@@ -348,9 +349,9 @@ class TestPublish(unittest.TestCase):
     with self.assertRaises(NotImplementedError):
       publisher.get_external_url(None, None)
     with self.assertRaises(NotImplementedError):
-      publisher.create_external_card(None, None, None, None, None)
+      publisher.create_external_card(None, None, None, None, None, None)
     with self.assertRaises(NotImplementedError):
-      publisher.update_external_card(None, None, None, None, None, None)
+      publisher.update_external_card(None, None, None, None, None, None, None)
     with self.assertRaises(NotImplementedError):
       publisher.delete_external_card(None)
 

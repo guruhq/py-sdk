@@ -11,6 +11,10 @@ from tests.util import use_guru, get_calls
 import guru
 
 
+def read_file(filename):
+  with open(filename) as file_in:
+    return file_in.read()
+
 class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
@@ -1358,3 +1362,24 @@ this card has a <a href="https://www.example.com">guru markdown block</a>.
     self.assertEqual(card1.interval_label, "Every 3 months")
     self.assertEqual(card2.interval_label, "On a specific date")
 
+  @use_guru()
+  @responses.activate
+  def test_download_card_as_pdf(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/pdf", body="pdf content")
+
+    card = g.get_card("1111")
+    card.download_as_pdf("/tmp/card1.pdf")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/pdf"
+    }])
+
+    # make sure the response's content was written to the file we specified.
+    self.assertEqual(read_file("/tmp/card1.pdf"), "pdf content")

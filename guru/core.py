@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import time
+import base64
 import requests
 import mimetypes
 
@@ -14,8 +15,8 @@ else:
   from urlparse import quote
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question
-from guru.util import find_by_name_or_id, find_by_email, find_by_id, format_timestamp
+from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question, Framework
+from guru.util import download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -35,6 +36,12 @@ GREEN_APPLE = "#689F38"
 READ_ONLY = "MEMBER"
 AUTHOR = "AUTHOR"
 COLLECTION_OWNER = "COLL_ADMIN"
+
+TRUSTED = "TRUSTED"
+VERIFIED = TRUSTED
+NEEDS_VERIFICATION = "NEEDS_VERIFICATION"
+UNVERIFIED = NEEDS_VERIFICATION
+
 
 def make_blue(*args):
   return " ".join(["\033[94m%s\033[0m" % text for text in args])
@@ -59,8 +66,13 @@ def status_to_bool(status_code):
   band = int(status_code / 100)
   return (band == 2 or band == 3)
 
+def base64_encode(string):
+  return base64.b64encode(
+    string.encode("ascii")
+  ).decode("ascii")
+
 def is_board_slug(value):
-  return re.match("^[a-zA-Z0-9]{5,8}$", value)
+  return re.match("^[a-zA-Z0-9]{8,9}$", value)
 
 def is_uuid(value):
   return re.match("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", value, flags=re.IGNORECASE)
@@ -129,6 +141,10 @@ class Guru:
     """internal"""
     return HTTPBasicAuth(self.username, self.api_token)
 
+  def __get_basic_auth_value(self):
+    auth_string = "%s:%s" % (self.username, self.api_token)
+    return "Basic %s" % base64_encode(auth_string)
+
   def __log(self, *args):
     """internal"""
     if self.debug:
@@ -156,13 +172,13 @@ class Guru:
       # make the call and store the response.
       if not self.__cache.get(url):
         self.__log(make_gray("  making a get call:", url))
-        self.__cache[url] = requests.get(url, auth=self.__get_auth())
+        self.__cache[url] = requests.get(url, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       else:
         self.__log(make_gray("  using cached get call:", url))
       return self.__cache[url]
     else:
       self.__log(make_gray("  making a get call:", url))
-      response = requests.get(url, auth=self.__get_auth())
+      response = requests.get(url, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__cache[url] = response
       self.__log_response(response)
       return response
@@ -174,7 +190,7 @@ class Guru:
       return DummyResponse()
 
     self.__log(make_gray("  making a put call:", url, data))
-    response = requests.put(url, json=data, auth=self.__get_auth())
+    response = requests.put(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
     self.__log_response(response)
     return response
 
@@ -185,7 +201,7 @@ class Guru:
       return DummyResponse()
 
     self.__log(make_gray("  making a patch call:", url, data))
-    response = requests.patch(url, json=data, auth=self.__get_auth())
+    response = requests.patch(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
     self.__log_response(response)
     return response
 
@@ -197,11 +213,11 @@ class Guru:
       
     self.__log(make_gray("  making a post call:", url, data))
     if files:
-      response = requests.post(url, files=files, auth=self.__get_auth())
+      response = requests.post(url, files=files, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__log_response(response)
       return response
     else:
-      response = requests.post(url, json=data, auth=self.__get_auth())
+      response = requests.post(url, json=data, auth=self.__get_auth(), headers=TRACKING_HEADERS)
       self.__log_response(response)
       return response
   
@@ -259,6 +275,83 @@ class Guru:
     self.__log_response(response)
     return response
 
+  def get_frameworks(self, cache=False):
+    """
+    Loads a list of available collection frameworks.
+
+    ```
+    frameworks = g.get_frameworks()
+    for framework in frameworks:
+      print(framework.name)
+      print(framework.description)
+    ```
+
+    Args:
+      cache (bool, optional): Tells us whether we should reuse the results
+        from the previous call or not. Defaults to False. Set this to True
+        if it's not likely the set of frameworks has changed since the
+        previous call.
+    
+    Returns:
+      list of Framework: a list of Framework objects.
+    """
+    url = "%s/frameworks" % self.base_url
+    response = self.__get(url, cache)
+    return [Framework(f, guru=self) for f in response.json()]
+
+  def get_framework(self, framework, cache=False):
+    """
+    Loads a collection framework.
+
+    ```
+    framework = g.get_framework("Client Support")
+    print(framework.name)
+    print(framework.collection.description)
+    ```
+
+    Args:
+      framework (str): Either a framework name or ID. If it's a name, it'll
+        return the first matching collection and the comparison is not case
+        sensitive.
+      cache (bool, optional): If we're looking up a framework by name we'll
+        fetch all frameworks and then look for a match in the results and this
+        flag tells us whether we should use the results from the previous
+        /frameworks API call or make a new call. Defaults to False.
+    
+    Returns:
+      Framework: An object representing the framework.
+    """
+    if isinstance(framework, Framework):
+      return framework
+    else:
+      # we compare the name and ID because you can pass either.
+      # and if the names aren't unique, you'll need to pass an ID.
+      return find_by_name_or_id(self.get_frameworks(cache), framework)
+
+  def import_framework(self, framework):
+    """
+    imports a framework, based on the provided Framework's ID
+
+    Args:
+      framework (Framework): an object that represents a framework
+
+    Raises:
+      ValueError: must provide a valid Framework object
+
+    Returns:
+      Collection: an object that represents a collection
+    """
+
+    if isinstance(framework, Framework):
+      self.__log("import collection framework", make_blue(framework.title), "with ", make_blue(self.username), "as Collection Owner")
+      url = "%s/frameworks/import/%s" % (self.base_url, framework.id)
+      response = self.__post(url)
+      return Collection(response.json(), guru=self)
+    else:
+      raise ValueError("invalid value: %s, please provide a Framework object." % framework)
+
+
+
   def get_collection(self, collection, cache=False):
     """
     Loads a collection.
@@ -314,7 +407,7 @@ class Guru:
     response = self.__get(url, cache)
     return [Collection(c, guru=self) for c in response.json()]
 
-  def make_collection(self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True):
+  def make_collection(self, name, desc="", color=GREEN, is_sync=False, group="All Members", public_cards=True, use_framework=False):
     """
     Creates a new collection.
 
@@ -332,10 +425,18 @@ class Guru:
         access to this collection. Defaults to All Members.
       public_cards (bool, optional): True if you want to allow cards in this collection
         to be made public and False if you don't. Defaults to True.
+      use_framework: (bool, optional): True if you are importing a framework. The name parameter will be used to find the 
+        desired framework, so make sure that the name matches the framework you want to use. Defaults to False.
     
     Returns:
       Collection: an object representing the new collection.
     """
+    # if we are importing a framework, we want to handle this a little differently, and use the frameworks endpoint
+    if use_framework:
+      self.__log("import collection framework", make_blue(name), "with ", make_blue(self.username), "as Collection Owner")
+      framework = self.get_framework(name, cache=True)
+      return self.import_framework(framework)
+
     self.__log("make collection", make_blue(name), "with ", make_blue(group), "as Collection Owner")
 
     if not color:
@@ -642,6 +743,46 @@ class Guru:
     users = [User(u) for u in users]
     return users
 
+  def __invite_user(self, email, *groups, is_light_user=False):
+    """
+    Internal
+
+    Args:
+      email (str): The email address of the user to add to the team.
+      *groups (str): Any number of groups to add the user to.
+    
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+    groups = list(groups)
+
+    if not is_email(email):
+      raise ValueError("invalid email '%s'" % email)
+    
+    if groups:
+      self.__log("invite user", make_blue(email), "and then add them to:", make_blue(groups))
+    else:
+      self.__log("invite user", make_blue(email))
+    
+    if is_light_user:
+      data = { "emails": email, "teamMemberType": "LIGHT" }
+    else:
+      data = { "emails": email, "teamMemberType": "CORE" }
+    url = "%s/members/invite" % self.base_url
+    response = self.__post(url, data)
+
+    # if there are remaining groups, call add_user_to_groups() for that.
+    if groups:
+      # todo: when we call this, it'll make a GET call to load this user to see if they're
+      #       already in any of the groups we're trying to add them to -- in this case, since
+      #       we _just_ invited them, we know they won't be. it'd be great to be able to skip
+      #       that GET call in this situation.
+      self.add_user_to_groups(email, *groups)
+    
+    # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
+    return response.json(), response.status_code
+  
   def invite_user(self, email, *groups):
     """
     Adds a user to the team and adds them to the groups provided.
@@ -663,32 +804,136 @@ class Guru:
       *groups (str): Any number of groups to add the user to.
     
     Returns:
-      todo: fill this out.
+      response (str): parsed JSON response.
+      status (int): response status code
     """
-    groups = list(groups)
 
-    if not is_email(email):
-      raise ValueError("invalid email '%s'" % email)
+    response, status = self.__invite_user(email, *groups)
+
+    return response, status
+
+  def invite_light_user(self, email):
+    """
+    Adds a user to the team as a light user.
+    Light users can't belong to groups, so they automatically go into the All Members group.
+    The user may receive an email because of this -- this is configured
+    in the webapp's Team Settings section.
+
+    ```
+    g.invite_light_user("user1@example.com")
+
+    ```
+
+    Args:
+      email (str): The email address of the user to add to the team.
     
-    if groups:
-      self.__log("invite user", make_blue(email), "and then add them to:", make_blue(groups))
-    else:
-      self.__log("invite user", make_blue(email))
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+
+    response, status = self.__invite_user(email, is_light_user=True)
+    # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
+    return response, status
+  
+  def invite_core_user(self, email, *groups):
+    """
+    Adds a user to the team as a core user and adds them to the groups provided.
+    The user may receive an email because of this -- this is configured
+    in the webapp's Team Settings section.
+
+    If the user is already on the team this still adds them to the
+    groups.
+
+    ```
+    g.invite_core_user("user1@example.com")
+
+    # invite a user and add them to some groups.
+    g.invite_core_user("user2@example.com", "Experts", "Engineering")
+    ```
+
+    Args:
+      email (str): The email address of the user to add to the team.
+      *groups (str): Any number of groups to add the user to.
     
-    data = { "emails": email }
-    url = "%s/members/invite" % self.base_url
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+    
+    response, status = self.__invite_user(email, *groups)
+
+    return response, status
+
+  def upgrade_light_user(self, email):
+    """
+    Upgrades a light user to a core user.
+
+    ```
+    g.upgrade_light_user("user1@example.com")
+    ```
+
+    Args:
+      email (str): The email address of the light user.
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+
+    # check if user is Light user first, then upgrade
+
+    # load the user list so we can check if the user is a member and a light user.
+    users = self.get_members(email, cache=False)
+    user = find_by_email(users, email)
+
+    if not user:
+      self.__log(make_red("could not find user:", email))
+      return
+
+    if not user.is_light:
+      self.__log(make_red("user is not a light user:", email))
+      return
+  
+    data = {}
+    url = "%s/members/%s/upgrade" % (self.base_url, email)
     response = self.__post(url, data)
 
-    # if there are remaining groups, call add_user_to_groups() for that.
-    if groups:
-      # todo: when we call this, it'll make a GET call to load this user to see if they're
-      #       already in any of the groups we're trying to add them to -- in this case, since
-      #       we _just_ invited them, we know they won't be. it'd be great to be able to skip
-      #       that GET call in this situation.
-      self.add_user_to_groups(email, *groups)
-    
-    # todo: return a dict that maps email -> bool indicating if the user was invited successfully.
-    return response.json(), response.status_code
+    return status_to_bool(response.status_code)
+  
+  def downgrade_core_user(self, email):
+    """
+    Downgrades a core user to a light user.
+
+    ```
+    g.downgrade_core_user("user1@example.com")
+    ```
+
+    Args:
+      email (str): The email address of the core user.
+    Returns:
+      response (str): parsed JSON response.
+      status (int): response status code
+    """
+
+    # check if user is Core user first, then downgrade
+
+    # load the user list so we can check if the user is a member and a core user.
+    users = self.get_members(email, cache=False)
+    user = find_by_email(users, email)
+
+    if not user:
+      self.__log(make_red("could not find user:", email))
+      return
+
+    if not user.is_core:
+      self.__log(make_red("user is not a core user:", email))
+      return
+  
+    data = {}
+    url = "%s/members/%s/downgrade" % (self.base_url, email)
+    response = self.__post(url, data)
+
+    return status_to_bool(response.status_code)
   
   def add_users_to_group(self, emails, group):
     """
@@ -787,7 +1032,11 @@ class Guru:
     if not user:
       self.__log(make_red("could not find user:", email))
       return
-  
+
+    if user.is_light:
+      self.__log(make_red("user is a light user, and cannot belong to groups:", email))
+      return
+
     # for each group, track whether the addition was successful or not.
     result = {}
     for group in groups:
@@ -938,6 +1187,22 @@ class Guru:
         return Card(response.json(), guru=self)
       except:
         return None
+
+  def get_cards(self, card_ids):
+    url = "%s/cards/bulk" % self.base_url
+    data = {
+      "ids": card_ids
+    }
+
+    response = self.__post(url, data)
+
+    # this returns a dict where each key is a card ID and the value
+    # is the card object plus a 'status' field, so we convert the
+    # nested card objects to instances of the Card class.
+    if status_to_bool(response.status_code):
+      return {id: Card(obj) for id, obj in response.json().items()}
+    else:
+      return {}
 
   def get_visible_cards(self):
     """
@@ -1119,13 +1384,13 @@ class Guru:
     elif verified == True or unverified == False:
       nested_expressions.append({
         "type": "trust-state",
-        "verificationState": "TRUSTED",
+        "verificationState": TRUSTED,
         "op": "EQ"
       })
     elif verified == False or unverified == True:
       nested_expressions.append({
         "type": "trust-state",
-        "verificationState": "NEEDS_VERIFICATION",
+        "verificationState": NEEDS_VERIFICATION,
         "op": "EQ"
       })
 
@@ -1532,6 +1797,19 @@ class Guru:
     drafts = self.__get_and_get_all(url)
     drafts = [Draft(d, guru=self) for d in drafts]
     return drafts
+
+  def create_draft(self, title, content, json_content=""):
+    data = {
+      "content": content,
+      # todo: most users won't have json content -- is that ok?
+      "jsonContent": json_content,
+      "title": title,
+      "saveType": "USER"
+    }
+    url = "%s/drafts" % self.base_url
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      return Draft(response.json())
 
   def delete_draft(self, draft):
     url = "%s/drafts/%s" % (self.base_url, draft.id)
@@ -2248,6 +2526,33 @@ class Guru:
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
+  def delete_board(self, board, collection=None):
+    """
+    deletes board
+
+    Args:
+        board (str or Board): The name or ID of a board or a Board object
+
+        collection (str or Collection, optional): The name or ID of a collection or a Collection object
+          to filter by. If this is not provided, you'll get back a list of all boards in all collections
+          you can see.
+
+    Returns:
+        bool: True if it was successful and False otherwise.
+    """
+
+    board_obj = self.get_board(board, collection=collection)
+    
+    if not board_obj:
+      self.__log(make_red("could not find board:", board))
+      return
+
+
+    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
+
   def bundle(self, id="default", clear=True, folder="/tmp/", verbose=False, skip_empty_sections=False):
     """
     Creates a Bundle object that can be used to bulk import content.
@@ -2472,5 +2777,40 @@ class Guru:
       url = "%s/tasks/questions/%s" % (self.base_url, question.id)
     else:
       url = "%s/tasks/questions/%s" % (self.base_url, question)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
+  def download_card_as_pdf(self, card, filename):
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+
+    url = "https://api.getguru.com/api/v1/cards/%s/pdf" % card_obj.id
+    headers = {
+      "Authorization": self.__get_basic_auth_value()
+    }
+
+    status, file_size = download_file(url, filename, headers=headers)
+    return status_to_bool(status)
+
+  def delete_knowledge_trigger(self, trigger_id):
+    """
+    Deletes knowledge trigger, by trigger ID (context ID)
+
+    ```
+    ex:
+      g.delete_knowledge_trigger("aaaaaaaa-bbbb-cccc-1111-1234abcd4321")
+
+    ```
+    
+    Args:
+        trigger_id (str): ID of knowledge trigger
+
+    Returns:
+        bool: success status of call, true if successful, false if not
+    """
+    
+    url = "%s/newcontexts/%s" % (self.base_url, trigger_id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)

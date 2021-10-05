@@ -23,6 +23,11 @@ else:
 # todo: apply this to local files too (i.e. before copying them into resources/ we check their size).
 MAX_FILE_SIZE = 5000000000
 
+TRACKING_HEADERS = {
+  "X-Guru-Application": "sdk",
+  "X-Amzn-Trace-Id": "GApp=sdk"
+}
+
 def load_html(url, cache=False, make_links_absolute=True, headers=None):
   """Fetches HTML from the given URL and returns it as a BeautifulSoup document object."""
   if url.startswith("http"):
@@ -54,6 +59,11 @@ def http_get(url, cache=False, headers=None):
   if not headers:
     headers = {}
 
+  # if you're making a request to a getguru.com url, include our tracking headers.
+  if "getguru.com" in url:
+    for header in TRACKING_HEADERS:
+      headers[header] = TRACKING_HEADERS[header]
+
   non_alphanumeric = re.compile("[^a-zA-Z0-9]")
   cached_file = "./cache/%s.html" % non_alphanumeric.sub("", url)
   if cache:
@@ -76,6 +86,11 @@ def http_post(url, data=None, cache=False, headers=None):
   if not headers:
     headers = {}
 
+  # if you're making a request to a getguru.com url, include our tracking headers.
+  if "getguru.com" in url:
+    for header in TRACKING_HEADERS:
+      headers[header] = TRACKING_HEADERS[header]
+
   non_alphanumeric = re.compile("[^a-zA-Z0-9]")
   cached_file = "./cache/%s.html" % non_alphanumeric.sub("", url)
   if cache:
@@ -93,6 +108,11 @@ def download_file(url, filename, headers=None, cache=False):
   """Downloads an image and saves it as the full filename you provide."""
   if cache and os.path.isfile(filename):
     return 200, os.path.getsize(filename)
+
+  # if you're making a request to a getguru.com url, include our tracking headers.
+  if "getguru.com" in url:
+    for header in TRACKING_HEADERS:
+      headers[header] = TRACKING_HEADERS[header]
 
   response = requests.get(url, headers=headers, allow_redirects=True)
   file_size = 0

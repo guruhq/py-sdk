@@ -85,6 +85,94 @@ class TestCore(unittest.TestCase):
         }
       }
     ])
+  
+  @use_guru()
+  @responses.activate
+  def test_make_collection_with_framework(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/frameworks", json=[{
+      "id": "1234",
+      "collection": {
+        "color" : "#2962ff",
+        "id" : "12345678-111a-222b-333c-87654321dcba",
+        "description" : "Enable your team with: product FAQs, support processes, canned responses, tech stack tips, and more.\n",
+        "slug" : "tjuii/Product-and-Process",
+        "collectionType" : "INTERNAL",
+        "name" : "Product & Process"
+      }
+    },{"id": "5678",
+      "collection": {
+        "color" : "#009688",
+        "id" : "56781234-222b-111a-333c-dcba87654321",
+        "description" : "This is just a test.\n",
+        "slug" : "hynw9/Test",
+        "collectionType" : "INTERNAL",
+        "name" : "Test"
+      }
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/frameworks/import/1234", json={
+      "color" : "#2962ff",
+      "id" : "12345678-111a-222b-333c-87654321dcba",
+      "description" : "Enable your team with: product FAQs, support processes, canned responses, tech stack tips, and more.\n",
+      "slug" : "tjuii/Product-and-Process",
+      "collectionType" : "INTERNAL",
+      "name" : "Product & Process"
+    })
+    g.make_collection("Product & Process", use_framework=True)
+
+    self.assertEqual(get_calls(), [
+      {
+        "method": "GET",
+        "url": "https://api.getguru.com/api/v1/frameworks"
+      }, {
+        "method": "POST",
+        "url": "https://api.getguru.com/api/v1/frameworks/import/1234"
+      }
+    ])
+
+  @use_guru()
+  @responses.activate
+  def test_get_frameworks_then_make_collection_with_framework(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/frameworks", json=[{
+      "id": "1234",
+      "collection": {
+        "color" : "#2962ff",
+        "id" : "12345678-111a-222b-333c-87654321dcba",
+        "description" : "Enable your team with: product FAQs, support processes, canned responses, tech stack tips, and more.\n",
+        "slug" : "tjuii/Product-and-Process",
+        "collectionType" : "INTERNAL",
+        "name" : "Product & Process"
+      }
+    },{"id": "5678",
+      "collection": {
+        "color" : "#009688",
+        "id" : "56781234-222b-111a-333c-dcba87654321",
+        "description" : "This is just a test.\n",
+        "slug" : "hynw9/Test",
+        "collectionType" : "INTERNAL",
+        "name" : "Test"
+      }
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/frameworks/import/1234", json={
+      "color" : "#2962ff",
+      "id" : "12345678-111a-222b-333c-87654321dcba",
+      "description" : "Enable your team with: product FAQs, support processes, canned responses, tech stack tips, and more.\n",
+      "slug" : "tjuii/Product-and-Process",
+      "collectionType" : "INTERNAL",
+      "name" : "Product & Process"
+    })
+    
+    framework = g.get_framework("Product & Process")
+    framework.import_framework()
+
+    self.assertEqual(get_calls(), [
+      {
+        "method": "GET",
+        "url": "https://api.getguru.com/api/v1/frameworks"
+      }, {
+        "method": "POST",
+        "url": "https://api.getguru.com/api/v1/frameworks/import/1234"
+      }
+    ])
 
   @use_guru()
   @responses.activate
@@ -392,6 +480,31 @@ class TestCore(unittest.TestCase):
     self.assertEqual(users[0].last_name, "One")
     self.assertEqual(users[1].last_name, "Two")
     self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups/1111/members"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_get_group_members_edge_cases(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
+      "name": "Experts",
+      "id": "1111"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/groups/1111/members", status=204)
+
+    result1 = g.get_group_members("Doesn't Exist")
+    result2 = g.get_group("Experts").get_members()
+
+    self.assertEqual(result1, False)
+    self.assertEqual(result2, [])
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/groups"
+    }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }, {

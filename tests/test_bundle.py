@@ -731,7 +731,7 @@ class TestBundle(unittest.TestCase):
 </p>""")
 
     download_mock = Mock()
-    download_mock.return_value = 200
+    download_mock.return_value = (200, 2355)
     sync.zip(download_func=download_mock)
 
     self.assertEqual(download_mock.call_args.args, (
@@ -802,11 +802,13 @@ class TestBundle(unittest.TestCase):
   <a name="test">no href</a>
 </p>
 <p><br></p>
+<ul><ul><li>test</li><li><ol></ol></li></ul></ul>
 <nav><img src="https://www.example.com/test"/></nav>
-<table>
+<table class="test ghq-table other-class">
   <caption>test</caption>
   <tr>
-    <td data-something="5">
+    <td data-something="5" class="this-gets-removed">
+      <h2>heading</h2>
       <p>test</p>
       <ul>
         <li>One</li>
@@ -835,11 +837,14 @@ class TestBundle(unittest.TestCase):
 <a href="mailto:user@example.com">user@example.com</a>
 <a>no href</a>
 </p>
+<ul><li>test</li><li></li></ul>
 <img src="https://www.example.com/test"/>
-<table>
+<table class="ghq-table">
 <tr>
 <td>
-<p>test</p>
+<strong>heading</strong>
+<br/>test
+
 <br/>- One
 <br/>- Two
 
@@ -1457,26 +1462,34 @@ it's multiple lines
   <li>
     test
   </li>
-  <ol>
-    <li>
-      one
-    </li>
-    <li>
-      two
-    </li>
-  </ol>
-  <ul>
+  <li>
     <ol>
       <li>
-        iframe:​ ​<iframe src="https://www.example.com"></iframe>
+        one
+      </li>
+      <li>
+        two
       </li>
     </ol>
-  </ul>
-  <ol>
-    <li>
-      three
-    </li>
-  </ol>
+  </li>
+  <li>
+    <ul>
+      <li>
+        <ol>
+          <li>
+            iframe:​ ​<iframe src="https://www.example.com"></iframe>
+          </li>
+        </ol>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <ol>
+      <li>
+        three
+      </li>
+    </ol>
+  </li>
   <li>
     end
   </li>
@@ -1486,26 +1499,34 @@ it's multiple lines
 <li>
     test
   </li>
+<li>
 <ol>
 <li>
-      one
-    </li>
+        one
+      </li>
 <li>
-      two
-    </li>
+        two
+      </li>
 </ol>
+</li>
+<li>
 <ul>
+<li>
 <ol>
 <li>
-        iframe:​ ​</li></ol></ul></ul><iframe src="https://www.example.com"></iframe><ul><ul><ol start="2"><li>
+            iframe:​ ​</li></ol></li></ul></li></ul><iframe src="https://www.example.com"></iframe><ul><li><ul><li><ol start="2"><li>
 </li>
 </ol>
+</li>
 </ul>
+</li>
+<li>
 <ol>
 <li>
-      three
-    </li>
+        three
+      </li>
 </ol>
+</li>
 <li>
     end
   </li>
@@ -1648,3 +1669,45 @@ it's multiple lines
 <a href="https://www.example.com/removed_card">removed card</a>
 <a href="">link with no href</a>
 </p>""")
+
+  @use_guru()
+  def test_guru_markdown_blocks(self, g):
+    bundle = g.bundle("test_guru_markdown_blocks")
+
+    # make sure the attributes on the markdown block's div are preserved and
+    # that style attributes on elements inside the markdown are left alone.
+    node1 = bundle.node(id="1", url="https://www.example.com/1", title="node 1", content="""<div class="ghq-card-content__markdown" data-ghq-card-content-markdown-content="%3Cdiv%20style%3D%22background-color%3A%23F89E91%3Bcolor%3A%234A1717%3Bpadding%3A1px%3Btext-align%3Aleft%3Bfont-size%3A16px%3Bmargin-bottom%3A16px%22%3E%0A%3Cp%20style%3D%22margin%3A%2016px%22%3Etest%20content%20%3Cstrong%3Eabcd%201234.%3C%2Fstrong%3E%3C%2Fp%3E%0A%3C%2Fdiv%3E" data-ghq-card-content-type="MARKDOWN">
+	<div style="background-color:#F89E91;color:#4A1717;padding:1px;text-align:left;font-size:16px;margin-bottom:16px" class="">
+		<p style="margin: 16px" class="">
+			test content
+			<strong>
+				abcd 1234.
+			</strong>
+		</p>
+	</div>
+</div>""")
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_guru_markdown_blocks/cards/1.html"), """<div class="ghq-card-content__markdown" data-ghq-card-content-markdown-content="%3Cdiv%20style%3D%22background-color%3A%23F89E91%3Bcolor%3A%234A1717%3Bpadding%3A1px%3Btext-align%3Aleft%3Bfont-size%3A16px%3Bmargin-bottom%3A16px%22%3E%0A%3Cp%20style%3D%22margin%3A%2016px%22%3Etest%20content%20%3Cstrong%3Eabcd%201234.%3C%2Fstrong%3E%3C%2Fp%3E%0A%3C%2Fdiv%3E" data-ghq-card-content-type="MARKDOWN">
+<div class="" style="background-color:#F89E91;color:#4A1717;padding:1px;text-align:left;font-size:16px;margin-bottom:16px">
+<p class="" style="margin: 16px">
+			test content
+			<strong>
+				abcd 1234.
+			</strong>
+</p>
+</div>
+</div>""")
+
+  @use_guru()
+  def test_removing_empty_lists_and_list_items(self, g):
+    bundle = g.bundle("test_removing_empty_lists_and_list_items")
+
+    # the ul contains an image, so one li is removed but the list remains.
+    # the ol only contains an li that'll be removed, so we expect the ol to be removed too.
+    html = """<ul><li><br/></li><li><img src="https://www.example.com/test.png"/></li></ul><ol><li><br/></li></ol>"""
+    new_html = """<ul><li><img src="https://www.example.com/test.png"/></li></ul>"""
+    node1 = bundle.node(id="1", title="node 1", content=html)
+    bundle.zip()
+
+    self.assertEqual(read_html("/tmp/test_removing_empty_lists_and_list_items/cards/1.html"), new_html)

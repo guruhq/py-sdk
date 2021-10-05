@@ -71,6 +71,16 @@ def _format_style(values):
 def clean_up_html(html):
   doc = BeautifulSoup(html, "html.parser")
 
+  # when we see 'colspan' in a table, insert extra cells so the original TD plus
+  # the extra TDs take up the expected number of columns. for colspan="3" we insert
+  # two TDs after the original one so together they span three columns.
+  # rowspan is harder because we'd have to insert TDs into the next rows.
+  for td in doc.select("[colspan]"):
+    for i in range(1, int(td.attrs.get("colspan", 1))):
+      new_td = doc.new_tag("td")
+      td.insert_after(new_td)
+    del td.attrs["colspan"]
+
   # only keep the attributes we need otherwise they just take up space.
   attributes_to_keep = [
     "style",
@@ -82,13 +92,26 @@ def clean_up_html(html):
     "src",     # for images...
     "alt",
     "height",
-    "width"
+    "width",
+    "class",   # for guru elements...
+    "data-ghq-card-content-type",
+    "data-ghq-card-content-markdown-content"
   ]
   for el in doc.select("*"):
     for attr in list(el.attrs.keys()):
       if attr not in attributes_to_keep:
         del el.attrs[attr]
-  
+
+    # keep any class name that starts with 'ghq-'
+    old_class_list = el.attrs.get("class") or []
+    new_class_list = list(filter(lambda c: c.startswith("ghq-"), old_class_list))
+
+    if new_class_list:
+      el.attrs["class"] = new_class_list
+    elif old_class_list:
+      # we only remove the 'class' attribute if it was there in the first place.
+      del el.attrs["class"]
+
   # clean up lists inside table cells.
   for li in doc.select("td li"):
     # todo: only add the br tag if the list has a previous sibling.
@@ -100,6 +123,32 @@ def clean_up_html(html):
   
   for ul in doc.select("td ul, td ol"):
     ul.unwrap()
+
+  # table cells don't really handle multiple blocks, or one block with
+  # text before or after it. so, we try to convert all blocks to inlines.
+  # <p> becomes <span>, <h1> (or any heading) becomes <strong>, <pre>
+  # becomes <code>. once those conversions are made we also insert a <br>
+  # tag between every pair of inlines to make the line breaks look like
+  # they would when the elements were block elements.
+  for td in doc.select("td"):
+
+    # we use this to look up the new tag name. if a match isn't found here
+    # we'll assume it's a heading and convert it to a <strong> tag.
+    # note: these spans will likely get unwrapped later because we unwrap
+    #       unstyled span tags later on.
+    block_to_inline = {
+      "p": "span",
+      "pre": "code"
+    }
+    had_block_elements = False
+    for block in td.select("p, pre, h1, h2, h3, h4, h5, h6"):
+      block.name = block_to_inline.get(block.name, "strong")
+      had_block_elements = True
+
+    # if any conversions happened, insert <br> tags between each pair of inlines.
+    if had_block_elements:
+      for inline in td.select("span ~ span, span ~ strong, span ~ code, strong ~ span, strong ~ strong, strong ~ code, code ~ span, code ~ strong, code ~ code"):
+        inline.insert_before(doc.new_tag("br"))
 
   # we don't use these tags for anything but they might contain content
   # so we call unwrap() rather than calling decompose().
@@ -151,6 +200,12 @@ def clean_up_html(html):
       else:
         block.insert_after("[[GURU[[%s]]GURU]]" % tag)
 
+  # look for things like ul > ul and unwrap the child list.
+  # we expect nested lists to be wrapped in an <li> and if they're not,
+  # it introduces an extra blank list item when it's viewed in guru.
+  for child_list in doc.select("ul > ul, ul > ol, ol > ol, ol > ul"):
+    child_list.unwrap()
+
   # remove unnecessary things from style attributes (e.g. width/height on table cells).
   style_attrs_to_keep = [
     "background",
@@ -162,6 +217,12 @@ def clean_up_html(html):
   ]
 
   for el in doc.select("[style]"):
+    # style attributes are ok if the element is inside a guru markdown block.
+    # the styles you'll usually see are the ones in the encoded markdown attribute but
+    # the ones on the nested HTML might be used somewhere (maybe public cards?).
+    if el.find_parent("div", attrs={"class": "ghq-card-content__markdown"}):
+      continue
+
     values = _parse_style(el.attrs["style"])
     for attr in list(values.keys()):
       if attr not in style_attrs_to_keep:
@@ -183,13 +244,20 @@ def clean_up_html(html):
   #  - contain either no tags, or contains only br, div, or span tags.
   #
   # the second rule is important otherwise we'll remove paragraphs that contain only an image, iframe, etc.
-  for el in doc.select("p, h1, h2, h3, h4, h5, h6"):
-    text = el.text.strip()
-    if not text:
-      all_tag_count = len(el.select("*"))
-      unimportant_tag_count = len(el.select("br, div, span"))
-      if all_tag_count == unimportant_tag_count:
-        el.decompose()
+  elements_to_remove_if_empty = ["p", "li", "h1, h2, h3, h4, h5, h6"]
+  for selector in elements_to_remove_if_empty:
+    for el in doc.select(selector):
+      text = el.text.strip()
+      if not text:
+        all_tag_count = len(el.select("*"))
+        unimportant_tag_count = len(el.select("br, div, span"))
+        if all_tag_count == unimportant_tag_count:
+          el.decompose()
+
+  # remove empty ol and ul tags.
+  for ol in doc.select("ol, ul"):
+    if len(ol.select("li")) == 0:
+      ol.decompose()
 
   return (
     str(doc)
@@ -744,15 +812,16 @@ class BundleNode:
           filename = self.bundle.RESOURCE_PATH % (self.bundle.id, resource_id)
           self.bundle.log(message="checking if we should download attachment", url=absolute_url, file=filename)
 
-          # you can either return True or return the http status code.
+          # you can either return True or return a tuple, with the http status code as the first item.
+          # if the file didn't download, you would get a return of False or None.
           # if the file was downloaded we need to update the src/href.
           download_result = download_func(absolute_url, filename, self.bundle, self)
 
           is_successful = False
           if type(download_result) == type(True):
             is_successful = download_result
-          elif isinstance(download_result, int):
-            if int(download_result / 100) == 2:
+          elif download_result and isinstance(download_result[0], int):
+            if int(download_result[0] / 100) == 2:
               is_successful = True
 
           if is_successful:
@@ -1134,7 +1203,7 @@ class Bundle:
       else:
         return content
 
-  def download_file(self, url, filename, headers=None, wait=5, timeout=0):
+  def download_file(self, url, filename, headers=None, cache=False, wait=5, timeout=0):
     """
     Makes an HTTP get call to load a remote file and save it to a local file.
 
@@ -1146,7 +1215,7 @@ class Bundle:
     self.log(message="calling download_file", url=url, filename=filename)
 
     while True:
-      status_code, file_size = download_file(url, filename, headers)
+      status_code, file_size = download_file(url, filename, headers, cache=cache)
       self.log(message="download_file response", url=url, filename=filename, status_code=status_code, file_size=file_size)
 
       if self.__wait_and_retry(status_code, wait):
