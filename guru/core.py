@@ -479,7 +479,12 @@ class Guru:
     
     url = "%s/collections/%s" % (self.base_url, collection_obj.id)
     response = self.__delete(url)
-    return status_to_bool(response.status_code)
+    result = status_to_bool(response.status_code)
+
+    if result:
+      self.__clear_cache("%s/collections" % self.base_url)
+    
+    return result
 
   def upload_content(self, collection, filename, zip_path, is_sync=False):
     """internal: used by the bundle object"""
@@ -607,7 +612,12 @@ class Guru:
     
     url = "%s/groups/%s" % (self.base_url, group_obj.id)
     response = self.__delete(url)
-    return status_to_bool(response.status_code)
+    result = status_to_bool(response.status_code)
+
+    if result:
+      self.__clear_cache("%s/groups" % self.base_url)
+    
+    return result
 
   def get_group_members(self, group):
     """
