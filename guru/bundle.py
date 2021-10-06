@@ -676,6 +676,9 @@ class BundleNode:
     # we go backwards so the parts end up in the correct order.
     for index in range(len(parts) - 1, 0, -1):
       new_content = parts[index]
+      if not new_content.strip():
+        continue
+
       new_doc = BeautifulSoup(new_content, "html.parser")
       new_title = self.title
 
@@ -684,6 +687,10 @@ class BundleNode:
         new_title = element.text.strip()
         element.decompose()
         break
+
+      # if this split would end up having no content, skip it.
+      if not str(new_doc):
+        continue
 
       new_node = self.bundle.node(
         id="%s_part%s" % (self.id, index),
