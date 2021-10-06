@@ -589,11 +589,21 @@ class FindAndReplace:
     self.excluded_ids = excluded_ids if excluded_ids else []
     self.show_preview = show_preview
 
-  def replace_term(self, card, replace_html=False, dry_run=True):
+  def replace_term(self, card, replace_html=False, just_replace_titles=False, dry_run=True):
     original_content = card.content
     if replace_html:
       replaced_content = card.content.replace(self.term, self.replacement)
       card.content = replaced_content
+    elif self.replace_title and just_replace_titles and isinstance(card, Card):
+      term_search_pattern = re.compile(r'%s' % re.escape(self.term)) if self.term_case_sensitive else re.compile(r'%s' % re.escape(self.term), re.IGNORECASE)
+      if re.search(term_search_pattern, card.title): 
+        card.title = replace_text_in_text(card.title,
+                                          self.term,
+                                          self.replacement,
+                                          term_case_sensitive=self.term_case_sensitive,
+                                          replacement_case_sensitive=self.replacement_case_sensitive)
+      else:
+        return
     else:
       card.content = replace_text_in_card(
           card,
@@ -614,7 +624,7 @@ class FindAndReplace:
                     orig_content=original_content,
                     new_content=new_content))
 
-  def run(self, given_card_set=None, dry_run=True):
+  def run(self, given_card_set=None, just_replace_titles=False, dry_run=True):
     """
     Performs a find and replace on the given cards, 
     and previews in the browser. Defaults to a dry run, 
@@ -622,15 +632,19 @@ class FindAndReplace:
     
     """
     card_set = given_card_set if given_card_set else self.guru.find_cards(collection=self.collection)
-    case_sensitive_pattern = re.compile(r'%s' % re.escape(self.term))
+    term_search_pattern = re.compile(r'%s' % re.escape(self.term)) if self.term_case_sensitive else re.compile(r'%s' % re.escape(self.term), re.IGNORECASE)
+    # case_sensitive_pattern = re.compile(r'%s' % re.escape(self.term))
     for card in card_set:
       card_id = card.id or card.slug.split("/")[0]
-      if self.replace_in_html and self.term in card.content:
+      if self.replace_in_html and self.term in card.content and not card_id in self.excluded_ids:
         self.replace_term(card, replace_html=self.replace_in_html, dry_run=dry_run)
       else:
-        # if card.has_text(self.term) and not card_id in self.excluded_ids:
-        #   self.replace_term(card, dry_run=dry_run)
-        if re.search(case_sensitive_pattern, card.content) and not card_id in self.excluded_ids:
+        if just_replace_titles and given_card_set and not card_id in self.excluded_ids:
+          self.replace_term(card, just_replace_titles=just_replace_titles, dry_run=dry_run)
+        elif just_replace_titles and not card_id in self.excluded_ids:
+          self.replace_term(card, just_replace_titles=just_replace_titles, dry_run=dry_run)
+        elif re.search(term_search_pattern, card.content) and not card_id in self.excluded_ids:
+          # self.replace_term(card, just_replace_titles=just_replace_titles, dry_run=dry_run)
           self.replace_term(card, dry_run=dry_run)
 
     browser_preview = Preview(
