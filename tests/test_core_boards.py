@@ -564,9 +564,6 @@ class TestCore(unittest.TestCase):
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/collections"
-    }, {
-      "method": "GET",
       "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
     }])
   
@@ -1223,7 +1220,7 @@ class TestCore(unittest.TestCase):
             "entryType": "board"
           }
         ],
-        "prevSiblingItem": "bg1"
+        "prevSiblingItem": "i2"
       }
     }
   ])
