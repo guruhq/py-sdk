@@ -2159,8 +2159,8 @@ class Guru:
     else:
       url = "%s/boards" % self.base_url
     
-    response = self.__get(url, cache)
-    return [Board(b, guru=self) for b in response.json()]
+    boards = self.__get_and_get_all(url, cache)
+    return [Board(b, guru=self) for b in boards]
 
   def get_board_group(self, board_group, collection):
     """
