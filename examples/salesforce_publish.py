@@ -95,7 +95,7 @@ def convert_card_to_article(card):
     # the UrlName is like the title but meant to be displayed in a URL, in Guru
     # we have the card's slug which serves the same purpose. the slug has two
     # parts, an ID and title, so we just need the second part here.
-    "UrlName": card.slug.split("/")[1],
+    "UrlName": card.slug.split("/")[1].strip("-"),
   }
 
   # we set some properties differently whether it's an internal or external article.
@@ -357,7 +357,7 @@ class SalesforcePublisher(guru.Publisher):
     # find the data category group name.
     data_category_group_name = ""
     for category in self.data_categories:
-      if category.get("label") == data_category_name:
+      if category.get("label").strip().lower() == data_category_name.strip().lower():
         data_category_name = category.get("name")
         data_category_group_name = category.get("group_name")
         break
