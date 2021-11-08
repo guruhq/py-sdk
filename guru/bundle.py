@@ -108,7 +108,7 @@ def clean_up_html(html):
 
     if new_class_list:
       el.attrs["class"] = new_class_list
-    elif old_class_list:
+    elif el.has_attr("class"):
       # we only remove the 'class' attribute if it was there in the first place.
       del el.attrs["class"]
 
