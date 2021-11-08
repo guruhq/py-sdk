@@ -37,12 +37,13 @@ class Section:
   - `id` the internal Guru ID for the section.
   - `items` the list of Card objects for each card in the section.
   """
-  def __init__(self, data):
+  def __init__(self, data, guru=None):
+    self.guru = guru
     self.type = "section"
     self.title = data.get("title")
     self.id = data.get("id")
     self.item_id = data.get("itemId")
-    self.items = [Card(i) for i in data.get("items") or []]
+    self.items = [Card(i, guru=guru) for i in data.get("items") or []]
 
   def json(self):
     return {
@@ -97,7 +98,7 @@ class Board:
     self.__all_items = []
     for item in data.get("items", []):
       if item.get("type") == "section":
-        section = Section(item)
+        section = Section(item, guru=guru)
         self.items.append(section)
         self.__sections.append(section)
         self.__all_items.append(section)
@@ -1123,7 +1124,7 @@ class Card:
     Adds the tag to the card and saves this change.
 
     Args:
-      tag (Tag or string): Either the name of the tag (e.g. "case study") or the Tag object.
+      tag (Tag or str): Either the name of the tag (e.g. "case study") or the Tag object.
       create (bool, optional): This tells the SDK if it should create the tag if it doesn't
         already exist. Defaults to False.
     """
@@ -1132,6 +1133,30 @@ class Card:
     
     tag_object = self.guru.add_tag_to_card(tag, self, create=create)
     self.tags.append(tag_object)
+
+  def remove_tag(self, tag):
+    """
+    Removes the tag from the card and saves this change.
+
+    Args:
+      tag (Tag or str): Either the name of the tag (e.g. "case study") or the Tag object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    # it's possible we won't find the tag in the card's list of tags but the card
+    # does really have the tag. this could happen because the card data didn't include
+    # its list of tags or because the data is out of sync. so, we use 'tag' as a
+    # fallback because passing a string into remove_tag_from_card will make it look
+    # up the tag ID.
+    tag = find_by_name_or_id(self.tags, tag) or tag
+    result = self.guru.remove_tag_from_card(tag, self)
+
+    # if it was successful, we update the card object.
+    if result and isinstance(tag, Tag):
+      self.tags.remove(tag)
+
+    return result
 
   def add_comment(self, comment):
     """

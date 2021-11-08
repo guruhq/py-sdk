@@ -189,9 +189,14 @@ def find_by_name_or_id(lst, name_or_id):
   # it says "name or id" but we really need to check the 'title' and 'slug' properties too.
   name_or_id = (name_or_id or "").strip()
   for obj in lst:
+    # some objects call it 'name', some call it 'title'.
+    # for cards it's preferredPhrase but we also give them a title property.
+    # for tags it's called 'value'.
     if hasattr(obj, "name") and obj.name.strip().lower() == name_or_id.lower():
       return obj
     if hasattr(obj, "title") and obj.title.strip().lower() == name_or_id.lower():
+      return obj
+    if hasattr(obj, "value") and obj.value.strip().lower() == name_or_id.lower():
       return obj
     if obj.id.lower() == name_or_id.lower():
       return obj

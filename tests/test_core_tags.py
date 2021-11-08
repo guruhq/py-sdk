@@ -378,3 +378,124 @@ class TestCore(unittest.TestCase):
         "suppressVerification": True
       }
     }])
+
+  @use_guru()
+  @responses.activate
+  def test_remove_tag_from_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
+      "id": "1234",
+      "tags": [{
+        "id": "1111",
+        "value": "api docs"
+      }]
+    })
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/cards/1234/tags/1111", status=204)
+
+    card = g.get_card("1234")
+    card.remove_tag("api docs")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
+    }, {
+      "method": "DELETE",
+      "url": "https://api.getguru.com/api/v1/cards/1234/tags/1111"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_remove_tag_from_card2(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
+      "id": "1234",
+      "tags": [{
+        "id": "1111",
+        "value": "api docs"
+      }]
+    })
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/cards/1234/tags/1111", status=204)
+
+    card = g.get_card("1234")
+
+    # we pass a string in here so it looks up the tag from the card's list of tags.
+    g.remove_tag_from_card("api docs", card)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
+    }, {
+      "method": "DELETE",
+      "url": "https://api.getguru.com/api/v1/cards/1234/tags/1111"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_remove_tag_from_card_where_we_look_up_the_tag(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
+      "id": "1234",
+      "tags": [] # having no tags here means we'll have to look up the tag.
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
+      "tags": [{
+        "id": "1111",
+        "value": "api docs"
+      }],
+      "id": "2222",
+      "name": "category"
+    }])
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/cards/1234/tags/1111", status=204)
+
+    card = g.get_card("1234")
+    card.remove_tag("api docs")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/whoami"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
+    }, {
+      "method": "DELETE",
+      "url": "https://api.getguru.com/api/v1/cards/1234/tags/1111"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_remove_tag_from_card_with_invalid_tag(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1234/extended", json={
+      "id": "1234",
+      "tags": []
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/whoami", json={
+      "team": {
+        "id": "abcd"
+      }
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/teams/abcd/tagcategories", json=[{
+      "tags": [],
+      "id": "2222",
+      "name": "category"
+    }])
+
+    card = g.get_card("1234")
+
+    # we pass a string in here so it looks up the tag from the card's list of tags.
+    g.remove_tag_from_card("api docs", card)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1234/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/whoami"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
+    }])

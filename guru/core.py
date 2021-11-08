@@ -2100,6 +2100,43 @@ class Guru:
     if status_to_bool(response.status_code):
       return tag_object
 
+  def remove_tag_from_card(self, tag, card):
+    """
+    Remove a tag from a card using the DELETE call to do jut this, rather
+    than using the PUT call to update an entire card.
+
+    Args:
+      tag (str or Tag): A Tag's value, ID, or the Tag object.
+      card (str or Card): A card's slug, ID, or the Card object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    # look up the card object.
+    card_object = self.get_card(card)
+    if not card_object:
+      self.__log(make_red("could not find card:", card))
+      return
+
+    # if you passed in a Tag object, we use that.
+    # if not, we try to find the tag in the card's list of tags.
+    if isinstance(tag, Tag):
+      tag_object = tag
+    else:
+      tag_object = find_by_name_or_id(card_object.tags, tag)
+      # if that doesn't work, look up the tag.
+      if not tag_object:
+        tag_object = self.get_tag(tag)
+
+    if not tag_object:
+      self.__log(make_red("could not find tag:", tag))
+      return
+
+    # make the DELETE call to remove the tag.
+    url = "%s/cards/%s/tags/%s" % (self.base_url, card_object.id, tag_object.id)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
   def get_board(self, board, collection=None, cache=True):
     """
     Loads a board.
