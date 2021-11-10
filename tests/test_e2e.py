@@ -1,4 +1,5 @@
 
+
 import unittest
 import requests
 import mimetypes
@@ -6,6 +7,7 @@ import mimetypes
 from tests.util import use_guru
 
 import os
+import time
 import guru
 
 # these are valid credentials so these tests will hit our live API.
@@ -185,7 +187,7 @@ class TestEndToEnd(unittest.TestCase):
     # number of items changed as expected.
     board_before = g.get_board("Bored Board", collection="Sandbox")
     card.add_to_board("Bored Board")
-    board_after = g.get_board("Bored Board", collection="Sandbox")
+    board_after = g.get_board("Bored Board", collection="Sandbox", cache=False)
     card = g.get_card(card.id)
 
     self.assertEqual(len(board_before.items) + 1, len(board_after.items))
@@ -226,7 +228,8 @@ class TestEndToEnd(unittest.TestCase):
     #   "archived": True
     # })
 
-    board_after_archive = g.get_board("Bored Board", collection="Sandbox")
+    time.sleep(1)
+    board_after_archive = g.get_board("Bored Board", collection="Sandbox", cache=False)
     self.assertEqual(len(board_before.items), len(board_after_archive.items))
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)

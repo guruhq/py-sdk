@@ -263,7 +263,7 @@ class Publisher:
         if external_id:
           successful = True
     
-    if successful:
+    if successful or external_id:
       self.__update_metadata(collection.id, external_id, type="collection")
     
     for item in home_board.items:
@@ -304,7 +304,7 @@ class Publisher:
         if external_id:
           successful = True
     
-    if successful:
+    if successful or external_id:
       self.__update_metadata(board_group.id, external_id, type="board_group")
 
     for item in board_group.items:
@@ -344,7 +344,7 @@ class Publisher:
         if external_id:
           successful = True
     
-    if successful:
+    if successful or external_id:
       self.__update_metadata(board.id, external_id, type="board")
     
     for item in board.items:
@@ -383,7 +383,7 @@ class Publisher:
         if external_id:
           successful = True
     
-    if successful:
+    if successful or external_id:
       self.__update_metadata(section.id, external_id, type="section")
 
     for item in section.items:
@@ -456,5 +456,11 @@ class Publisher:
         last_modified_date=card.last_modified_date,
         boards=[b.title for b in card.boards],
         tags=[t.value for t in card.tags],
+        type="card"
+      )
+    elif external_id:
+      self.__update_metadata(
+        card.id,
+        external_id,
         type="card"
       )
