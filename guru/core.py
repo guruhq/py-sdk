@@ -227,6 +227,7 @@ class Guru:
       self.__log(make_gray("  using cached get call:", url))
       return self.__cache[url]
     
+    original_url = url
     results = []
     auth = self.__get_auth()
     page = 0
@@ -245,7 +246,7 @@ class Guru:
       if page >= max_pages:
         break
     
-    self.__cache[url] = results
+    self.__cache[original_url] = results
     return results
 
   def __post_and_get_all(self, url, data):
@@ -2499,6 +2500,9 @@ class Guru:
       board_obj.items.append(card_obj)
     
     self.save_board(board_obj)
+
+    # clear the cache entry for this board.
+    self.__clear_cache("%s/boards/%s" % (self.base_url, board_obj.id))
 
   def add_section_to_board(self, board, section, collection=None):
     """
