@@ -146,6 +146,7 @@ class Board:
         card_lookup[id] = data[id]
 
     # now that we have the full card objects, we update the entries in all the existing lists.
+    self.__update_cards_in_list(self.items, card_lookup)
     self.__update_cards_in_list(self.__cards, card_lookup)
     self.__update_cards_in_list(self.__all_items, card_lookup)
     for section in self.__sections:

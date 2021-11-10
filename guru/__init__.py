@@ -27,6 +27,15 @@ from guru.publish import (
   Publisher
 )
 
+# you might need these to check if an item on a board is
+# an instance of Section or Card.
+from guru.data_objects import (
+  Board,
+  BoardGroup,
+  Card,
+  Section
+)
+
 from guru.util import (
   MAX_FILE_SIZE,
   load_html,
