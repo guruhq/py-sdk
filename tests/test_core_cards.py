@@ -906,6 +906,47 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_find_cards_not_on_a_board(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/search/cardmgr", json=[])
+
+    g.find_cards(collection="General", board_count=0, share_status=("NE", "PRIVATE"))
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/search/cardmgr",
+      "body": {
+        "queryType": None,
+        "sorts": [{
+          "type": "verificationState",
+          "dir": "ASC"
+        }],
+        "query": {
+          "nestedExpressions": [{
+            "type": "count",
+            "value": "0",
+            "op": "EQ",
+            "field": "BOARDCOUNT"
+          }, {
+            "type": "share-type",
+            "shareType": "PRIVATE",
+            "op": "NE"
+          }],
+          "op": "AND",
+          "type": "grouping"
+        },
+        "collectionIds": ["1234"]
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_find_cards_by_invalid_collection(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[])
 
@@ -930,7 +971,6 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "category"
     }])
-    responses.add(responses.POST, "https://api.getguru.com/api/v1/search/cardmgr", json=[])
 
     g.find_cards(tag="tag1")
 
