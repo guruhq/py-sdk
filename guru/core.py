@@ -85,6 +85,23 @@ def is_color(color):
 def is_email(email):
   return "@" in email and len(email) > 3
 
+def parse_expression(values, type, key):
+  expression = {
+    "type": type,
+    "op": "EQ"
+  }
+
+  # if the value is a single string we assume the operation is "EQ"
+  if isinstance(values, str):
+    expression[key] = values
+  else:
+    # otherwise we assume values is like ("EQ", "PRIVATE")
+    # todo: we could be smarter and allow both orders.
+    expression["op"] = values[0]
+    expression[key] = values[1]
+
+  return expression
+
 
 class DummyResponse:
   def __init__(self, status_code=200):
@@ -1287,7 +1304,7 @@ class Guru:
   def find_cards(
     self, title="", tag="", collection="", author="", verified=None, unverified=None,
     created_before=None, created_after=None, last_modified_before=None, last_modified_after=None,
-    last_modified_by=None, archived=False
+    last_modified_by=None, archived=False, board_count=None, share_status=None
   ):
     """
     Gets a list of cards that match the criteria defined by the parameters.
@@ -1443,6 +1460,19 @@ class Guru:
         "email": last_modified_by,
         "op": "EQ"
       })
+
+    if board_count is not None:
+      nested_expressions.append({
+        "type": "count",
+        "value": "0",
+        "op": "EQ",
+        "field": "BOARDCOUNT"
+      })
+
+    if share_status:
+      nested_expressions.append(
+        parse_expression(share_status, type="share-type", key="shareType")
+      )
 
     if nested_expressions:
       data["query"] = {
