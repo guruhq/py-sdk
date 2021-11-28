@@ -1323,3 +1323,16 @@ class Question:
       bool: True if it was successful and False otherwise.
     """
     return self.guru.delete_question(self)
+
+class Webhook:
+  """Represents a webhook"""
+  def __init__(self, data, guru=None):
+    self.guru = guru
+    self.owner = User(data.get("owner"))
+    self.filter = data.get("filter")
+    self.id = data.get("id")
+    self.status = data.get("status")
+    self.date_created = data.get("dateCreated")
+    self.target_url = data.get("targetUrl")
+    self.last_modified_date = data.get("dateLastModified")
+    self.delivery_mode = data.get("deliveryMode")
