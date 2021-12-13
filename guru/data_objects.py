@@ -740,6 +740,18 @@ class Verifier:
     self.user = User(data.get("user")) if data.get("user") else None
     self.group = Group(data.get("userGroup")) if data.get("userGroup") else None
 
+  def json(self):
+    if self.user:
+      return {
+        "type": "user",
+        "id": self.user.email
+      }
+    elif self.group:
+      return {
+        "type": "user-group",
+        "id": self.group.id
+      }
+
 
 class Card:
   """
@@ -1220,6 +1232,121 @@ class Card:
       "id": self.id,
       "itemId": self.item_id
     }
+
+
+class Template:
+  def __init__(self, data, guru=None):
+    self.guru = guru
+    self.id = data.get("id")
+    self.tags = [Tag(item) for item in data.get("tags", [])]
+    self.boards = [Board(b, guru) for b in data.get("boards") or []]
+    self.last_modified = data.get("lastModified")
+    self.content = data.get("content")
+    self.description = data.get("description")
+    self.created_by = User(data.get("createdBy") or {})
+    if data.get("collection"):
+      self.collection = Collection(data.get("collection"))
+    else:
+      self.collection = None
+    self.date_created = data.get("dateCreated")
+    self.last_modified_by = User(data.get("lastModifiedBy") or {})
+    self.share_status = data.get("shareStatus")
+    self.json_content = data.get("jsonContent")
+    self.verification_interval = data.get("verificationInterval")
+    self.card_title = data.get("cardTitle")
+    if data.get("cardVerifier"):
+      self.verifier = Verifier(data.get("cardVerifier"))
+    else:
+      self.verifier = None
+    self.template_title = data.get("templateTitle")
+
+  def has_tag(self, tag):
+    """
+    Checks if the template has a particular tag applied to it.
+
+    Args:
+      tag (str): The name of the tag you're looking for.
+
+    Returns:
+      bool: True if the template has the tag and False otherwise.
+    """
+    for t in self.tags:
+      if t.value.lower() == tag.lower():
+        return True
+    return False
+
+  def add_tag(self, tag, create=False):
+    """
+    Adds the tag to the template and saves this change.
+
+    Args:
+      tag (Tag or str): Either the name of the tag (e.g. "case study") or the Tag object.
+      create (bool, optional): This tells the SDK if it should create the tag if it doesn't
+        already exist. Defaults to False.
+    """
+    if self.has_tag(tag):
+      return True
+
+    tag_object = self.guru.get_tag(tag, create=create)
+    if tag_object:
+      self.tags.append(tag_object)
+      return self.save()
+
+  def remove_tag(self, tag):
+    """
+    Removes the tag from the template and saves this change.
+
+    Args:
+      tag (Tag or str): Either the name of the tag (e.g. "case study") or the Tag object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    tag_object = find_by_name_or_id(self.tags, tag)
+
+    if tag_object:
+      self.tags.remove(tag_object)
+      return self.save()
+
+  def save(self):
+    """
+    Saves the template.
+    """
+    saved_template, successful = self.guru.save_template(self)
+
+    # todo: check if the template's title or content changed because
+    #       those also have to update the jsonContent or the change
+    #       won't really take effect.
+
+    # we update the ID in case this was a new template being saved
+    # for the first time. if you make any more changes and save again,
+    # having an ID is how we'll know to do a PUT call to update it
+    # instead of a POST to create another template.
+    self.id = saved_template.id
+
+    if successful:
+      return saved_template
+
+  def json(self):
+    """internal"""
+    data = {
+      "id": self.id,
+      "tags": [tag.json() for tag in self.tags],
+      "boards": [board.json() for board in self.boards],
+      "content": self.content,
+      "description": self.description,
+      "collection": self.collection.json(),
+      "shareStatus": self.share_status,
+      "jsonContent": self.json_content,
+      "verificationInterval": self.verification_interval,
+      "cardTitle": self.card_title,
+      "templateTitle": self.template_title
+    }
+
+    if self.verifier:
+      data["cardVerifier"] = self.verifier.json()
+
+    return data
 
 
 class Draft:

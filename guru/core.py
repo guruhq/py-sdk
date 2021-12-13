@@ -15,7 +15,7 @@ else:
   from urlparse import quote
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question, Framework
+from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, Template, User, Question, Framework
 from guru.util import download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
@@ -1824,6 +1824,34 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
+  def get_templates(self, search=""):
+    url = "%s/templates/cards" % self.base_url
+    templates = self.__get_and_get_all(url)
+    templates = [Template(t, guru=self) for t in templates]
+    return templates
+
+  def save_template(self, template):
+    """
+    Saves changes to a card template.
+
+    Args:
+      template (Template): The Template object for the template you're saving.
+
+    Returns:
+      Template: An updated Template object.
+    """
+    if template.id:
+      url = "%s/templates/cards/%s" % (self.base_url, template.id)
+      response = self.__put(url, template.json())
+    else:
+      url = "%s/templates/cards" % self.base_url
+      response = self.__post(url, template.json())
+
+    if self.dry_run:
+      return Template({}, guru=self), True
+    else:
+      return Template(response.json(), guru=self), status_to_bool(response.status_code)
+
   def get_drafts(self, card=None):
     if card:
       card_obj = self.get_card(card)
@@ -1985,7 +2013,7 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
-  def get_tag(self, tag, cache=False):
+  def get_tag(self, tag, create=False, cache=False):
     """
     Gets a tag.
 
@@ -2005,6 +2033,9 @@ class Guru:
     for t in tags:
       if t.value.lower() == tag.lower() or t.id.lower() == tag.lower():
         return t
+
+    if create:
+      return self.make_tag(tag)
 
   def get_team_id(self, cache=True):
     url = "%s/whoami" % self.base_url
@@ -2113,9 +2144,7 @@ class Guru:
       Tag: The Tag object in case this was a newly created tag and you need
         to use that object. Will return None if it was unsuccessful.
     """
-    tag_object = self.get_tag(tag)
-    if not tag_object and create:
-      tag_object = self.make_tag(tag)
+    tag_object = self.get_tag(tag, create=create)
 
     if not tag_object:
       self.__log(make_red("could not find tag:", tag))
@@ -2869,6 +2898,15 @@ class Guru:
       url = "%s/tasks/questions/%s" % (self.base_url, question)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
+
+  def download_attachment(self, attachment_id, filename):
+    url = "https://content.api.getguru.com/files/dn/%s" % attachment_id
+    headers = {
+      "Authorization": self.__get_basic_auth_value()
+    }
+
+    status, file_size = download_file(url, filename, headers=headers)
+    return status_to_bool(status)
 
   def download_card_as_pdf(self, card, filename):
     card_obj = self.get_card(card)
