@@ -2168,7 +2168,7 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
-  def get_board(self, board, collection=None, cache=True):
+  def get_board(self, board, collection=None, board_group=None, cache=True):
     """
     Loads a board.
 
@@ -2195,17 +2195,16 @@ class Guru:
 
     # this returns a list of 'lite' objects that don't have the lists of items on the board.
     # once we find the matching board, then we can make the get call to get the complete object.
-    board_obj = find_by_name_or_id(self.get_boards(collection, cache), board)
+    board_obj = find_by_name_or_id(self.get_boards(collection, board_group, cache), board)
     
     if not board_obj:
-      self.__log(make_red("could not find board:", board))
       return
 
     url = "%s/boards/%s" % (self.base_url, board_obj.id)
     response = self.__get(url)
     return Board(response.json(), guru=self)
   
-  def get_boards(self, collection=None, cache=False):
+  def get_boards(self, collection=None, board_group=None, cache=False):
     """
     Gets a list of boards you can see. You can optionally filter by collection.
 
@@ -2217,6 +2216,16 @@ class Guru:
     Returns:
       list of Board: Either all boards you have access to or all boards within the specified collection.
     """
+    # if you're filtering by a board group we find the boards differently.
+    # this will load the home board to find the board group and return its items.
+    if collection and board_group:
+      board_group_obj = self.get_board_group(board_group, collection)
+      if not board_group_obj:
+        self.__log(make_red("could not find board group:", board_group))
+        return
+
+      return board_group_obj.items
+
     # filtering by collection is optional.
     if collection:
       collection_obj = self.get_collection(collection, cache=True)
@@ -2448,7 +2457,8 @@ class Guru:
     # this doesn't need to have a timeout or wait for a response because it's just
     # creating one board so that should always be done synchronously.
     response = self.__put(url, data)
-    return status_to_bool(response.status_code)
+    if status_to_bool(response.status_code):
+      return self.get_board(title, collection)
 
   def save_board(self, board_obj):
     url = "%s/boards/%s" % (self.base_url, board_obj.id)
@@ -2458,7 +2468,7 @@ class Guru:
       # todo: update the board obj so the caller doesn't have to store this return value.
       return board_obj
 
-  def add_card_to_board(self, card, board, section=None, collection=None, create_section_if_needed=False):
+  def add_card_to_board(self, card, board, section=None, collection=None, board_group=None, create_section_if_needed=False):
     """
     Adds a card to a board. You can optionally provide the name of a section
     to add the card to. The card will be added to the end -- either to the
@@ -2491,6 +2501,8 @@ class Guru:
       board (str or Board): The board you're adding the card to. Can either be
         the board's title, ID, slug, or the Board object.
       section (str, optional): The name of the section to add the card to.
+      board_group (str or BoardGroup, optional): The board group in which the board
+        resides. This is optional but is necessary if the board name is not unique.
       collection (str or Collection, optional): The collection in which the board
         resides. This is optional but might be necessary if you're identifying the
         board by title and the same title is used by boards in different collections.
@@ -2505,7 +2517,7 @@ class Guru:
       return
     
     # get the board object.
-    board_obj = self.get_board(board, collection)
+    board_obj = self.get_board(board, collection=collection, board_group=board_group)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
@@ -2755,6 +2767,52 @@ class Guru:
     url = "%s/boards/%s/permissions/%s" % (self.base_url, board_obj.id, perm_obj.id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
+
+  def move_card_to_collection(self, card, collection, timeout=0):
+    """
+    Moves a card from one collection to another.
+    """
+    card_obj = self.get_card(card)
+    if not card_obj:
+      self.__log(make_red("could not find card:", card))
+      return
+
+    collection_obj = self.get_collection(collection)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return
+
+    # if the card is already in that collection, do nothing.
+    if card_obj.collection and card_obj.collection.id == collection_obj.id:
+      self.__log(make_red("card", card_obj.title, "is already in collection", collection_obj.name))
+      return
+
+    data = {
+      "action": {
+        "type": "move-card",
+        "collectionId": collection_obj.id
+      },
+      "items": {
+        "type": "id",
+        "cardIds": [card_obj.id]
+      }
+    }
+
+    url = "%s/cards/bulkop" % self.base_url
+    response = self.__post(url, data)
+
+    # update the card's collection object.
+    # we don't return the card but if you passed a Card object in, this'll update it.
+    card_obj.collection = collection_obj
+
+    # if there's a timeout and the operation is being done async, we wait.
+    if timeout and response.status_code == 202:
+      # poll and wait for the bulk operation to finish.
+      bulk_op_id = response.json().get("id")
+      url = "%s/cards/bulkop/%s" % (self.base_url, bulk_op_id)
+      return self.__wait_for_bulkop(url, timeout)
+    else:
+      return status_to_bool(response.status_code)
 
   def move_board_to_collection(self, board, collection, timeout=0):
     """
