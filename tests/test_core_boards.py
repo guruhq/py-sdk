@@ -124,6 +124,11 @@ class TestCore(unittest.TestCase):
       "name": "General"
     }])
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home/entries?collection=1234", json=[])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[{
+      "id": "1111",
+      "title": "New Board"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/1111", json={})
 
     result = g.make_board("New Board", collection="General", description="test")
 
@@ -141,6 +146,12 @@ class TestCore(unittest.TestCase):
           "description": "test"
         }]
       }
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards?collection=1234"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/1111"
     }])
 
   @use_guru()

@@ -188,6 +188,18 @@ class Board:
   def all_items(self):
     return tuple(self.__all_items)
 
+  def get_section(self, section):
+    """
+    Returns the Section object matching the specified section name or ID.
+
+    Args:
+      section (str): The section's name or ID.
+
+    Returns:
+      Section: the Section object or None if it wasn't found.
+    """
+    return find_by_name_or_id(self.sections, section)
+
   def has_section(self, section):
     """
     Returns True if the board contains the section and False if it doesn't.
@@ -209,7 +221,7 @@ class Board:
     Returns:
       bool: True if the board contains the section and False otherwise.
     """
-    return True if find_by_name_or_id(self.sections, section) else False
+    return True if self.get_section(section) else False
 
   def add_section(self, name):
     """
@@ -1177,7 +1189,7 @@ class Card:
   def get_resolved_card_comments(self):
     return self.guru.get_card_comments(self, status="RESOLVED")
 
-  def add_to_board(self, board, section=None):
+  def add_to_board(self, board, section=None, board_group=None):
     """
     Adds the card to a board.
 
@@ -1186,6 +1198,21 @@ class Card:
       section (str, optional): The name of the section to add this card to.
     """
     return self.guru.add_card_to_board(self, board, section, collection=self.collection)
+
+  def remove_from_board(self, board):
+    """
+    Removes the card from a board.
+
+    Args:
+      board (str or Board): The name of the board you're removing the card from, or the Board object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    return self.guru.remove_card_from_board(self, board, self.collection)
+
+  def move_to_collection(self, collection, timeout=0):
+    return self.guru.move_card_to_collection(self, collection, timeout=timeout)
 
   def download_as_pdf(self, filename):
     return self.guru.download_card_as_pdf(self, filename)

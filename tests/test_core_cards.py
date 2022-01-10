@@ -1423,3 +1423,83 @@ this card has a <a href="https://www.example.com">guru markdown block</a>.
 
     # make sure the response's content was written to the file we specified.
     self.assertEqual(read_file("/tmp/card1.pdf"), "pdf content")
+
+  @use_guru()
+  @responses.activate
+  def test_move_card_to_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/bulkop", json={
+      "id": "2222"
+    })
+
+    card = g.get_card("1111")
+    card.move_to_collection("General")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/cards/bulkop",
+      "body": {
+        "action": {
+          "type": "move-card",
+          "collectionId": "1234"
+        },
+        "items": {
+          "type": "id",
+          "cardIds": ["1111"]
+        }
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_move_card_to_collection_and_wait(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1234",
+      "name": "General"
+    }])
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/bulkop", json={
+      "id": "2222"
+    }, status=202)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/bulkop/2222", json={})
+
+    card = g.get_card("1111")
+    card.move_to_collection("General", timeout=1)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "POST",
+      "url": "https://api.getguru.com/api/v1/cards/bulkop",
+      "body": {
+        "action": {
+          "type": "move-card",
+          "collectionId": "1234"
+        },
+        "items": {
+          "type": "id",
+          "cardIds": ["1111"]
+        }
+      }
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/bulkop/2222"
+    }])
