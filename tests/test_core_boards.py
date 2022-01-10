@@ -51,6 +51,50 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
+  def test_get_board_with_duplicate_name(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
+      "id": "1111",
+      "name": "Engineering"
+    }])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1111", json={
+      "collection": {
+        "id": "1111"
+      },
+      "items": [{
+        "type": "board",
+        "title": "My Board",
+        "id": "2222"
+      }, {
+        "type": "section",
+        "title": "Onboarding",
+        "items": [{
+          # this it the board we should find because it's inside the 'Onboarding' board group.
+          "type": "board",
+          "title": "My Board",
+          "id": "3333"
+        }]
+      }]
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/3333", json={
+      "id": "3333",
+      "title": "My Board"
+    })
+
+    board = g.get_board("My Board", collection="Engineering", board_group="Onboarding")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/collections"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/home?collection=1111"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/boards/3333"
+    }])
+
+  @use_guru()
+  @responses.activate
   def test_get_board_with_110_cards(self, g):
     # we build the list of items that comes back in the initial get call to load the board.
     # we also build the responses that come back for loading the first page of 50 and the page of 10 cards.
