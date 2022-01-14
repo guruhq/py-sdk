@@ -134,7 +134,6 @@ class Guru:
     self.hostname = "qaapi.getguru.com" if qa else "api.getguru.com"
     self.dry_run = dry_run
     self.__cache = {}
-    self.__upload_key = None
 
     if self.dry_run:
       self.debug = True
@@ -1485,84 +1484,6 @@ class Guru:
     cards = self.__post_and_get_all(url, data)
     return [Card(c, guru=self) for c in cards]
 
-  def __get_upload_key(self):
-    """internal"""
-    # the key we get here is valid for 24 hours which means it could expire, but we'll assume
-    # for now your script won't run for 24+ hours.
-    if self.__upload_key:
-      return self.__upload_key
-
-    url = "%s/attachments/policy" % self.base_url
-    self.__upload_key = self.__get(url).json()
-    return self.__upload_key
-
-  def upload_to_filestack(self, filename):
-    # get an upload key, read the file, do the call to filestack, return fs_data.
-    upload_key = self.__get_upload_key()
-
-    # read the file and upload it to filestack.
-    with open(filename, "rb") as file_in:
-      file_mimetype, file_encoding = mimetypes.guess_type(filename)
-      url = "https://www.filepicker.io/api/store/S3?key=%s&filename=%s&mimetype=%s&path=%s&signature=%s&policy=%s" % (
-        upload_key.get("apiKey"),
-        os.path.basename(filename),
-        file_mimetype,
-        upload_key.get("path"),
-        upload_key.get("signature"),
-        upload_key.get("policy")
-      )
-      files = {
-        "fileUpload": (filename, file_in)
-      }
-      response = self.__post(url, files=files)
-      if response.status_code != 200:
-        self.__log(make_red("status %s uploading to filestack" % response.status_code))
-        return
-
-      # the response has a bunch of values we need, particularly the filestack url.
-      # the full response looks like this:
-      #   {
-      #     "container": "fs.getguru.com",
-      #     "url": "https://cdn.filepicker.io/api/file/YtOIxff7T8Cyu2OZaF7m",
-      #     "filename": "screenshot.jpeg",
-      #     "key": "d7277b61-3974-4228-bcd7-4e4e220e93cb/iasnMk0TROCyLZPX9QIk_4e2d7a8627e34e8c8406e6b38f481941.jpeg",
-      #     "type": "image/jpeg",
-      #     "size": 4083
-      #   }
-      fs_data = response.json()
-      return fs_data
-  
-  def create_attachment(self, fs_data):
-    # make the /attachments call and return the 'link' value we get back.
-
-    # make the call to our backend so we know the attachment was uploaded
-    # and what its filestack url is.
-    url = "%s/attachments" % self.base_url
-    data = {
-      "filestackKey": fs_data.get("key"),
-      "filestackUrl": fs_data.get("url"),
-      "filestackClient": "",
-      "filename": fs_data.get("filename"),
-      "size": fs_data.get("size"),
-      "mimeType": fs_data.get("type")
-    }
-    response = self.__post(url, data=data)
-
-    # the response from our api gives us the content.api.getguru.com URL for the file.
-    # the full response looks like this:
-    #   {
-    #     "mimeType" : "image/jpeg",
-    #     "link" : "https://content.api.getguru.com/files/view/3886ec47-a99d-4431-848e-cff2d73a49f3",
-    #     "filename" : "screenshot.jpeg",
-    #     "filestackKey" : "d7277b61-3974-4228-bcd7-4e4e220e93cb/iasnMk0TROCyLZPX9QIk_4e2d7a8627e34e8c8406e6b38f481941.jpeg",
-    #     "attachmentId" : "3886ec47-a99d-4431-848e-cff2d73a49f3",
-    #     "filestackUrl" : "https://cdn.filepicker.io/api/file/YtOIxff7T8Cyu2OZaF7m",
-    #     "filestackClient" : "",
-    #     "size" : 4083
-    #   }
-    if status_to_bool(response.status_code):
-      return response.json().get("link")
-
   def upload_file(self, filename):
     """
     Uploads a file, like an image or pdf, to Guru so you can reference it in cards.
@@ -1581,13 +1502,28 @@ class Guru:
     Returns:
       str: The Guru URL for the attachment, something like: https://content.api.getguru.com/files/view/3886ec47-a99d-4431-848e-cff2d73a49f3
     """
-    # there are three steps here:
-    # 1. make sure we have an upload key for filestack, we get this from our API. ( handled in `upload_to_filestack()`)
-    # 2. make the /S3 call to upload the file to filestack (FS gives us the attachment URL in their response). ( handled in `upload_to_filestack()`)
-    # 3. make the /attachment call to tell guru about the newly created attachment. ( handled in `create_attachment()`)
+    with open(filename, "rb") as file_in:
+      file_mimetype, file_encoding = mimetypes.guess_type(filename)
+      files = {
+        "file": (filename, file_in, file_mimetype)
+      }
+      url = "%s/attachments/upload" % self.base_url
+      response = self.__post(url, files=files)
 
-    fs_data = self.upload_to_filestack(filename)
-    return self.create_attachment(fs_data)
+      if response.status_code != 200:
+        self.__log(make_red("status %s uploading to guru" % response.status_code))
+        return
+
+      # the response looks like this:
+      # {
+      #   "mimeType" : "image/png",
+      #   "link" : "https://content.api.getguru.com/files/view/21641073-b2d2-4955-a9dc-44fb8cfb25f4",
+      #   "filestackKey" : "014dc5f6-9488-43fe-a892-206d276a7a9c/79783795-0b4b-4414-b931-9b949f718d08-image.png",
+      #   "attachmentId" : "21641073-b2d2-4955-a9dc-44fb8cfb25f4",
+      #   "filename" : "image.png",
+      #   "size" : 16332
+      # }
+      return response.json().get("link")
 
   def patch_card(self, card, keep_verification=True):
     """
