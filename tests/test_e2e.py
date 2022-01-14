@@ -515,17 +515,6 @@ class TestEndToEnd(unittest.TestCase):
     # download the file to check that it worked.
     response = requests.get(guru_url, auth=(SDK_E2E_USER, SDK_E2E_TOKEN))
     self.assertEqual(response.content.decode("utf-8"), "sample file")
-  
-  @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
-  def test_mimetype_return(self, g):
-    # write a local text file.
-    filename = "/tmp/upload.txt"
-    guru.write_file(filename, "sample file")
-    file_mimetype, file_encoding = mimetypes.guess_type(filename)
-
-    # assert that the mimetype we get from the filestack response matches the mimetype we get from the mimetype module
-    fs_data = g.upload_to_filestack(filename)
-    self.assertEqual(fs_data.get("type"), file_mimetype)
 
 # these are the methods that aren't tested yet:
 # add_users_to_group
