@@ -2,6 +2,7 @@
 import re
 import os
 import sys
+import json
 import time
 import yaml
 import shutil
@@ -265,6 +266,19 @@ def compare_datetime_string(date_to_compare, comparison, date_to_compare_against
     return date_to_compare != date_to_compare_against
   else:
     raise ValueError("Please provide a valid comparison option (lt, gt, lt_or_eq, gt_or_eq, eq, ne")
+
+def load_json(filename):
+  """returns JSON object from file."""
+  try:
+    with open(filename, "r") as file_in:
+      return json.loads(file_in.read())
+  except:
+    return {}
+
+def save_json(filename, data):
+  """writes data to a file, as JSON."""
+  with open(filename, "w") as file_out:
+    file_out.write(json.dumps(data, indent=2))
 
 
 
