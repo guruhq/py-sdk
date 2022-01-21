@@ -1,6 +1,7 @@
 
 import json
 import yaml
+import os
 import unittest
 import responses
 
@@ -41,6 +42,22 @@ class TestUtil(unittest.TestCase):
     bundle = g.bundle("http")
     doc = bundle.load_html("./tests/test_sync_with_local_files_node1.html")
     self.assertEqual(doc.find("img").attrs["src"], "tests/test_sync_with_local_files_test.png")
+
+  @use_guru()
+  def test_load_json_with_local_file(self, g):
+    doc = guru.load_json("./tests/test.json")
+    self.assertEqual(doc["test"], "test")
+    self.assertEqual(doc["another_test"], "yet another test string")
+ 
+  @use_guru()
+  def test_save_json_to_tmp_folder(self, g):
+    data = {
+      'test': "json test"
+    }
+    guru.save_json("/tmp/test_sample.json", data)
+    self.assertTrue(os.path.isfile("/tmp/test_sample.json"))
+    doc = guru.load_json("/tmp/test_sample.json")
+    self.assertEqual(doc["test"], "json test")
 
   @use_guru()
   @responses.activate
