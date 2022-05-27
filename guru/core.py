@@ -1965,16 +1965,32 @@ class Guru:
       tags += [Tag(t) for t in tag_category.get("tags", [])]
     return tags
 
-  def get_tag_category(self, category="Tags"):
+  def get_tag_category_id(self, category="Tags"):
     url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
     response = self.__get(url, cache=True)
     for tag_category in response.json():
       if tag_category["name"].lower() == category.lower():
         return tag_category.get("id")
 
+  def get_tag_category(self, category="Tags"):
+    url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
+    response = self.__get(url, cache=True)
+    for tag_category in response.json():
+      if tag_category["name"].lower() == category.lower():
+        return tag_category
+
+  def get_tag_category_names(self, category="Tags"):
+    names = []
+    url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
+    response = self.__get(url, cache=True)
+    print(response.json())
+    for tag_category in response.json():
+      names.append(tag_category["name"])
+    return names
+
   def make_tag(self, tag):
     data = {
-      "categoryId": self.get_tag_category(),
+      "categoryId": self.get_tag_category_id(),
       "value": tag
     }
     url = "%s/teams/%s/tagcategories/tags" % (self.base_url, self.get_team_id())
