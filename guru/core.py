@@ -15,7 +15,7 @@ else:
   from urlparse import quote
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question, Framework
+from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Group, HomeBoard, Tag, User, Question, Framework, Webhook
 from guru.util import download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
@@ -2918,3 +2918,72 @@ class Guru:
     url = "%s/newcontexts/%s" % (self.base_url, trigger_id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
+
+  def get_webhooks(self, cache=True):
+    """Gets a list of webhooks
+
+    Args:
+        cache (bool, optional): Boolean determining if we should cache the results or not. Defaults to True.
+
+    Returns:
+        [Webhook]: returns a List of Webhook object
+    """
+    url = "%s/webhooks" % self.base_url
+    webhooks = self.__get_and_get_all(url, cache)
+    return [Webhook(w, guru=self) for w in webhooks]
+
+  def get_webhook(self, webhook_id):
+    """Gets a webhook by ID
+
+    Args:
+        webhook_id (str): ID of webhook (e.g.: 11111111-aaaa-bbbb-cccc-2222dddd3333)
+
+    Returns:
+        Webhook: returns a Webhook object
+    """
+    url = "%s/webhooks/%s" % (self.base_url, webhook_id)
+    response = self.__get(url)
+    return Webhook(response.json(), guru=self)
+
+  def create_webhook(self, target_url, webhook_filter, delivery_mode="BATCH", status="ENABLED"):
+    """Creates a webhook
+
+    Args:
+        target_url (str): url of destination webhook server. The destination server must be active and ready to receive events. More details at https://developer.getguru.com/docs/creating-a-webhook.
+        webhook_filter (str): String of comma separate values, that correspond to the event to listen for. Maximum of 10 events allowed per webhook. (e.g: "card-created,card-to-pdf").
+        delivery_mode (str, optional): method of sending events, either BATCH or SINGLE (More details at https://developer.getguru.com/docs/creating-a-webhook.). Defaults to "BATCH".
+        status (str, optional): Either ENABLED or DISABLED (https://developer.getguru.com/docs/updating-a-webhook for more details). Defaults to "ENABLED".
+
+    Returns:
+        Webhook: returns a Webhook object
+    """
+    if not target_url or not webhook_filter:
+      self.__log(make_red("Either target_url or webhook_filter was not provided, and is required."))
+      return
+    data = {
+      "deliveryMode": delivery_mode,
+      "targetUrl": target_url,
+      "status": status,
+      "filter": webhook_filter
+    }
+    url = "%s/webhooks" % self.base_url
+    response = self.__post(url, data=data)
+    return Webhook(response.json(), guru=self)
+
+  def delete_webhook(self, webhook_id):
+    """Deletes a webhook by ID
+
+    Args:
+        webhook_id (str): ID of webhook (e.g.: 11111111-aaaa-bbbb-cccc-2222dddd3333)
+
+    Returns:
+        status (bool): Boolean telling whether the delete action was successful or not, based on the response's status code.
+    """
+    # check if webhook exist, then delete
+    url = "%s/webhooks/%s" % (self.base_url, webhook_id)
+    get_response = self.__get(url)
+    if not status_to_bool(get_response.status_code):
+      self.__log(make_red("could not find webhook:", webhook_id))
+      return
+    delete_response = self.__delete(url)
+    return status_to_bool(delete_response.status_code)
