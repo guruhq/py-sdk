@@ -1,7 +1,9 @@
 import guru
 
-g = guru.Guru("ahojnowski+demo@getguru.com","3fc2aa39-592f-401f-b553-b3a99a3a7bcd")
+g = guru.Guru("ahojnowski+demo@getguru.com","3c5d9c2d-0fb1-4067-a6e5-f9eaeb63e121")
 
-categories = g.get_tag_category_names("help")
-g.get_tag_category()
-print (categories)
+
+cats = g.get_tag_categorys()
+
+for cat in cats:
+  print(f"Category Name =>  {cat['name']} -- Category ID => {cat['id']} ")
