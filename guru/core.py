@@ -1978,7 +1978,7 @@ class Guru:
     for tag_category in response.json():
       if tag_category["name"].lower() == category.lower():
         return tag_category
-  def get_tag_categorys(self, category="Tags"):
+  def get_tag_categories(self, category="Tags"):
     url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
     response = self.__get(url, cache=True)
     return response.json();
