@@ -1981,7 +1981,7 @@ class Guru:
   def get_tag_categories(self, category="Tags"):
     url = "%s/teams/%s/tagcategories" % (self.base_url, self.get_team_id())
     response = self.__get(url, cache=True)
-    return response.json();
+    return response.json()
 
   def get_tag_category_names(self, category="Tags"):
     names = []
