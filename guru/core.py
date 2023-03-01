@@ -221,9 +221,9 @@ class Guru:
     self.__log_response(response)
     return response
 
-  def __post(self, url, data=None, files=None):
+  def __post(self, url, data=None, files=None, is_really_get=False):
     """internal"""
-    if self.dry_run:
+    if self.dry_run and not is_really_get:
       self.__log(make_gray("  would make a post call:", url, data))
       return DummyResponse()
       
@@ -274,7 +274,7 @@ class Guru:
     while url:
       page += 1
       self.__log("loading page:", page)
-      response = self.__post(url, data)
+      response = self.__post(url, data, is_really_get=True)
       if response.status_code != 204:
         results += response.json()
       url = get_link_header(response)
@@ -1221,7 +1221,7 @@ class Guru:
       "ids": card_ids
     }
 
-    response = self.__post(url, data)
+    response = self.__post(url, data, is_really_get=True)
 
     # this returns a dict where each key is a card ID and the value
     # is the card object plus a 'status' field, so we convert the
