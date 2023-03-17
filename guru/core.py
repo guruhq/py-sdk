@@ -2546,7 +2546,7 @@ class Guru:
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
-  def remove_card_from_board(self, card, board, collection=None):
+  def remove_card_from_board(self, card, board, collection=None, section=None):
     """
     Removes a card from a board.
 
@@ -2558,17 +2558,22 @@ class Guru:
       collection (str or Collection, optional): The collection in which the board
         resides. This is optional but might be necessary if you're identifying the
         board by title and the same title is used by boards in different collections.
+      section (str, optional): The name of the section to find the card in.
 
     Returns:
       bool: True if it was successful and False otherwise.
     """
     board_obj = self.get_board(board, collection)
     if not board_obj:
+      self.__log(make_red("could not find board:", board))
       return
     
-    card_obj = board_obj.get_card(card)
+    card_obj = board_obj.get_card(card, section)
     if not card_obj:
-      self.__log(make_red("could not find card:", card))
+      if section:
+        self.__log(make_red("could not find card %s in section %s" % (card, section)))
+      else:
+        self.__log(make_red("could not find card:", card))
       return
     
     url = "%s/boards/%s/entries" % (self.base_url, board_obj.id)

@@ -1,5 +1,6 @@
 
 import markdown
+import copy
 from urllib.parse import quote
 from bs4 import BeautifulSoup
 
@@ -117,9 +118,13 @@ class Board:
     # we don't bother checking if something is a partial card because if it's in the
     # lookup dict, that means it must've been a partial card.
     for i in range(0, len(item_list)):
-      full_item = lookup.get(item_list[i].id)
+      partial_item = item_list[i]
+      full_item = lookup.get(partial_item.id)
       if full_item:
+        full_item = copy.copy(full_item)
         item_list[i] = full_item
+        if partial_item.item_id:
+          full_item.item_id = partial_item.item_id
 
   def __load_all_cards(self):
     # identify the partially-loaded cards.
@@ -265,10 +270,23 @@ class Board:
     """
     return self.guru.set_item_order(self.collection, self, *items)
 
-  def get_card(self, card):
+  def get_card(self, card, section=None):
     if isinstance(card, Card):
       card = card.id
-    return find_by_name_or_id(self.__cards, card)
+
+    # check in the given section if provided
+    if section:
+      section_obj = self.get_section(section)
+      if not section_obj:
+        return None
+      return find_by_name_or_id(section_obj.items, card)
+      
+    # otherwise, first check for an immediate child card
+    card_obj = find_by_name_or_id(self.items, card)
+    if not card_obj:
+      # then check all cards, including those in sections
+      card_obj = find_by_name_or_id(self.__cards, card)
+    return card_obj
 
   def add_card(self, card, section=None):
     """
