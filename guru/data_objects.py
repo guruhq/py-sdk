@@ -113,7 +113,7 @@ class Folder:
                 self.__all_items.append(card)
                 self.__cards.append(card)
 
-        self.__load_all_cards()
+        # self.__load_all_cards()
 
     def __load_all_cards(self):
         # identify the partially-loaded cards.
