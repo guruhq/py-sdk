@@ -145,6 +145,7 @@ class Guru:
             "PYGURU_USER", "") or os.environ.get("GURU_USER", "")
         self.api_token = api_token or os.environ.get(
             "PYGURU_TOKEN", "") or os.environ.get("GURU_TOKEN", "")
+
         self.base_url = "https://qaapi.getguru.com/api/v1" if qa else "https://api.getguru.com/api/v1"
         self.hostname = "qaapi.getguru.com" if qa else "api.getguru.com"
         self.dry_run = dry_run
@@ -2230,7 +2231,7 @@ class Guru:
             url = "%s/folders?collection=%s" % (self.base_url,
                                                 collection_obj.id)
         else:
-            url = "%s/folders" & self.base_url
+            url = "%s/folders" % self.base_url
 
         folders = self.__get_and_get_all(url, cache)
         return [Folder(f, guru=self) for f in folders]

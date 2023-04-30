@@ -73,7 +73,7 @@ class Folder:
     - `url` is the full URL for the folder.
     - `items` is the list of items on the folder, where each item can be a Card object or a Folder object.
     - `cards` is a flattened list of Card objects for each card on the folder.
-    - `sections` is the list of Section objects for each section on the board.
+    - `folders` is the list of Section objects for each section on the board.
     - `all_items` is a flattened list where each is a Card object or Section object. This is similar to the `items` list
       except a board with 2 sections (each containing 1 card) will have two items (just the sections) but `all_items` will
       have all four items.
@@ -88,63 +88,12 @@ class Folder:
         self.slug = data.get("slug")
         self.id = data.get("id")
         self.__item_id = data.get("itemId")
-        self.type = "board"
+        self.type = "folder"
 
         if data.get("collection"):
             self.collection = Collection(data.get("collection"))
         else:
             self.collection = None
-
-        self.items = []
-        self.__cards = []
-        self.__folder = []
-        self.__all_items = []
-        for item in data.get("items", []):
-            if item.get("type") == "board":
-                folder = Folder(item, guru=guru)
-                self.items.append(folder)
-                # self.__sections.append(folder)
-                self.__all_items.append(folder)
-                self.__all_items += folder.items
-                self.__cards += folder.items
-            else:
-                card = Card(item, guru=guru)
-                self.items.append(card)
-                self.__all_items.append(card)
-                self.__cards.append(card)
-
-        # self.__load_all_cards()
-
-    def __load_all_cards(self):
-        # identify the partially-loaded cards.
-        # these come from folders that have more than 50 cards.
-        # sometimes the API returns a 'lite' board that doesn't have items at all. these will
-        # naturally skip over most of this logic because their items list is missing or empty
-        # so we don't have any card IDs to try to load.
-        unloaded_card_ids = []
-        for card in self.__cards:
-            if not card.title:
-                unloaded_card_ids.append(card.id)
-
-        # if the board has < 50 cards this list will be empty and we can stop early.
-        if not unloaded_card_ids:
-            return
-
-        # load the unloaded cards in batches of 50.
-        # our API does enforce a max of 50.
-        card_lookup = {}
-        for index in range(0, len(unloaded_card_ids), 50):
-            batch_ids = unloaded_card_ids[index:index + 50]
-            data = self.guru.get_cards(batch_ids)
-            for id in data:
-                card_lookup[id] = data[id]
-
-        # now that we have the full card objects, we update the entries in all the existing lists.
-        self.__update_cards_in_list(self.items, card_lookup)
-        self.__update_cards_in_list(self.__cards, card_lookup)
-        self.__update_cards_in_list(self.__all_items, card_lookup)
-        for section in self.__sections:
-            self.__update_cards_in_list(section.items, card_lookup)
 
 
 class Board:
