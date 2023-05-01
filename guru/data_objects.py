@@ -65,6 +65,8 @@ class Folder:
   The Folder object contains the folder's properties, like title and description,
   and also includes a list of the cards and other folders it contains.
 
+  - `home_folder` parameter is used to get a Folder reference to a Collection`s home folder where other folders and Cards can exist.
+
   Here's a partial list of properties these objects have:
 
   - `title` is the folder's name as it's displayed in the UI.
@@ -73,15 +75,13 @@ class Folder:
   - `url` is the full URL for the folder.
   - `items` is the list of items on the folder, where each item can be a Card object or a Folder object.
   - `cards` is a flattened list of Card objects for each card on the folder.
-  - `folders` is the list of Section objects for each section on the board.
-  - `all_items` is a flattened list where each is a Card object or Section object. This is similar to the `items` list
-    except a board with 2 sections (each containing 1 card) will have two items (just the sections) but `all_items` will
-    have all four items.
+  - `folders` is the list of Folder objects for each folder on the board.
+
   """
 
-  def __init__(self, data, guru=None, home_board=None):
+  def __init__(self, data, guru=None, home_folder=None):
     self.guru = guru
-    self.home_board = home_board
+    self.home_folder = home_folder
     self.last_modified = data.get("lastModified")
     self.title = data.get("title")
     self.description = data.get("description")

@@ -2211,22 +2211,22 @@ class Guru:
 
   def get_folders(self, collection=None, folder=None, cache=False):
     """
-                    Gets a list of folders you can see. You can optionally filter by collection.
+    Gets a list of folders you can see. You can optionally filter by collection.
 
     Args:
-            collection (str or Collection, optional): The name or ID of a collection or a Collection object
-                    to filter by. If this is not provided, you'll get back a list of all boards in all collections
-                    you can see.
+      collection (str or Collection, optional): The name or ID of a collection or a Collection object
+              to filter by. If this is not provided, you'll get back a list of all folders in all collections
+              you can see.
 
     Returns:
-            list of Folder: Either all folders you have access to or all folders within the specified collection.
+      list of Folder: Either all folders you have access to or all folders within the specified collection.
 
     """
     # optional filter by collection.
     if collection:
       collection_obj = self.get_collection(collection, cache=True)
       if not collection_obj:
-        self.__log(make_red("colud not find collection:", collection))
+        self.__log(make_red("could not find collection:", collection))
         return
       url = "%s/folders?collection=%s" % (self.base_url,
                                           collection_obj.id)
