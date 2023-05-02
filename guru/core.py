@@ -84,6 +84,10 @@ def is_board_slug(value):
   return re.match("^[a-zA-Z0-9]{8,9}$", value)
 
 
+def is_slug(value):
+  return re.match("^[a-zA-Z0-9]{8,9}$", value)
+
+
 def is_uuid(value):
   return re.match("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", value, flags=re.IGNORECASE)
 
@@ -2208,6 +2212,40 @@ class Guru:
     url = "%s/boards/%s" % (self.base_url, board_obj.id)
     response = self.__get(url)
     return Board(response.json(), guru=self)
+
+  def get_folder(self, folder, collection=None, cache=True):
+    """
+    Loads a folder.
+
+    Args:
+            id (str): The folders full ID or slug.
+
+    Returns:
+            Folder: An object representing the folder.
+    """
+    if isinstance(folder, Folder) or isinstance(folder, HomeBoard):
+      return Folder
+
+    # if the value looks like a slug or uuid, try treating it like one and make the API call to
+    # load this board directly. if this fails, we fall back to loading a list of all folders and
+    # scanning it to match by title.
+    if is_slug(folder) or is_uuid(folder):
+      url = "%s/folders/%s" % (self.base_url, folder)
+      response = self.__get(url)
+      if status_to_bool(response.status_code):
+        return Folder(response.json(), guru=self)
+
+    # this returns a list of 'lite' objects that don't have the lists of items on the board.
+    # once we find the matching board, then we can make the get call to get the complete object.
+    folder_obj = find_by_name_or_id(self.get_folders(
+        collection, folder, cache), folder)
+
+    if not folder_obj:
+      return
+
+    url = "%s/folders/%s" % (self.base_url, folder_obj.id)
+    response = self.__get(url)
+    return Folder(response.json(), guru=self)
 
   def get_folders(self, collection=None, folder=None, cache=False):
     """

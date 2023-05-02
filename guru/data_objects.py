@@ -79,7 +79,7 @@ class Folder:
 
   """
 
-  def __init__(self, data, guru=None, home_folder=None):
+  def __init__(self, data, folder_items=None, guru=None, home_folder=None):
     self.guru = guru
     self.home_folder = home_folder
     self.last_modified = data.get("lastModified")
@@ -89,11 +89,211 @@ class Folder:
     self.id = data.get("id")
     self.__item_id = data.get("itemId")
     self.type = "folder"
+    self.items = folder_items
 
     if data.get("collection"):
       self.collection = Collection(data.get("collection"))
     else:
       self.collection = None
+
+    self.__cards = []
+    self.__folders = []
+
+    for item in data.get("items", []):
+      if item.get("type") == "folder":
+        folder = Folder(item, guru=guru)
+        self.items.append(folder)
+        self.__cards += folder.items
+      else:
+        card = Card(item, guru=guru)
+        self.items.append(card)
+        self.__cards.append(card)
+
+      self.__load_all_cards()
+
+    def __load_all_cards(self):
+      # identify the partially-loaded cards.
+      # these come from folders that have more than 50 cards.
+      # sometimes the API returns a 'lite' board that doesn't have items at all. these will
+      # naturally skip over most of this logic because their items list is missing or empty
+      # so we don't have any card IDs to try to load.
+      unloaded_card_ids = []
+      for card in self.__cards:
+        if not card.title:
+          unloaded_card_ids.append(card.id)
+
+      # if the board has < 50 cards this list will be empty and we can stop early.
+      if not unloaded_card_ids:
+        return
+
+      # load the unloaded cards in batches of 50.
+      # our API does enforce a max of 50.
+      card_lookup = {}
+      for index in range(0, len(unloaded_card_ids), 50):
+        batch_ids = unloaded_card_ids[index:index + 50]
+        data = self.guru.get_cards(batch_ids)
+        for id in data:
+          card_lookup[id] = data[id]
+
+          # now that we have the full card objects, we update the entries in all the existing lists.
+        self.__update_cards_in_list(self.items, card_lookup)
+        self.__update_cards_in_list(self.__cards, card_lookup)
+
+  @property
+  def url(self):
+    if self.slug:
+      return "https://app.getguru.com/folders/%s" % self.slug
+    else:
+      return ""
+
+  @property
+  def item_id(self):
+    if self.__item_id:
+      return self.__item_id
+
+    # load the home folder (if necessary), find this folder, and set its item_id.
+    if not self.home_folder:
+      self.home_folder = self.guru.get_home_folder(self.collection)
+
+    folder_item = find_by_id(self.home_folder.folder, self.id)
+    if not folder_item:
+      print("could not find board on home folder")
+    else:
+      self.__item_id = folder_item.item_id
+
+    return self.__item_id
+
+  @property
+  def cards(self):
+    return tuple(self.__cards)
+
+### BELOW ITEMS ARE NOT YET CONSIDERED FOR IMPLEMENTATION ###
+
+  # def set_item_order(self, *items):
+  #   """
+  #   Rearranges the items on the board based on the list of strings
+  #   you pass in here. For example, if you have a board about
+  #   onboarding and it has sections called Week 1, Week 2, and Week 3,
+  #   here's how you'd arrange them to make sure they're in order:
+
+  #   ```
+  #   board = g.get_board("TrE4qxgc")
+  #   board.set_item_order("Week 1", "Week 2", "Week 3")
+  #   ```
+
+  #   Remember, the items on a board aren't all sections, it can be a
+  #   mix of cards and sections. The strings you pass in here are expected
+  #   to match section or card titles.
+
+  #   Args:
+  #     *items (str): Any number of strings that specifies the order
+  #       you want the items to appear in.
+  #   """
+  #   return self.guru.set_item_order(self.collection, self, *items)
+
+  # def get_card(self, card, section=None):
+  #   if isinstance(card, Card):
+  #     card = card.id
+
+  #   # otherwise, first check for an immediate child card
+  #   card_obj = find_by_name_or_id(self.items, card)
+  #   if not card_obj:
+  #     # then check all cards, including those in sections
+  #     card_obj = find_by_name_or_id(self.__cards, card)
+  #   return card_obj
+
+  # def add_card(self, card):
+  #   """
+  #   Adds a card to the folder. The card will be added to the end
+  #   of the folder.
+
+  #   Args:
+  #     card (str or Card): The card to add to this board. Can either be a Card object or a string
+  #       that's the card's ID or slug.
+  #   """
+  #   return self.guru.add_card_to_board(card, self, collection=self.collection)
+
+  # def remove_card(self, card):
+  #   """
+  #   Removes a card from the board.
+
+  #   Args:
+  #     card (str or Card): The card's ID or slug, or a Card object.
+  #   """
+  #   return self.guru.remove_card_from_board(card, self)
+
+  # def get_groups(self):
+  #   """
+  #   Gets the list of groups the board has been shared with
+  #   via board permissioning. This does not include the groups
+  #   who can see the board due to the collection's permissioning.
+
+  #   Returns:
+  #     list of Group: A list of Group objects for each group the board has been shared with.
+  #   """
+  #   return self.guru.get_shared_groups(self)
+
+  # def add_group(self, group):
+  #   """
+  #   Shares the board with an additional group.
+
+  #   Args:
+  #     group (str or Group): The group's ID or name, or a Group object.
+  #   """
+  #   return self.guru.add_shared_group(self, group)
+
+  # def remove_group(self, group):
+  #   """
+  #   Removes a shared group from this board.
+
+  #   Args:
+  #     group (str or Group): The group's ID or name, or a Group object.
+  #   """
+  #   return self.guru.remove_shared_group(self, group)
+
+  # def move_to_collection(self, collection, timeout=0):
+  #   """
+  #   Moves the board to a different collection.
+
+  #   These operations are done asynchronously and can take a little while
+  #   to complete. If you want to wait for the operation to complete you
+  #   can pass in a `timeout` parameter -- this tells the SDK two things:
+  #   first, that you want to wait for the operation to complete and second,
+  #   how long it should wait.
+
+  #   Args:
+  #     collection (str or Collection): The collection's name or ID or a Collection object.
+  #     timeout (int, optional): If you want to wait for the move to complete, this is the
+  #       maximum amount of time (in seconds) that you'll wait. By default this is zero which
+  #       means this function call returns before the board has actually been moved to its
+  #       new collection.
+  #   """
+  #   self.guru.move_board_to_collection(self, collection, timeout)
+
+  # def delete(self):
+  #   """
+  #   deletes board
+
+  #   Returns:
+  #     bool: True if it was successful and False otherwise.
+  #   """
+  #   return self.guru.delete_board(self, self.collection.id)
+
+  def json(self, include_items=True, include_item_id=False, include_collection=True):
+    data = {
+        "id": self.id,
+        "type": self.type,
+        "title": self.title,
+    }
+
+    if include_items:
+      data["items"] = [i.lite_json() for i in self.items]
+    if include_item_id:
+      data["itemId"] = self.item_id
+    if self.collection and include_collection:
+      data["collection"] = self.collection.json()
+
+    return data
 
 
 class Board:
