@@ -74,12 +74,12 @@ class Folder:
   - `id` is the folder's internal ID.
   - `url` is the full URL for the folder.
   - `items` is the list of items on the folder, where each item can be a Card object or a Folder object.
-  - `cards` is a flattened list of Card objects for each card on the folder.
-  - `folders` is the list of Folder objects for each folder on the board.
+  - `cards` is a list of Card objects for each card on the folder.
+  - `folders` is a list of Folder objects for each folder on the board.
 
   """
 
-  def __init__(self, data, folder_items=None, guru=None, home_folder=None):
+  def __init__(self, data, folder_items, guru=None, home_folder=None):
     self.guru = guru
     self.home_folder = home_folder
     self.last_modified = data.get("lastModified")
@@ -89,21 +89,23 @@ class Folder:
     self.id = data.get("id")
     self.__item_id = data.get("itemId")
     self.type = "folder"
-    self.items = folder_items
 
     if data.get("collection"):
       self.collection = Collection(data.get("collection"))
     else:
       self.collection = None
 
+  # arrays to hold contents of the Folder, returned with
+    self.items = []
     self.__cards = []
     self.__folders = []
 
-    for item in data.get("items", []):
+    # check for a folder itesm, if not, must be a card!
+    for item in folder_items:
       if item.get("type") == "folder":
-        folder = Folder(item, guru=guru)
+        folder = Folder(item, "", guru=guru)
         self.items.append(folder)
-        self.__cards += folder.items
+        self.__folders.append(folder)
       else:
         card = Card(item, guru=guru)
         self.items.append(card)
@@ -111,33 +113,33 @@ class Folder:
 
       self.__load_all_cards()
 
-    def __load_all_cards(self):
-      # identify the partially-loaded cards.
-      # these come from folders that have more than 50 cards.
-      # sometimes the API returns a 'lite' board that doesn't have items at all. these will
-      # naturally skip over most of this logic because their items list is missing or empty
-      # so we don't have any card IDs to try to load.
-      unloaded_card_ids = []
-      for card in self.__cards:
-        if not card.title:
-          unloaded_card_ids.append(card.id)
+  def __load_all_cards(self):
+    # identify the partially-loaded cards.
+    # these come from folders that have more than 50 cards.
+    # sometimes the API returns a 'lite' board that doesn't have items at all. these will
+    # naturally skip over most of this logic because their items list is missing or empty
+    # so we don't have any card IDs to try to load.
+    unloaded_card_ids = []
+    for card in self.__cards:
+      if not card.title:
+        unloaded_card_ids.append(card.id)
 
-      # if the board has < 50 cards this list will be empty and we can stop early.
-      if not unloaded_card_ids:
-        return
+    # if the board has < 50 cards this list will be empty and we can stop early.
+    if not unloaded_card_ids:
+      return
 
-      # load the unloaded cards in batches of 50.
-      # our API does enforce a max of 50.
-      card_lookup = {}
-      for index in range(0, len(unloaded_card_ids), 50):
-        batch_ids = unloaded_card_ids[index:index + 50]
-        data = self.guru.get_cards(batch_ids)
-        for id in data:
-          card_lookup[id] = data[id]
+    # load the unloaded cards in batches of 50.
+    # our API does enforce a max of 50.
+    card_lookup = {}
+    for index in range(0, len(unloaded_card_ids), 50):
+      batch_ids = unloaded_card_ids[index:index + 50]
+      data = self.guru.get_cards(batch_ids)
+      for id in data:
+        card_lookup[id] = data[id]
 
-          # now that we have the full card objects, we update the entries in all the existing lists.
-        self.__update_cards_in_list(self.items, card_lookup)
-        self.__update_cards_in_list(self.__cards, card_lookup)
+        # now that we have the full card objects, we update the entries in all the existing lists.
+      self.__update_cards_in_list(self.items, card_lookup)
+      self.__update_cards_in_list(self.__cards, card_lookup)
 
   @property
   def url(self):
@@ -162,6 +164,10 @@ class Folder:
       self.__item_id = folder_item.item_id
 
     return self.__item_id
+
+  @property
+  def folders(self):
+    return tuple(self.__folders)
 
   @property
   def cards(self):

@@ -7,9 +7,11 @@ token = "0ab65098-43df-42d6-9d22-bf4117f6b163"
 
 g = guru.Guru(email, token, qa=True)
 
-g.get_folder()
+folder = g.get_folder("TEqxqbac")
+print("Folder items: %s" % folder.items)
 
-for folder in g.get_folders(collection="786f6fc8-413b-418d-ba9b-fba974192401"):
-  print("Id: %s --> %s" % (folder.id, folder.title))
+for subfolder in folder.folders:
+  print("folder name: %s" % subfolder.title)
 
-folder = get_folder("iGqxqEgT/413-Testing")
+for card in folder.cards:
+  print("card name: %s" % card.title)

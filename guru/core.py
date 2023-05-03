@@ -2224,16 +2224,20 @@ class Guru:
             Folder: An object representing the folder.
     """
     if isinstance(folder, Folder) or isinstance(folder, HomeBoard):
-      return Folder
+      return folder
 
     # if the value looks like a slug or uuid, try treating it like one and make the API call to
     # load this board directly. if this fails, we fall back to loading a list of all folders and
     # scanning it to match by title.
     if is_slug(folder) or is_uuid(folder):
       url = "%s/folders/%s" % (self.base_url, folder)
-      response = self.__get(url)
-      if status_to_bool(response.status_code):
-        return Folder(response.json(), guru=self)
+      folder_response = self.__get(url)
+      if status_to_bool(folder_response.status_code):
+        # get items for this folder
+        url = url + "/items"
+        item_response = self.__get(url)
+        if status_to_bool(item_response.status_code):
+          return Folder(folder_response.json(), item_response.json(), guru=self)
 
     # this returns a list of 'lite' objects that don't have the lists of items on the board.
     # once we find the matching board, then we can make the get call to get the complete object.
@@ -2245,7 +2249,11 @@ class Guru:
 
     url = "%s/folders/%s" % (self.base_url, folder_obj.id)
     response = self.__get(url)
-    return Folder(response.json(), guru=self)
+    if status_to_bool(folder_response.status_code):
+      # get items for this folder
+      url = url + "/items"
+      item_response = self.__get(url)
+      return Folder(folder_response.json(), item_response.json(), guru=self)
 
   def get_folders(self, collection=None, folder=None, cache=False):
     """
@@ -2272,7 +2280,7 @@ class Guru:
       url = "%s/folders" % self.base_url
 
     folders = self.__get_and_get_all(url, cache)
-    return [Folder(f, guru=self) for f in folders]
+    return [Folder(f, "", guru=self) for f in folders]
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
