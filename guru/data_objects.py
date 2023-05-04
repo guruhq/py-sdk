@@ -65,7 +65,7 @@ class Folder:
   The Folder object contains the folder's properties, like title and description,
   and also includes a list of the cards and other folders it contains.
 
-  - `parent_folder` parameter is used to get a Folder reference to a Collection`s home folder where other folders and Cards can exist.
+  - `parent_folder` parameter is used to get a Folder reference to a Collection`s parent folder where other folders and Cards can exist.
 
   Here's a partial list of properties these objects have:
 
@@ -88,6 +88,7 @@ class Folder:
     self.id = data.get("id")
     self.__item_id = data.get("itemId")
     self.type = "folder"
+    self.__folder_items = folder_items
     self.__has_items = False
 
     if data.get("collection"):
@@ -100,18 +101,9 @@ class Folder:
     self.__cards = []
     self.__folders = []
 
-    # check for a folder itema, if not, must be a card!
-    for item in folder_items:
-      if item.get("type") == "folder":
-        folder = Folder(item, guru=guru)
-        self.items.append(folder)
-        self.__folders.append(folder)
-        self.__has_items = True
-      else:
-        card = Card(item, guru=guru)
-        self.items.append(card)
-        self.__cards.append(card)
-        self.__has_items = True
+    # if folder_items were passed to Folders class, call get_items to load them. Otherwise items will be lazy loaded when the .folders or .cards method is called.
+    if self.__folder_items:
+      self.get_items()
 
   @property
   def url(self):
@@ -131,7 +123,7 @@ class Folder:
 
     # load the parent folder (if necessary), find this folder, and set its item_id.
     if not self.parent_folder:
-      self.parent_folder = self.guru.get_parent_folder(self.collection)
+      self.parent_folder = self.get_parent_folder(self.collection)
 
     folder_item = find_by_id(self.parent_folder.folder, self.id)
     if not folder_item:
@@ -146,7 +138,6 @@ class Folder:
     # if we have already loaded items for this object...cool, if not go get em
     if not self.__has_items:
       self.get_items()
-      print("lazy load of folders...")
     return tuple(self.__folders)
 
   @property
@@ -154,14 +145,16 @@ class Folder:
     # if we have already loaded items for this object...cool, if not go get em
     if not self.__has_items:
       self.get_items()
-      print("lazy load of cards...")
     return tuple(self.__cards)
 
   def get_items(self):
     """
-      method to lazy load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  This will simply load the next set of items on a Folder for those folders that were not already retrieved with a get_folders() method that automagically pull those underlying ojects.
+      method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
     """
-    folder_items = self.guru.get_folder_items(self.id)
+    if not self.__folder_items:
+      folder_items = self.guru.get_folder_items(self.id)
+    else:
+      folder_items = self.__folder_items
 
     for item in folder_items:
       if item.get("type") == "folder":

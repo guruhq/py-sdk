@@ -8,6 +8,9 @@ email = "someperson@yourcompany.com"
 token = "yourapitokengoeshere" 
 """
 
+email = "mhornak@getguru.com"
+token = "0ab65098-43df-42d6-9d22-bf4117f6b163"
+
 g = guru.Guru(email, token, qa=True)
 
 folder = g.get_folder("TEqxqbac")
