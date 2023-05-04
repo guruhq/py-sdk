@@ -92,6 +92,12 @@ def is_uuid(value):
   return re.match("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", value, flags=re.IGNORECASE)
 
 
+def is_id(value):
+  if is_slug(value) or is_uuid(value):
+    return True
+  return False
+
+
 def is_color(color):
   if re.match("^#[0-9a-fA-F]{6}$", color):
     return True
@@ -469,7 +475,7 @@ class Guru:
                     access to this collection. Defaults to All Members.
             public_cards (bool, optional): True if you want to allow cards in this collection
                     to be made public and False if you don't. Defaults to True.
-            use_framework: (bool, optional): True if you are importing a framework. The name parameter will be used to find the 
+            use_framework: (bool, optional): True if you are importing a framework. The name parameter will be used to find the
                     desired framework, so make sure that the name matches the framework you want to use. Defaults to False.
 
     Returns:
@@ -1382,7 +1388,7 @@ class Guru:
                     modified after a certain date and time.
             last_modified_by (str, optional): Optional parameter to select cards last
                     modified by the specified user (email address).
-            archived (bool, optional): Sets the query to search archived cards. 
+            archived (bool, optional): Sets the query to search archived cards.
                     Can be mixed with title, tag, and/ or collection.
 
     Returns:
@@ -1843,7 +1849,8 @@ class Guru:
     ```
     # load a card using it's slug and add a comment.
     card = g.get_card("TyRM678c")
-    card.add_comment("Is this still a good doc to include in our onboarding materials?")
+    card.add_comment(
+        "Is this still a good doc to include in our onboarding materials?")
     ```
 
     Args:
@@ -2223,37 +2230,47 @@ class Guru:
     Returns:
             Folder: An object representing the folder.
     """
-    if isinstance(folder, Folder) or isinstance(folder, HomeBoard):
+    if isinstance(folder, Folder):
       return folder
 
     # if the value looks like a slug or uuid, try treating it like one and make the API call to
     # load this folder directly. if this fails, we fall back to loading a list of all folders and
     # scanning it to match by title.
-    if is_slug(folder) or is_uuid(folder):
-      url = "%s/folders/%s" % (self.base_url, folder)
-      folder_response = self.__get(url)
-      if status_to_bool(folder_response.status_code):
-        # get items for this folder
-        url = url + "/items"
-        item_response = self.__get(url)
-        if status_to_bool(item_response.status_code):
-          return Folder(folder_response.json(), item_response.json(), guru=self)
+    if is_id(folder):
+      folder_id = folder
+    else:
+       # this returns a list of 'lite' objects that don't have the lists of items on the folder.
+      # once we find the matching folder, then we can make the get call to get the complete object.
+      folder_id = find_by_name_or_id(
+          self.get_folders(collection, folder, cache), folder)
+      # got nothing, get out
+      if not folder_id:
+        return
 
-    # this returns a list of 'lite' objects that don't have the lists of items on the folder.
-    # once we find the matching folder, then we can make the get call to get the complete object.
-    folder_obj = find_by_name_or_id(self.get_folders(
-        collection, folder, cache), folder)
-
-    if not folder_obj:
-      return
-
-    url = "%s/folders/%s" % (self.base_url, folder_obj.id)
-    response = self.__get(url)
+    # we have a folder_id, make the call to get the folder and the items in the folder
+    url = "%s/folders/%s" % (self.base_url, folder_id)
+    folder_response = self.__get(url)
     if status_to_bool(folder_response.status_code):
       # get items for this folder
       url = url + "/items"
       item_response = self.__get(url)
-      return Folder(folder_response.json(), item_response.json(), guru=self)
+      if status_to_bool(item_response.status_code):
+        return Folder(folder_response.json(), item_response.json(), guru=self)
+
+  def get_folder_items(self, folder_id):
+    """
+      Get the items for the folder slug passed in
+
+      Args:
+        self (str): Folder ojbect reference.
+
+      Returns:
+        List: An list object representing the items in the folder.
+    """
+    url = "%s/folders/%s/items" % (self.base_url, folder_id)
+    folder_response = self.__get(url)
+    if status_to_bool(folder_response.status_code):
+      return folder_response.json()
 
   def get_folders(self, collection=None, folder=None, cache=False):
     """
@@ -2429,6 +2446,29 @@ class Guru:
         self.base_url, board_obj.collection.id)
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
+
+  def get_parent_folder(self, collection):
+    """
+    Loads a collection's parent folder. The parent folder is the object
+    that lists all of the folders and cards in the collection
+    and shows you the order they're in.
+
+    Args:
+            collection (str): The name or ID of the collection whose home
+                    board you're loading.
+
+    Returns:
+            ParentFolder: An object representing the parentFolder.
+    """
+    collection_obj = self.get_collection(collection, cache=True)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return
+
+    url = "%s/folders/%s/item" % (
+        self.base_url, collection_obj.homeBoardSlug)
+    response = self.__get(url)
+    return Folder(response.json(), guru=self)
 
   def get_home_board(self, collection):
     """

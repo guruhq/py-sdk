@@ -65,7 +65,7 @@ class Folder:
   The Folder object contains the folder's properties, like title and description,
   and also includes a list of the cards and other folders it contains.
 
-  - `home_folder` parameter is used to get a Folder reference to a Collection`s home folder where other folders and Cards can exist.
+  - `parent_folder` parameter is used to get a Folder reference to a Collection`s home folder where other folders and Cards can exist.
 
   Here's a partial list of properties these objects have:
 
@@ -78,9 +78,9 @@ class Folder:
   - `folders` is a list of Folder objects for each folder on the folder.
   """
 
-  def __init__(self, data, folder_items=[], guru=None, home_folder=None):
+  def __init__(self, data, folder_items=[], guru=None, parent_folder=None):
     self.guru = guru
-    self.home_folder = home_folder
+    self.parent_folder = parent_folder
     self.last_modified = data.get("lastModified")
     self.title = data.get("title")
     self.description = data.get("description")
@@ -88,6 +88,7 @@ class Folder:
     self.id = data.get("id")
     self.__item_id = data.get("itemId")
     self.type = "folder"
+    self.__has_items = False
 
     if data.get("collection"):
       self.collection = Collection(data.get("collection"))
@@ -99,43 +100,18 @@ class Folder:
     self.__cards = []
     self.__folders = []
 
-    # check for a folder itesm, if not, must be a card!
+    # check for a folder itema, if not, must be a card!
     for item in folder_items:
       if item.get("type") == "folder":
         folder = Folder(item, guru=guru)
         self.items.append(folder)
         self.__folders.append(folder)
+        self.__has_items = True
       else:
         card = Card(item, guru=guru)
         self.items.append(card)
         self.__cards.append(card)
-
-      self.__load_all_cards()
-
-  def __load_all_cards(self):
-    # identify the partially-loaded cards.
-    # these come from folders that have more than 50 cards.
-    unloaded_card_ids = []
-    for card in self.__cards:
-      if not card.title:
-        unloaded_card_ids.append(card.id)
-
-    # if the board has < 50 cards this list will be empty and we can stop early.
-    if not unloaded_card_ids:
-      return
-
-    # load the unloaded cards in batches of 50.
-    # our API does enforce a max of 50.
-    card_lookup = {}
-    for index in range(0, len(unloaded_card_ids), 50):
-      batch_ids = unloaded_card_ids[index:index + 50]
-      data = self.guru.get_cards(batch_ids)
-      for id in data:
-        card_lookup[id] = data[id]
-
-        # now that we have the full card objects, we update the entries in all the existing lists.
-      self.__update_cards_in_list(self.items, card_lookup)
-      self.__update_cards_in_list(self.__cards, card_lookup)
+        self.__has_items = True
 
   @property
   def url(self):
@@ -145,17 +121,21 @@ class Folder:
       return ""
 
   @property
+  def has_items(self):
+    return self.__has_items
+
+  @property
   def item_id(self):
     if self.__item_id:
       return self.__item_id
 
-    # load the home folder (if necessary), find this folder, and set its item_id.
-    if not self.home_folder:
-      self.home_folder = self.guru.get_home_folder(self.collection)
+    # load the parent folder (if necessary), find this folder, and set its item_id.
+    if not self.parent_folder:
+      self.parent_folder = self.guru.get_parent_folder(self.collection)
 
-    folder_item = find_by_id(self.home_folder.folder, self.id)
+    folder_item = find_by_id(self.parent_folder.folder, self.id)
     if not folder_item:
-      print("could not find board on home folder")
+      print("could not find folder in the parent folder")
     else:
       self.__item_id = folder_item.item_id
 
@@ -163,11 +143,37 @@ class Folder:
 
   @property
   def folders(self):
+    # if we have already loaded items for this object...cool, if not go get em
+    if not self.__has_items:
+      self.get_items()
+      print("lazy load of folders...")
     return tuple(self.__folders)
 
   @property
   def cards(self):
+    # if we have already loaded items for this object...cool, if not go get em
+    if not self.__has_items:
+      self.get_items()
+      print("lazy load of cards...")
     return tuple(self.__cards)
+
+  def get_items(self):
+    """
+      method to lazy load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  This will simply load the next set of items on a Folder for those folders that were not already retrieved with a get_folders() method that automagically pull those underlying ojects.
+    """
+    folder_items = self.guru.get_folder_items(self.id)
+
+    for item in folder_items:
+      if item.get("type") == "folder":
+        folder = Folder(item, guru=self.guru)
+        self.items.append(folder)
+        self.__folders.append(folder)
+        self.__has_items = True
+      else:
+        card = Card(item, guru=self.guru)
+        self.items.append(card)
+        self.__cards.append(card)
+        self.__has_items = True
 
 ### BELOW ITEMS ARE NOT YET CONSIDERED FOR IMPLEMENTATION ###
 
@@ -789,6 +795,7 @@ class Collection:
     self.name = data.get("name")
     self.type = data.get("collectionType")
     self.slug = data.get("slug")
+    self.homeFolderSlug = data.get("homeBoardSlug")
     self.color = data.get("color")
 
     # these are the expanded properties you get when loading a single collection
