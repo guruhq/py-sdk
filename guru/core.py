@@ -17,7 +17,7 @@ else:
 
 from guru.bundle import Bundle
 from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Folder, Group, HomeBoard, Tag, User, Question, Framework
-from guru.util import download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
+from guru.util import clean_slug, download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
 # many of the names come from http://chir.ag/projects/name-that-color/
@@ -93,9 +93,7 @@ def is_uuid(value):
 
 
 def is_id(value):
-  if is_slug(value) or is_uuid(value):
-    return True
-  return False
+  return is_slug(value) or is_uuid(value)
 
 
 def is_color(color):
@@ -2239,10 +2237,10 @@ class Guru:
     if is_id(folder):
       folder_id = folder
     else:
-       # this returns a list of 'lite' objects that don't have the lists of items on the folder.
+      # this returns a list of 'lite' objects that don't have the lists of items on the folder.
       # once we find the matching folder, then we can make the get call to get the complete object.
       folder_id = find_by_name_or_id(
-          self.get_folders(collection, folder, cache), folder)
+          self.get_folders(collection, folder, cache), folder).slug
       # got nothing, get out
       if not folder_id:
         return
@@ -2251,13 +2249,11 @@ class Guru:
     url = "%s/folders/%s" % (self.base_url, folder_id)
     folder_response = self.__get(url)
     if status_to_bool(folder_response.status_code):
-      # get items for this folder
-      url = url + "/items"
-      item_response = self.__get(url)
-      if status_to_bool(item_response.status_code):
-        return Folder(folder_response.json(), item_response.json(), guru=self)
+      return Folder(folder_response.json(), guru=self)
 
-  def get_folder_items(self, folder_id):
+    # return folders_response
+
+  def get_folder_items(self, folder_id, cache=True):
     """
       Get the items for the folder slug passed in
 
@@ -2265,12 +2261,19 @@ class Guru:
         self (str): Folder ojbect reference.
 
       Returns:
-        List: An list object representing the items in the folder.
+        List: An list object representing the items in the folder.  The Folder object will create the underlying Folder and Card objects
     """
+
+    # check to make sure folder_id is id or slug
+    if is_id(folder_id):
+      if is_slug(folder_id):
+        folder_id = clean_slug(folder_id)
+    else:
+      raise ValueError("folder_id is not a id or slug '%s'" % folder_id)
+
+    # id is good, make the call.
     url = "%s/folders/%s/items" % (self.base_url, folder_id)
-    folder_response = self.__get(url)
-    if status_to_bool(folder_response.status_code):
-      return folder_response.json()
+    return self.__get_and_get_all(url, cache)
 
   def get_folders(self, collection=None, folder=None, cache=False):
     """
@@ -2296,8 +2299,8 @@ class Guru:
     else:
       url = "%s/folders" % self.base_url
 
-    folders = self.__get_and_get_all(url, cache)
-    return [Folder(f, guru=self) for f in folders]
+    folders_response = self.__get_and_get_all(url, cache)
+    return [Folder(f, guru=self) for f in folders_response]
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
@@ -2465,7 +2468,7 @@ class Guru:
       self.__log(make_red("could not find collection:", collection))
       return
 
-    url = "%s/folders/%s/item" % (
+    url = "%s/folders/%s/items" % (
         self.base_url, collection_obj.homeBoardSlug)
     response = self.__get(url)
     return Folder(response.json(), guru=self)

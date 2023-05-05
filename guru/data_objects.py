@@ -1,10 +1,11 @@
 
 import markdown
 import copy
+import re
 from urllib.parse import quote
 from bs4 import BeautifulSoup
 
-from guru.util import find_by_name_or_id, find_by_id, compare_datetime_string
+from guru.util import clean_slug, find_by_name_or_id, find_by_id, compare_datetime_string
 
 
 def find_urls_in_doc(doc):
@@ -97,7 +98,7 @@ class Folder:
       self.collection = None
 
   # arrays to hold contents of the Folder, returned with
-    self.items = []
+    self.__all_items = []
     self.__cards = []
     self.__folders = []
 
@@ -105,18 +106,18 @@ class Folder:
     if self.__folder_items:
       self.get_items()
 
-  @property
+  @ property
   def url(self):
     if self.slug:
-      return "https://app.getguru.com/folders/%s" % self.slug
+      return "https://app.getguru.com/folders/%s" % clean_slug(self.slug)
     else:
       return ""
 
-  @property
+  @ property
   def has_items(self):
     return self.__has_items
 
-  @property
+  @ property
   def item_id(self):
     if self.__item_id:
       return self.__item_id
@@ -133,40 +134,50 @@ class Folder:
 
     return self.__item_id
 
-  @property
+  @ property
   def folders(self):
     # if we have already loaded items for this object...cool, if not go get em
     if not self.__has_items:
       self.get_items()
     return tuple(self.__folders)
 
-  @property
+  @ property
   def cards(self):
     # if we have already loaded items for this object...cool, if not go get em
     if not self.__has_items:
       self.get_items()
     return tuple(self.__cards)
 
+  @ property
+  def items(self):
+    if not self.__has_items:
+      self.get_items()
+    return tuple(self.__all_items)
+
   def get_items(self):
     """
       method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
     """
+
+    # setting flag that we have attemped to retrieve items...
+    self.__has_items = True
+
+    # check to see if we have folder_items already in the object if we don't load them
     if not self.__folder_items:
-      folder_items = self.guru.get_folder_items(self.id)
+      folder_items = self.guru.get_folder_items(clean_slug(self.slug))
     else:
       folder_items = self.__folder_items
 
+    # process all items in the folder items and create appropriate objects
     for item in folder_items:
       if item.get("type") == "folder":
         folder = Folder(item, guru=self.guru)
-        self.items.append(folder)
+        self.__all_items.append(folder)
         self.__folders.append(folder)
-        self.__has_items = True
       else:
         card = Card(item, guru=self.guru)
-        self.items.append(card)
+        self.__all_items.append(card)
         self.__cards.append(card)
-        self.__has_items = True
 
 ### BELOW ITEMS ARE NOT YET CONSIDERED FOR IMPLEMENTATION ###
 
@@ -396,14 +407,14 @@ class Board:
     for section in self.__sections:
       self.__update_cards_in_list(section.items, card_lookup)
 
-  @property
+  @ property
   def url(self):
     if self.slug:
       return "https://app.getguru.com/boards/%s" % self.slug
     else:
       return ""
 
-  @property
+  @ property
   def item_id(self):
     if self.__item_id:
       return self.__item_id
@@ -420,15 +431,15 @@ class Board:
 
     return self.__item_id
 
-  @property
+  @ property
   def cards(self):
     return tuple(self.__cards)
 
-  @property
+  @ property
   def sections(self):
     return tuple(self.__sections)
 
-  @property
+  @ property
   def all_items(self):
     return tuple(self.__all_items)
 
@@ -699,11 +710,11 @@ class HomeBoard:
         self.__board_groups.append(board_group)
         self.__boards += board_group.items
 
-  @property
+  @ property
   def boards(self):
     return tuple(self.__boards)
 
-  @property
+  @ property
   def board_groups(self):
     return tuple(self.__board_groups)
 
@@ -803,11 +814,11 @@ class Collection:
     self.public_cards_enabled = data.get("publicCardsEnabled")
     self.roles = data.get("roles")
 
-  @property
+  @ property
   def title(self):
     return self.name
 
-  @title.setter
+  @ title.setter
   def title(self, title):
     self.name = title
 
@@ -857,7 +868,7 @@ class Collection:
 
 class Framework:
   """
-  The Framework object is used to represent a framework, used to a import as a new collection. 
+  The Framework object is used to represent a framework, used to a import as a new collection.
   These objects simply have these properties:
   - `id`
   - `collection`
@@ -869,11 +880,11 @@ class Framework:
     self.name = data.get("collection").get("name")
     self.collection = Collection(data.get("collection"), guru=guru)
 
-  @property
+  @ property
   def title(self):
     return self.name
 
-  @title.setter
+  @ title.setter
   def title(self, title):
     self.name = title
 
@@ -932,7 +943,7 @@ class User:
     self.access_type = user_attr.get("ACCESS_TYPE")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
-  @property
+  @ property
   def full_name(self):
     """String combining first and last name of `User`
 
@@ -944,12 +955,12 @@ class User:
     else:
       return self.email
 
-  @property
+  @ property
   def is_light(self):
     """Boolean telling if user is a light user"""
     return self.access_type == "READ_ONLY" and self.billing_type == "FREE"
 
-  @property
+  @ property
   def is_core(self):
     """Boolean telling if user is a core user"""
     return self.access_type == "CORE" and self.billing_type == "CORE"
@@ -1105,7 +1116,7 @@ class Card:
     self.boards = [Board(b, guru) for b in data.get("boards") or []]
     self.__doc = None
 
-  @property
+  @ property
   def doc(self):
     """
     The `doc` property is a [BeautifulSoup object](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
@@ -1123,7 +1134,7 @@ class Card:
       self.__doc = BeautifulSoup(self.content, "html.parser")
     return self.__doc
 
-  @property
+  @ property
   def content(self):
     """
     The card's content as either HTML or Markdown. Most cards
@@ -1133,13 +1144,13 @@ class Card:
     """
     return str(self.__doc) if self.__doc else self.__content
 
-  @content.setter
+  @ content.setter
   def content(self, content):
     self.__content = content
     if self.__doc:
       self.__doc = BeautifulSoup(content, "html.parser")
 
-  @property
+  @ property
   def url(self):
     """
     Returns the card's URL. You can piece this together yourself
@@ -1160,7 +1171,7 @@ class Card:
     else:
       return ""
 
-  @property
+  @ property
   def verifier_label(self):
     """
     This is a string that represents the card's verifier.
@@ -1189,7 +1200,7 @@ class Card:
     else:
       return verifier.user.email
 
-  @property
+  @ property
   def interval_label(self):
     """
     This is a string that represents the card's verification interval,
@@ -1200,7 +1211,7 @@ class Card:
     import guru
     g = guru.Guru()
 
-    # print the text representation of the verification interval 
+    # print the text representation of the verification interval
     # for each card in the Engineering collection:
     for card in g.find_cards(collection="Engineering"):
       print(card.interval_label)
