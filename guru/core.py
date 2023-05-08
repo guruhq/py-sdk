@@ -1,5 +1,6 @@
 
 from gc import collect
+from operator import truediv
 import os
 import re
 import sys
@@ -85,7 +86,7 @@ def is_board_slug(value):
 
 
 def is_slug(value):
-  return re.match("^[a-zA-Z0-9]{8,9}$", value)
+  return re.match("^[a-zA-Z0-9]{8}(?:/?.*)$", value)
 
 
 def is_uuid(value):
@@ -93,7 +94,13 @@ def is_uuid(value):
 
 
 def is_id(value):
-  return is_slug(value) or is_uuid(value)
+  if is_slug(value):
+    return True
+  else:
+    if is_uuid(value):
+      return True
+    else:
+      return False
 
 
 def is_color(color):
@@ -2240,18 +2247,18 @@ class Guru:
       # this returns a list of 'lite' objects that don't have the lists of items on the folder.
       # once we find the matching folder, then we can make the get call to get the complete object.
       folder_id = find_by_name_or_id(
-          self.get_folders(collection, folder, cache), folder).slug
+          self.get_folders(collection, folder, cache), folder)
       # got nothing, get out
       if not folder_id:
         return
+      else:
+        folder_id = folder_id.slug
 
     # we have a folder_id, make the call to get the folder and the items in the folder
     url = "%s/folders/%s" % (self.base_url, folder_id)
     folder_response = self.__get(url)
     if status_to_bool(folder_response.status_code):
       return Folder(folder_response.json(), guru=self)
-
-    # return folders_response
 
   def get_folder_items(self, folder_id, cache=True):
     """

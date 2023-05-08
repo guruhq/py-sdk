@@ -102,22 +102,18 @@ class Folder:
     self.__cards = []
     self.__folders = []
 
-    # if folder_items were passed to Folders class, call get_items to load them. Otherwise items will be lazy loaded when the .folders or .cards method is called.
+    # if folder_items were passed to Folders class, call __get_items to load them. Otherwise items will be lazy loaded when the .folders or .cards method is called.
     if self.__folder_items:
-      self.get_items()
+      self.__get_items()
 
-  @ property
+  @property
   def url(self):
     if self.slug:
       return "https://app.getguru.com/folders/%s" % clean_slug(self.slug)
     else:
       return ""
 
-  @ property
-  def has_items(self):
-    return self.__has_items
-
-  @ property
+  @property
   def item_id(self):
     if self.__item_id:
       return self.__item_id
@@ -134,27 +130,27 @@ class Folder:
 
     return self.__item_id
 
-  @ property
+  @property
   def folders(self):
     # if we have already loaded items for this object...cool, if not go get em
     if not self.__has_items:
-      self.get_items()
+      self.__get_items()
     return tuple(self.__folders)
 
-  @ property
+  @property
   def cards(self):
     # if we have already loaded items for this object...cool, if not go get em
     if not self.__has_items:
-      self.get_items()
+      self.__get_items()
     return tuple(self.__cards)
 
-  @ property
+  @property
   def items(self):
     if not self.__has_items:
-      self.get_items()
+      self.__get_items()
     return tuple(self.__all_items)
 
-  def get_items(self):
+  def __get_items(self):
     """
       method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
     """
@@ -164,7 +160,7 @@ class Folder:
 
     # check to see if we have folder_items already in the object if we don't load them
     if not self.__folder_items:
-      folder_items = self.guru.get_folder_items(clean_slug(self.slug))
+      folder_items = self.guru.get_folder_items(self.slug)
     else:
       folder_items = self.__folder_items
 
@@ -407,14 +403,14 @@ class Board:
     for section in self.__sections:
       self.__update_cards_in_list(section.items, card_lookup)
 
-  @ property
+  @property
   def url(self):
     if self.slug:
       return "https://app.getguru.com/boards/%s" % self.slug
     else:
       return ""
 
-  @ property
+  @property
   def item_id(self):
     if self.__item_id:
       return self.__item_id
@@ -431,15 +427,15 @@ class Board:
 
     return self.__item_id
 
-  @ property
+  @property
   def cards(self):
     return tuple(self.__cards)
 
-  @ property
+  @property
   def sections(self):
     return tuple(self.__sections)
 
-  @ property
+  @property
   def all_items(self):
     return tuple(self.__all_items)
 
@@ -710,11 +706,11 @@ class HomeBoard:
         self.__board_groups.append(board_group)
         self.__boards += board_group.items
 
-  @ property
+  @property
   def boards(self):
     return tuple(self.__boards)
 
-  @ property
+  @property
   def board_groups(self):
     return tuple(self.__board_groups)
 
@@ -814,7 +810,7 @@ class Collection:
     self.public_cards_enabled = data.get("publicCardsEnabled")
     self.roles = data.get("roles")
 
-  @ property
+  @property
   def title(self):
     return self.name
 
@@ -880,7 +876,7 @@ class Framework:
     self.name = data.get("collection").get("name")
     self.collection = Collection(data.get("collection"), guru=guru)
 
-  @ property
+  @property
   def title(self):
     return self.name
 
@@ -943,7 +939,7 @@ class User:
     self.access_type = user_attr.get("ACCESS_TYPE")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
-  @ property
+  @property
   def full_name(self):
     """String combining first and last name of `User`
 
@@ -955,12 +951,12 @@ class User:
     else:
       return self.email
 
-  @ property
+  @property
   def is_light(self):
     """Boolean telling if user is a light user"""
     return self.access_type == "READ_ONLY" and self.billing_type == "FREE"
 
-  @ property
+  @property
   def is_core(self):
     """Boolean telling if user is a core user"""
     return self.access_type == "CORE" and self.billing_type == "CORE"
@@ -1116,7 +1112,7 @@ class Card:
     self.boards = [Board(b, guru) for b in data.get("boards") or []]
     self.__doc = None
 
-  @ property
+  @property
   def doc(self):
     """
     The `doc` property is a [BeautifulSoup object](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
@@ -1134,7 +1130,7 @@ class Card:
       self.__doc = BeautifulSoup(self.content, "html.parser")
     return self.__doc
 
-  @ property
+  @property
   def content(self):
     """
     The card's content as either HTML or Markdown. Most cards
@@ -1150,7 +1146,7 @@ class Card:
     if self.__doc:
       self.__doc = BeautifulSoup(content, "html.parser")
 
-  @ property
+  @property
   def url(self):
     """
     Returns the card's URL. You can piece this together yourself
@@ -1171,7 +1167,7 @@ class Card:
     else:
       return ""
 
-  @ property
+  @property
   def verifier_label(self):
     """
     This is a string that represents the card's verifier.
@@ -1200,7 +1196,7 @@ class Card:
     else:
       return verifier.user.email
 
-  @ property
+  @property
   def interval_label(self):
     """
     This is a string that represents the card's verification interval,

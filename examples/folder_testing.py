@@ -1,3 +1,4 @@
+from types import NoneType
 import guru
 
 # call script with the credentials of the user you want to use
@@ -6,6 +7,7 @@ import guru
 """ 
 email = "someperson@yourcompany.com"
 token = "yourapitokengoeshere" 
+
 
 #test collection id
 test_collid = "your collection id here"
@@ -24,8 +26,8 @@ for colFolder in collectionFolders:
 
 # get a folder now...
 print("#########  Folder stuff #########")
-folder = g.get_folder(test_homeslug)
-print("folder name: %s" % folder.id)
+folder = g.get_folder(test_folderid)
+print("folder name: %s" % folder)
 
 # iterate thru the folders
 for subfolder in folder.folders:
@@ -34,8 +36,13 @@ for subfolder in folder.folders:
   # subfolder.get_items()
 
   for subsubfolder in subfolder.folders:
-    print("subfolder has_items(): %s" % subfolder.has_items)
     print("sub-sub-folder name: %s" % subsubfolder.title)
+
+# get a non-existent folder now...
+print("#########  Non-Existent Folder stuff #########")
+nonfolder = g.get_folder("ThisFolderSlugDoesntExist")
+if nonfolder == None:
+  print("folder does not exist!!!")
 
 print("#########  Cards #########")
 for card in folder.cards:
