@@ -15,9 +15,10 @@ test_homeslug = "your homeslug here"
 test_folderid = "your folder slug here"
 """
 
+
 g = guru.Guru(email, token, qa=True)
 
-# get folders for a collection
+""" # get folders for a collection
 print("#########  Folders stuff #########")
 collectionFolders = g.get_folders(test_collid)
 print("# of folders: %s" % len(collectionFolders))
@@ -50,4 +51,10 @@ for card in folder.cards:
 
 print("#########  All Items #########")
 for item in folder.items:
-  print("folder items: %s" % item.title)
+  print("folder items: %s" % item.title) """
+
+
+print("########  Add a Folder to a Collection ######")
+addFolder = g.add_folder(
+    "Add Folder Folder", test_otherCollSlug, test_addfolderTitle)
+print("add folder title: %s" % addFolder.title)
