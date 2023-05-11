@@ -2309,6 +2309,34 @@ class Guru:
     folders_response = self.__get_and_get_all(url, cache)
     return [Folder(f, guru=self) for f in folders_response]
 
+  def delete_folder(self, folder, collection=None, remove_type='PROMOTE_TO_PARENT'):
+    """
+    Deletes a folder
+
+    Args:
+        folder (str or Folder): The name or ID of a folder or a Folder object
+        collection (str or Collection, optional): The name or ID of a collection or a Collection object
+            to filter by. If this is not provided, the operation will be performed on all folders.
+        remove_type (str, optional): The type of removal to perform. Can be 'FOLDERS_ONLY', FOLDERS_AND_CARDS or 'PROMOTE_TO_PARENT'.
+            Defaults to 'REMOVE_ONLY' if not specified.
+
+    Returns:
+        bool: True if the folder was successfully removed, False otherwise.
+    """
+
+    folder_obj = self.get_folder(folder, collection=collection)
+
+    if not folder_obj:
+      self.__log(make_red("Could not find folder:", folder))
+      return False
+    else:
+      url_slug = clean_slug(folder_obj.slug)
+
+    url = f"{self.base_url}/folders/{url_slug}?removeType={remove_type}"
+    print(url)
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
     Gets a list of boards you can see. You can optionally filter by collection.
