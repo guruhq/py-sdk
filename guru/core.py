@@ -2309,7 +2309,7 @@ class Guru:
     folders_response = self.__get_and_get_all(url, cache)
     return [Folder(f, guru=self) for f in folders_response]
 
-  def delete_folder(self, folder, collection=None, remove_type='PROMOTE_TO_PARENT'):
+  def delete_folder(self, folder, collection=None, remove_type=None):
     """
     Deletes a folder
 
@@ -2317,12 +2317,19 @@ class Guru:
         folder (str or Folder): The name or ID of a folder or a Folder object
         collection (str or Collection, optional): The name or ID of a collection or a Collection object
             to filter by. If this is not provided, the operation will be performed on all folders.
-        remove_type (str, optional): The type of removal to perform. Can be 'FOLDERS_ONLY', FOLDERS_AND_CARDS or 'PROMOTE_TO_PARENT'.
-            Defaults to 'REMOVE_ONLY' if not specified.
+        remove_type (str, optional): The type of removal to perform. 
+          Values are:
+            'FOLDERS_ONLY' - Just the folder is deleted, any Folders and Cards w/in the Folder are   assigned to the Collections home folder
+
+            FOLDERS_AND_CARDS - All Folders and Card w/in the Folder are deleted as well
+
+            'PROMOTE_TO_PARENT' - Default, any Folders or Cards are moved up to the parent of the folder being deleted.
 
     Returns:
         bool: True if the folder was successfully removed, False otherwise.
     """
+    if remove_type == None:
+      remove_type = "PROMOTE_TO_PARENT"
 
     folder_obj = self.get_folder(folder, collection=collection)
 
