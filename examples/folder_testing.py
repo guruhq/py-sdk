@@ -4,30 +4,22 @@ import guru
 # call script with the credentials of the user you want to use
 # ex: GURU_USER=user@example.com GURU_TOKEN=abcd1234-abcd-abcd-abcd-abcdabcdabcd python getCardExport.py
 
-""" 
+
 email = "someperson@yourcompany.com"
-token = "yourapitokengoeshere" 
+token = "yourapitokengoeshere"
 
 
-#test collection id
+# test collection id
 test_collid = "your collection id here"
 test_homeslug = "your homeslug here"
 test_folderid = "your folder slug here"
-"""
-email = "mhornak@getguru.com"
-token = "0ab65098-43df-42d6-9d22-bf4117f6b163"
-test_collid = "786f6fc8-413b-418d-ba9b-fba974192401"
-test_homeslug = "iGqxqEgT"
-test_folderid = "TEqxqbac"
-test_collSlug = "88p0n1"
-test_otherCollSlug = "dx7vjz"
-test_addfolderSlug = "TKa7z7Bc"
-test_addfolderTitle = "Another Folder"
-test_delFolderSlug = "iR8n8KyT"
+test_collSlug = "your collection slug here"
+test_parentFolder = "parent folder slug here"
+
 
 g = guru.Guru(email, token, qa=True)
 
-""" 
+
 # get folders for a collection
 print("#########  Folders stuff #########")
 collectionFolders = g.get_folders(test_collid)
@@ -62,6 +54,21 @@ for card in folder.cards:
 print("#########  All Items #########")
 for item in folder.items:
   print("folder items: %s" % item.title)
- """
-booDel = g.delete_folder(test_delFolderSlug)
-print(f"delete folder status: {booDel}")
+
+
+print("########  Add a Folder Test #1 add folder to top of Collection ######")
+addFolder = g.add_folder(
+    "folder top of collection", test_collSlug)
+print("add folder top of Collection - Title: %s" % addFolder.title)
+
+print("########  Add a Folder Test #2 add folder to another folder in the collection")
+addFolder = g.add_folder(
+    "folder in another folder 1", test_collSlug, parentFolder=test_parentFolder)
+print("add folder top of Collection - Title: %s" % addFolder.title)
+
+
+print("########  Add a Folder Test #3 add folder 2 folder, verify first")
+addFolder = g.add_folder(
+    "folder in another folder - first", test_collSlug, parentFolder=test_parentFolder)
+print("add folder in folder, make sure it's still first - Title: %s" %
+      addFolder.title)
