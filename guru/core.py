@@ -2337,7 +2337,6 @@ class Guru:
     if parentFolder:
       # is it a Folder object, get the slug if it is
       if isinstance(parentFolder, Folder):
-        print("it's a folder!!")
         parentFolderId = clean_slug(parentFolder.slug)
       else:
         # is it a folder Id/slug
