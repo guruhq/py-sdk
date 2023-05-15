@@ -2309,60 +2309,59 @@ class Guru:
     folders_response = self.__get_and_get_all(url, cache)
     return [Folder(f, guru=self) for f in folders_response]
 
-  def add_folder(self, title, collection, folder=None, description=None):
+  def add_folder(self, title, collection, parentFolder=None, description=None):
     """
-    Creates a new folder in the specified collection and optionally in another Folder in the collection.
+    Creates a new folder in the specified collection and optionally in another Folder in the collection. This will alway put the folder at the top (fist) of the list.
 
     Args:
       title (str, required): The title of the folder you're creating. Folder titles are not
         unique so we do not check if a folder with the same title already exists.
       collection (str, required): The name or ID of the collection you're adding
         the folder to, or a Collection object.  Collection must exist.
-      folder (str, optional): The slug or name of a folder,
+      parentFolder (str, optional): The slug or name of a folder to add this folder to
       description (str, optional): The description of the folder you're creating.
 
     Returns:
       Folder: Returns the Folder object just created.
     """
 
-    # hold the eventual slug to process...
-    url_slug = ""
+    # hold the eventual id and/or slug to process...
+    parentFolderId = None
 
     # Need to make sure collection exists.
     collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       raise ValueError("Collection is not found!: %s" % collection)
 
-    # Was a folder passed in.
-    if folder:
-      if is_id(folder):
-        url_slug = folder
+    # Was a parent folder passed in.
+    if parentFolder:
+      if is_id(parentFolder):
+        parentFolderId = parentFolder
       else:
         # Look for the passed in folder in all the Folders in the Collection
         folder_obj = find_by_name_or_id(
-            self.get_folders(collection, folder, True), folder)
+            self.get_folders(collection, parentFolder, True), parentFolder)
         # got nothing, get out
         if not folder_obj:
           # raise error here, folder passed, but not found in the collection passed!
           raise ValueError(
-              "Folder not found!: %s, was not found in collection provided." % folder)
+              "Folder not found!: %s, was not found in collection provided." % parentFolder)
         else:
-          url_slug = folder_obj.slug
+          parentFolderId = clean_slug(folder_obj.slug)
     else:
       # No folder passed, adding to the Collection
-      url_slug = collection_obj.homeFolderSlug
+      parentFolderId = clean_slug(collection_obj.homeFolderSlug)
 
     # build the URL
-    url = "%s/folders/%s/action" % (
-        self.base_url, clean_slug(url_slug))
+    url = "%s/folders" % self.base_url
     data = {
-        "actionType": "add",
-        "folderEntries": [{
-            "entryType": "folder",
-            "title": title,
-            "description": description
-        }],
-        "prevSiblingItemId": "first"
+        "title": title,
+        "collection": {
+            "id": collection_obj.id
+        },
+        "description": description,
+        "prevSiblingItemId": "first",
+        "parentFolderId": parentFolderId
     }
 
     # when we try to get a folder we cache the collection's folders, so when we make
@@ -2372,12 +2371,12 @@ class Guru:
 
     # same thing as above, but clearing the parent folder's items cache too!
     self.__clear_cache("%s/folders/%s/items" %
-                       (self.base_url, clean_slug(url_slug))
+                       (self.base_url, parentFolderId))
 
-    # make the call to create the folder
-    response=self.__post(url, data)
+    # make the call to create the folder and return a Folder object
+    response = self.__post(url, data)
     if status_to_bool(response.status_code):
-      return self.get_folder(title, collection)
+      return Folder(response.json(), guru=self)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
@@ -2394,7 +2393,7 @@ class Guru:
     # if you're filtering by a board group we find the boards differently.
     # this will load the home board to find the board group and return its items.
     if collection and board_group:
-      board_group_obj=self.get_board_group(board_group, collection)
+      board_group_obj = self.get_board_group(board_group, collection)
       if not board_group_obj:
         self.__log(
             make_red("could not find board group:", board_group))
@@ -2404,16 +2403,16 @@ class Guru:
 
     # filtering by collection is optional.
     if collection:
-      collection_obj=self.get_collection(collection, cache=True)
+      collection_obj = self.get_collection(collection, cache=True)
       if not collection_obj:
         self.__log(make_red("could not find collection:", collection))
         return
-      url="%s/boards?collection=%s" % (self.base_url,
+      url = "%s/boards?collection=%s" % (self.base_url,
                                          collection_obj.id)
     else:
-      url="%s/boards" % self.base_url
+      url = "%s/boards" % self.base_url
 
-    boards=self.__get_and_get_all(url, cache)
+    boards = self.__get_and_get_all(url, cache)
     return [Board(b, guru=self) for b in boards]
 
   def get_board_group(self, board_group, collection):
@@ -2431,7 +2430,7 @@ class Guru:
     if isinstance(board_group, BoardGroup):
       return board_group
 
-    home_board_obj=self.get_home_board(collection)
+    home_board_obj = self.get_home_board(collection)
 
     for item in home_board_obj.items:
       if isinstance(item, BoardGroup) and item.title.lower() == board_group.lower():
@@ -2451,12 +2450,12 @@ class Guru:
             bool: True if it was successful and False otherwise.
     """
     # https://api.getguru.com/api/v1/boards/home/entries?collection=fac2ed4d-a2c0-4d47-b409-5a988fe8dcf7
-    collection_obj=self.get_collection(collection, cache=True)
+    collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
       return
 
-    data={
+    data = {
         "actionType": "add",
         "boardEntries": [{
             "entryType": "section",
@@ -2465,12 +2464,12 @@ class Guru:
         }],
         # "nextSiblingItem": "b93799c8-6fb7-467d-a8ea-9a6e62ff8e93"
     }
-    url="%s/boards/home/entries?collection=%s" % (
+    url = "%s/boards/home/entries?collection=%s" % (
         self.base_url, collection_obj.id)
 
     # this doesn't need to have a timeout or wait for a response because it's just
     # creating one board so that should always be done synchronously.
-    response=self.__put(url, data)
+    response = self.__put(url, data)
     if status_to_bool(response.status_code):
       return self.get_board_group(title, collection)
 
@@ -2493,18 +2492,18 @@ class Guru:
     Returns:
             bool: True if it was successful and False otherwise.
     """
-    board_obj=self.get_board(board, collection)
+    board_obj = self.get_board(board, collection)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
 
-    board_group_obj=self.get_board_group(board_group, collection)
+    board_group_obj = self.get_board_group(board_group, collection)
     if not board_group_obj:
       self.__log(make_red("could not find board group:", board_group))
       return
 
     # bug: board_obj doesn't have an item_id, we only get that when we load the home board.
-    data={
+    data = {
         "sectionId": board_group_obj.item_id,
         "actionType": "move",
         "boardEntries": [
@@ -2520,11 +2519,11 @@ class Guru:
 
     # if we're inserting it at the end, set the prevSiblingItem accordingly.
     if last and board_group_obj.items:
-      data["prevSiblingItem"]=board_group_obj.items[-1].item_id
+      data["prevSiblingItem"] = board_group_obj.items[-1].item_id
 
-    url="%s/boards/home/entries?collection=%s" % (
+    url = "%s/boards/home/entries?collection=%s" % (
         self.base_url, board_obj.collection.id)
-    response=self.__put(url, data)
+    response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
   def get_parent_folder(self, collection):
@@ -2540,14 +2539,14 @@ class Guru:
     Returns:
             ParentFolder: An object representing the parentFolder.
     """
-    collection_obj=self.get_collection(collection, cache=True)
+    collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
       return
 
-    url="%s/folders/%s/items" % (
+    url = "%s/folders/%s/items" % (
         self.base_url, collection_obj.homeBoardSlug)
-    response=self.__get(url)
+    response = self.__get(url)
     return Folder(response.json(), guru=self)
 
   def get_home_board(self, collection):
@@ -2563,14 +2562,14 @@ class Guru:
     Returns:
             HomeBoard: An object representing the home board.
     """
-    collection_obj=self.get_collection(collection, cache=True)
+    collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
       return
 
-    url="%s/boards/home?collection=%s" % (
+    url = "%s/boards/home?collection=%s" % (
         self.base_url, collection_obj.id)
-    response=self.__get(url)
+    response = self.__get(url)
     return HomeBoard(response.json(), guru=self)
 
   def set_item_order(self, collection, board, *items):
@@ -2604,9 +2603,9 @@ class Guru:
             None
     """
     if isinstance(board, BoardGroup):
-      board_obj=board
+      board_obj = board
     else:
-      board_obj=self.get_board(board, collection)
+      board_obj = self.get_board(board, collection)
       if not board_obj:
         return
 
@@ -2639,13 +2638,13 @@ class Guru:
     Returns:
             bool: True if it was successful and false otherwise.
     """
-    collection_obj=self.get_collection(collection, cache=True)
+    collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
 
-    url="%s/boards/home/entries?collection=%s" % (
+    url = "%s/boards/home/entries?collection=%s" % (
         self.base_url, collection_obj.id)
-    data={
+    data = {
         "actionType": "add",
         "boardEntries": [{
             "entryType": "board",
@@ -2661,13 +2660,13 @@ class Guru:
 
     # this doesn't need to have a timeout or wait for a response because it's just
     # creating one board so that should always be done synchronously.
-    response=self.__put(url, data)
+    response = self.__put(url, data)
     if status_to_bool(response.status_code):
       return self.get_board(title, collection)
 
   def save_board(self, board_obj):
-    url="%s/boards/%s" % (self.base_url, board_obj.id)
-    response=self.__put(url, data=board_obj.json(include_item_id=False))
+    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    response = self.__put(url, data=board_obj.json(include_item_id=False))
 
     if status_to_bool(response.status_code):
       # todo: update the board obj so the caller doesn't have to store this return value.
@@ -2716,13 +2715,13 @@ class Guru:
             None
     """
     # get the card object.
-    card_obj=self.get_card(card)
+    card_obj = self.get_card(card)
     if not card_obj:
       self.__log(make_red("could not find card:", card))
       return
 
     # get the board object.
-    board_obj=self.get_board(
+    board_obj = self.get_board(
         board, collection=collection, board_group=board_group)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
@@ -2730,13 +2729,13 @@ class Guru:
 
     if section:
       # find the section (if applicable).
-      section_obj=find_by_name_or_id(board_obj.items, section)
+      section_obj = find_by_name_or_id(board_obj.items, section)
       if not section_obj:
         if create_section_if_needed:
           board_obj.add_section(section)
           # load the objects again so we get the updated board and section.
-          board_obj=self.get_board(board_obj.id, cache=False)
-          section_obj=find_by_name_or_id(board_obj.items, section)
+          board_obj = self.get_board(board_obj.id, cache=False)
+          section_obj = find_by_name_or_id(board_obj.items, section)
         else:
           self.__log(make_red("could not find section:", section))
           return
@@ -2778,22 +2777,22 @@ class Guru:
             bool: True if it was successful and False otherwise.
     """
     # get the board object.
-    board_obj=self.get_board(board, collection)
+    board_obj = self.get_board(board, collection)
     if not board_obj:
       return
 
-    url="%s/boards/%s/entries" % (
+    url = "%s/boards/%s/entries" % (
         self.base_url,
         board_obj.id
     )
-    data={
+    data = {
         "actionType": "add",
         "boardEntries": [{
             "entryType": "section",
             "title": section
         }]
     }
-    response=self.__put(url, data)
+    response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
   def remove_card_from_board(self, card, board, collection=None, section=None):
@@ -2813,12 +2812,12 @@ class Guru:
     Returns:
             bool: True if it was successful and False otherwise.
     """
-    board_obj=self.get_board(board, collection)
+    board_obj = self.get_board(board, collection)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
 
-    card_obj=board_obj.get_card(card, section)
+    card_obj = board_obj.get_card(card, section)
     if not card_obj:
       if section:
         self.__log(
@@ -2827,8 +2826,8 @@ class Guru:
         self.__log(make_red("could not find card:", card))
       return
 
-    url="%s/boards/%s/entries" % (self.base_url, board_obj.id)
-    data={
+    url = "%s/boards/%s/entries" % (self.base_url, board_obj.id)
+    data = {
         "actionType": "remove",
         "collectionId": board_obj.collection.id,
         "id": board_obj.id,
@@ -2837,7 +2836,7 @@ class Guru:
             "id": card_obj.item_id
         }]
     }
-    response=self.__put(url, data)
+    response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
   def delete_board(self, board, collection=None):
@@ -2855,14 +2854,14 @@ class Guru:
                     bool: True if it was successful and False otherwise.
     """
 
-    board_obj=self.get_board(board, collection=collection)
+    board_obj = self.get_board(board, collection=collection)
 
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
 
-    url="%s/boards/%s" % (self.base_url, board_obj.id)
-    response=self.__delete(url)
+    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    response = self.__delete(url)
     return status_to_bool(response.status_code)
 
   def bundle(self, id="default", clear=True, folder="/tmp/", verbose=False, skip_empty_sections=False):
@@ -2886,13 +2885,13 @@ class Guru:
     timestamps like `"2021-02-01T15:01:30.000+04:00"` or just dates like
     `"2021-02-01"`.
     """
-    team_id=self.get_team_id()
+    team_id = self.get_team_id()
     if not team_id:
       self.__log(
           make_red("couldn't find your Team ID, are you authenticated?"))
       return
 
-    url="%s/teams/%s/analytics?fromDate=%s&toDate=%s" % (
+    url = "%s/teams/%s/analytics?fromDate=%s&toDate=%s" % (
         self.base_url,
         team_id,
         start,
@@ -2901,13 +2900,13 @@ class Guru:
     return self.__get_and_get_all(url, max_pages=max_pages)
 
   def get_shared_groups(self, board):
-    board_obj=self.get_board(board)
+    board_obj = self.get_board(board)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
 
-    url="%s/boards/%s/permissions" % (self.base_url, board_obj.id)
-    response=self.__get(url)
+    url = "%s/boards/%s/permissions" % (self.base_url, board_obj.id)
+    response = self.__get(url)
     return [BoardPermission(b) for b in response.json()]
 
   def add_shared_group(self, board, group):
@@ -2931,17 +2930,17 @@ class Guru:
     Returns:
             bool: True if it was successful and False otherwise.
     """
-    group_obj=self.get_group(group)
+    group_obj = self.get_group(group)
     if not group_obj:
       self.__log(make_red("could not find group:", group))
       return
 
-    board_obj=self.get_board(board)
+    board_obj = self.get_board(board)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
 
-    data=[{
+    data = [{
         "type": "group",
         "role": "MEMBER",
         "group": {
@@ -2949,26 +2948,26 @@ class Guru:
         }
     }]
 
-    url="%s/boards/%s/permissions" % (self.base_url, board_obj.id)
-    response=self.__post(url, data)
+    url = "%s/boards/%s/permissions" % (self.base_url, board_obj.id)
+    response = self.__post(url, data)
     return status_to_bool(response.status_code)
 
   def remove_shared_group(self, board, group):
-    group_obj=self.get_group(group)
+    group_obj = self.get_group(group)
     if not group_obj:
       self.__log(make_red("could not find group:", group))
       return
 
-    board_obj=self.get_board(board)
+    board_obj = self.get_board(board)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
 
     # find the id of the permission assignment.
-    perm_obj=None
+    perm_obj = None
     for perm in self.get_shared_groups(board_obj):
       if perm.group.id == group_obj.id:
-        perm_obj=perm
+        perm_obj = perm
         break
 
     if not perm_obj:
@@ -2976,21 +2975,21 @@ class Guru:
           "could not find assigned permission for group %s, maybe it's not assigned to this board" % group))
       return
 
-    url="%s/boards/%s/permissions/%s" % (
+    url = "%s/boards/%s/permissions/%s" % (
         self.base_url, board_obj.id, perm_obj.id)
-    response=self.__delete(url)
+    response = self.__delete(url)
     return status_to_bool(response.status_code)
 
   def move_card_to_collection(self, card, collection, timeout=0):
     """
     Moves a card from one collection to another.
     """
-    card_obj=self.get_card(card)
+    card_obj = self.get_card(card)
     if not card_obj:
       self.__log(make_red("could not find card:", card))
       return
 
-    collection_obj=self.get_collection(collection)
+    collection_obj = self.get_collection(collection)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
       return
@@ -3001,7 +3000,7 @@ class Guru:
                           "is already in collection", collection_obj.name))
       return
 
-    data={
+    data = {
         "action": {
             "type": "move-card",
             "collectionId": collection_obj.id
@@ -3012,18 +3011,18 @@ class Guru:
         }
     }
 
-    url="%s/cards/bulkop" % self.base_url
-    response=self.__post(url, data)
+    url = "%s/cards/bulkop" % self.base_url
+    response = self.__post(url, data)
 
     # update the card's collection object.
     # we don't return the card but if you passed a Card object in, this'll update it.
-    card_obj.collection=collection_obj
+    card_obj.collection = collection_obj
 
     # if there's a timeout and the operation is being done async, we wait.
     if timeout and response.status_code == 202:
       # poll and wait for the bulk operation to finish.
-      bulk_op_id=response.json().get("id")
-      url="%s/cards/bulkop/%s" % (self.base_url, bulk_op_id)
+      bulk_op_id = response.json().get("id")
+      url = "%s/cards/bulkop/%s" % (self.base_url, bulk_op_id)
       return self.__wait_for_bulkop(url, timeout)
     else:
       return status_to_bool(response.status_code)
@@ -3048,12 +3047,12 @@ class Guru:
             bool: True if it was successful and False otherwise. False could mean that there was
                     an error or that you were waiting for the operation to finish and it timed out.
     """
-    board_obj=self.get_board(board, collection=collection)
+    board_obj = self.get_board(board, collection=collection)
     if not board_obj:
       self.__log(make_red("could not find board:", board))
       return
 
-    collection_obj=self.get_collection(collection)
+    collection_obj = self.get_collection(collection)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
       return
@@ -3065,7 +3064,7 @@ class Guru:
       return
 
     # make the bulk op call to move the board to the other collection.
-    data={
+    data = {
         "action": {
             "type": "move-board",
             "collectionId": collection_obj.id
@@ -3076,23 +3075,23 @@ class Guru:
         }
     }
 
-    url="%s/boards/bulkop" % self.base_url
-    response=self.__post(url, data)
+    url = "%s/boards/bulkop" % self.base_url
+    response = self.__post(url, data)
 
     # if there's a timeout and the operation is being done async, we wait.
     if timeout and response.status_code == 202:
       # poll and wait for the bulk operation to finish.
-      bulk_op_id=response.json().get("id")
-      url="%s/boards/bulkop/%s" % (self.base_url, bulk_op_id)
+      bulk_op_id = response.json().get("id")
+      url = "%s/boards/bulkop/%s" % (self.base_url, bulk_op_id)
       return self.__wait_for_bulkop(url, timeout)
     else:
       return status_to_bool(response.status_code)
 
   def __wait_for_bulkop(self, url, timeout):
-    elapsed=0
+    elapsed = 0
     while True:
       time.sleep(2)
-      response=self.__get(url)
+      response = self.__get(url)
       if response.status_code == 200:
         return True
 
@@ -3103,9 +3102,9 @@ class Guru:
     return False
 
   def get_questions(self, type="INBOX", cache=False):
-    url="%s/tasks/questions?filter=%s" % (self.base_url, type)
-    questions=self.__get_and_get_all(url, cache)
-    questions=[Question(q, guru=self) for q in questions]
+    url = "%s/tasks/questions?filter=%s" % (self.base_url, type)
+    questions = self.__get_and_get_all(url, cache)
+    questions = [Question(q, guru=self) for q in questions]
     return questions
 
   def get_questions_inbox(self, cache=False):
@@ -3137,24 +3136,24 @@ class Guru:
             bool: True if it was successful and False otherwise.
     """
     if isinstance(question, Question):
-      url="%s/tasks/questions/%s" % (self.base_url, question.id)
+      url = "%s/tasks/questions/%s" % (self.base_url, question.id)
     else:
-      url="%s/tasks/questions/%s" % (self.base_url, question)
-    response=self.__delete(url)
+      url = "%s/tasks/questions/%s" % (self.base_url, question)
+    response = self.__delete(url)
     return status_to_bool(response.status_code)
 
   def download_card_as_pdf(self, card, filename):
-    card_obj=self.get_card(card)
+    card_obj = self.get_card(card)
     if not card_obj:
       self.__log(make_red("could not find card:", card))
       return
 
-    url="https://api.getguru.com/api/v1/cards/%s/pdf" % card_obj.id
-    headers={
+    url = "https://api.getguru.com/api/v1/cards/%s/pdf" % card_obj.id
+    headers = {
         "Authorization": self.__get_basic_auth_value()
     }
 
-    status, file_size=download_file(url, filename, headers=headers)
+    status, file_size = download_file(url, filename, headers=headers)
     return status_to_bool(status)
 
   def delete_knowledge_trigger(self, trigger_id):
@@ -3174,6 +3173,6 @@ class Guru:
                     bool: success status of call, true if successful, false if not
     """
 
-    url="%s/newcontexts/%s" % (self.base_url, trigger_id)
-    response=self.__delete(url)
+    url = "%s/newcontexts/%s" % (self.base_url, trigger_id)
+    response = self.__delete(url)
     return status_to_bool(response.status_code)
