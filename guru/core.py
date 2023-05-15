@@ -2335,19 +2335,28 @@ class Guru:
 
     # Was a parent folder passed in.
     if parentFolder:
-      if is_id(parentFolder):
-        parentFolderId = parentFolder
+      # is it a Folder object, get the slug if it is
+      if isinstance(parentFolder, Folder):
+        print("it's a folder!!")
+        parentFolderId = clean_slug(parentFolder.slug)
       else:
-        # Look for the passed in folder in all the Folders in the Collection
-        folder_obj = find_by_name_or_id(
-            self.get_folders(collection, parentFolder, True), parentFolder)
-        # got nothing, get out
-        if not folder_obj:
-          # raise error here, folder passed, but not found in the collection passed!
-          raise ValueError(
-              "Folder not found!: %s, was not found in collection provided." % parentFolder)
+        # is it a folder Id/slug
+        if is_id(parentFolder):
+          if is_slug(parentFolder):
+            parentFolderId = clean_slug(parentFolder)
+          else:
+            parentFolderId = parentFolder
         else:
-          parentFolderId = clean_slug(folder_obj.slug)
+          # Look for the passed in folder in all the Folders in the Collection
+          folder_obj = find_by_name_or_id(
+              self.get_folders(collection, parentFolder, True), parentFolder)
+          # got nothing, get out
+          if not folder_obj:
+            # raise error here, folder passed, but not found in the collection passed!
+            raise ValueError(
+                "Folder not found!: %s, was not found in collection provided." % parentFolder)
+          else:
+            parentFolderId = clean_slug(folder_obj.slug)
     else:
       # No folder passed, adding to the Collection
       parentFolderId = clean_slug(collection_obj.homeFolderSlug)
