@@ -2309,7 +2309,7 @@ class Guru:
     folders_response = self.__get_and_get_all(url, cache)
     return [Folder(f, guru=self) for f in folders_response]
 
-  def delete_folder(self, folder, collection=None, remove_type=None):
+  def delete_folder(self, deleteFolder, collection=None, remove_type=None):
     """
     Deletes a folder
 
@@ -2328,19 +2328,44 @@ class Guru:
     Returns:
         bool: True if the folder was successfully removed, False otherwise.
     """
+    deleteFolderId = None
+
     if remove_type == None:
       remove_type = "PROMOTE_TO_PARENT"
 
-    folder_obj = self.get_folder(folder, collection=collection)
+    # check if a collection was passed, if so, find it and use it
+    if collection:
+      collection_obj = self.get_collection(collection, cache=True)
+      if not collection_obj:
+        raise ValueError(f"Collection is not found!: {collection}")
 
-    if not folder_obj:
-      self.__log(make_red("Could not find folder:", folder))
-      return False
+    # check if folder was passed, and get to what we need, a slug
+    if deleteFolder:
+      # is it a Folder object, get the slug
+      if isinstance(deleteFolder, Folder):
+        deleteFolderId = clean_slug(deleteFolder.slug)
+      else:
+        # is it a folder Id/slug
+        if is_id(deleteFolder):
+          if is_slug(deleteFolder):
+            deleteFolderId = clean_slug(deleteFolder)
+          else:
+            deleteFolderId = deleteFolder
+        else:
+          # Look for the passed in folder in all the Folders in the Collection
+          folder_obj = find_by_name_or_id(
+              self.get_folders(collection, deleteFolder, True), deleteFolder)
+          # got nothing, get out
+          if not folder_obj:
+            # raise error here, folder passed, but not found in the collection passed!
+            raise ValueError(
+                f"Folder not found!: {deleteFolderId}, was not found in collection provided.")
+          else:
+            deleteFolderId = clean_slug(folder_obj.slug)
     else:
-      url_slug = clean_slug(folder_obj.slug)
+      raise ValueError("no Folder information passed!")
 
-    url = f"{self.base_url}/folders/{url_slug}?removeType={remove_type}"
-    print(url)
+    url = f"{self.base_url}/folders/{deleteFolderId}?removeType={remove_type}"
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
