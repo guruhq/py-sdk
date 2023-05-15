@@ -86,7 +86,7 @@ def is_board_slug(value):
 
 
 def is_slug(value):
-  return re.match("^[a-zA-Z0-9]{8}(?:/?.*)$", value)
+  return re.match("^[a-zA-Z0-9]+(?:/.*)?$", value)
 
 
 def is_uuid(value):
@@ -2252,7 +2252,7 @@ class Guru:
       if not folder_id:
         return
       else:
-        folder_id = folder_id.slug
+        folder_id = clean_slug(folder_id.slug)
 
     # we have a folder_id, make the call to get the folder and the items in the folder
     url = "%s/folders/%s" % (self.base_url, folder_id)
@@ -2308,6 +2308,83 @@ class Guru:
 
     folders_response = self.__get_and_get_all(url, cache)
     return [Folder(f, guru=self) for f in folders_response]
+
+  def add_folder(self, title, collection, parentFolder=None, description=None):
+    """
+    Creates a new folder in the specified collection and optionally in another Folder in the collection. This will alway put the folder at the top (fist) of the list.
+
+    Args:
+      title (str, required): The title of the folder you're creating. Folder titles are not
+        unique so we do not check if a folder with the same title already exists.
+      collection (str, required): The name or ID of the collection you're adding
+        the folder to, or a Collection object.  Collection must exist.
+      parentFolder (str, optional): The slug or name of a folder to add this folder to
+      description (str, optional): The description of the folder you're creating.
+
+    Returns:
+      Folder: Returns the Folder object just created.
+    """
+
+    # hold the eventual id and/or slug to process...
+    parentFolderId = None
+
+    # Need to make sure collection exists.
+    collection_obj = self.get_collection(collection, cache=True)
+    if not collection_obj:
+      raise ValueError("Collection is not found!: %s" % collection)
+
+    # Was a parent folder passed in.
+    if parentFolder:
+      # is it a Folder object, get the slug if it is
+      if isinstance(parentFolder, Folder):
+        parentFolderId = clean_slug(parentFolder.slug)
+      else:
+        # is it a folder Id/slug
+        if is_id(parentFolder):
+          if is_slug(parentFolder):
+            parentFolderId = clean_slug(parentFolder)
+          else:
+            parentFolderId = parentFolder
+        else:
+          # Look for the passed in folder in all the Folders in the Collection
+          folder_obj = find_by_name_or_id(
+              self.get_folders(collection, parentFolder, True), parentFolder)
+          # got nothing, get out
+          if not folder_obj:
+            # raise error here, folder passed, but not found in the collection passed!
+            raise ValueError(
+                "Folder not found!: %s, was not found in collection provided." % parentFolder)
+          else:
+            parentFolderId = clean_slug(folder_obj.slug)
+    else:
+      # No folder passed, adding to the Collection
+      parentFolderId = clean_slug(collection_obj.homeFolderSlug)
+
+    # build the URL
+    url = "%s/folders" % self.base_url
+    data = {
+        "title": title,
+        "collection": {
+            "id": collection_obj.id
+        },
+        "description": description,
+        "prevSiblingItemId": "first",
+        "parentFolderId": parentFolderId
+    }
+
+    # when we try to get a folder we cache the collection's folders, so when we make
+    # a new folder we need to clear that cache entry because the parent folder has changed.
+    self.__clear_cache("%s/folders?collection=%s" %
+                       (self.base_url, collection_obj.id))
+
+    # same thing as above, but clearing the parent folder's items cache too!
+    self.__clear_cache("%s/folders/%s/items" %
+                       (self.base_url, parentFolderId))
+
+    # make the call to create the folder and return a Folder object
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      return Folder(response.json(), guru=self)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
