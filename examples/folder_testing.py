@@ -15,14 +15,18 @@ test_homeslug = "your homeslug here"
 test_folderid = "your folder slug here"
 test_collSlug = "your collection slug here"
 test_parentFolder = "parent folder slug here"
+
 test_cardId = "card Id to use for Testing"
 
  """
+test_deleteFolderId = "delete folder id here"
 
 
 g = guru.Guru(email, token, qa=True)
 
 """ """  # get folders for a collection
+
+# get folders for a collection
 print("#########  Folders stuff #########")
 collectionFolders = g.get_folders(test_collid)
 print("# of folders: %s" % len(collectionFolders))
@@ -91,3 +95,7 @@ print(f"target folder nane: {target_folder.title}")
 response = g.add_card_to_folder(
     card, source_folder, test_targetFolderId)
 print(response)
+
+print("########  Delete a Folder Test #1 using UUID, Slug, Object and Name")
+response = g.delete_folder(test_deleteFolderId)
+print("Delete worked? : %s" % response)
