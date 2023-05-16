@@ -3,6 +3,7 @@ from gc import collect
 from operator import truediv
 import os
 import re
+from string import capwords
 import sys
 import time
 import base64
@@ -2385,6 +2386,66 @@ class Guru:
     response = self.__post(url, data)
     if status_to_bool(response.status_code):
       return Folder(response.json(), guru=self)
+
+  def add_card_to_folder(self, card, source_folder, target_folder):
+    """
+    Adds an existing card to Folder. The card will be added to the end
+    Args:
+      card (str, required): The ID or Card Object you are adding to the Folder.
+      source_folder (str, required): the ID/Slug/Folder Object where the card exists.
+      target_folder (str, required): the ID/Slug/Folder Object you are adding the Card to.
+
+      None
+    """
+
+    # is card passed in an id or Object
+    if isinstance(card, Card):
+      source_card_id = card.id
+    else:
+      # check if we can find the card by id
+      source_card_id = self.get_card(card).id
+      if not source_card_id:
+        raise ValueError(f"couldn't find card! : {card}")
+
+    # is source_folder an id or Object
+    if isinstance(source_folder, Folder):
+      source_card = find_by_name_or_id(source_folder.cards, source_card_id)
+      # check if we have an object, if so, set the item_id to for paylod
+      if source_card:
+        source_card_item_id = source_card.item_id
+      else:
+        raise ValueError(f"couldn't find card in source_folder!: {card}")
+        return
+
+    # is target_folder an id or Object
+    if isinstance(target_folder, Folder):
+      target_folder_slug = clean_slug(target_folder.slug)
+    else:
+      # is it a folder Id/slug
+      if is_id(target_folder):
+        if is_slug(target_folder):
+          target_folder_slug = clean_slug(target_folder)
+        else:
+          target_folder_slug = target_folder
+      else:
+        raise ValueError(
+            f"target_folder is not a valid id/slug: {target_folder}")
+
+    data = {
+        "actionType": "move",
+        "folderEntries": [
+            {
+                "entryType": "card",
+                "id": source_card_item_id
+            }
+        ],
+        "prevSiblingItemId": "first"
+    }
+
+    url = f"{self.base_url}/folders/{target_folder_slug}/action"
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      return response
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """

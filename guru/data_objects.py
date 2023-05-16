@@ -97,7 +97,10 @@ class Folder:
     else:
       self.collection = None
 
-  # arrays to hold contents of the Folder, returned with
+  # arrays to hold contents of the Folder.  Note: items array is exposed for other methods to add objects
+  # such as cards or folders to the Folders object. e.g. add_card_to_folder() updates the items array
+  # and will do a save_folder() call.
+    self.items = []
     self.__all_items = []
     self.__cards = []
     self.__folders = []
@@ -145,7 +148,7 @@ class Folder:
     return tuple(self.__cards)
 
   @property
-  def items(self):
+  def all_items(self):
     if not self.__has_items:
       self.__get_items()
     return tuple(self.__all_items)
@@ -168,10 +171,12 @@ class Folder:
     for item in folder_items:
       if item.get("type") == "folder":
         folder = Folder(item, guru=self.guru)
+        self.items.append(folder)
         self.__all_items.append(folder)
         self.__folders.append(folder)
       else:
         card = Card(item, guru=self.guru)
+        self.items.append(card)
         self.__all_items.append(card)
         self.__cards.append(card)
 
@@ -210,16 +215,16 @@ class Folder:
   #     card_obj = find_by_name_or_id(self.__cards, card)
   #   return card_obj
 
-  # def add_card(self, card):
-  #   """
-  #   Adds a card to the folder. The card will be added to the end
-  #   of the folder.
+  def add_card(self, card):
+    """
+    Adds a card to the folder. The card will be added to the end
+    of the folder.
 
-  #   Args:
-  #     card (str or Card): The card to add to this board. Can either be a Card object or a string
-  #       that's the card's ID or slug.
-  #   """
-  #   return self.guru.add_card_to_board(card, self, collection=self.collection)
+    Args:
+      card (str or Card): The card to add to this folder. Can either be a Card object or a string
+        that's the card's ID or slug.
+    """
+    return self.guru.add_card_to_folder(card, self, collection=self.collection)
 
   # def remove_card(self, card):
   #   """
@@ -1523,11 +1528,14 @@ class Card:
 
   def lite_json(self):
     """internal"""
-    return {
+    data = {
         "type": "fact",
-        "id": self.id,
-        "itemId": self.item_id
+        "id": self.id
     }
+    if self.item_id:
+      data["itemId"] = self.item_id
+
+    return data
 
 
 class Draft:

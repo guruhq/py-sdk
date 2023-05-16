@@ -4,7 +4,7 @@ import guru
 # call script with the credentials of the user you want to use
 # ex: GURU_USER=user@example.com GURU_TOKEN=abcd1234-abcd-abcd-abcd-abcdabcdabcd python getCardExport.py
 
-
+""" 
 email = "someperson@yourcompany.com"
 token = "yourapitokengoeshere"
 
@@ -15,11 +15,14 @@ test_homeslug = "your homeslug here"
 test_folderid = "your folder slug here"
 test_collSlug = "your collection slug here"
 test_parentFolder = "parent folder slug here"
+test_cardId = "card Id to use for Testing"
+
+ """
 
 
 g = guru.Guru(email, token, qa=True)
 
-# get folders for a collection
+""" """  # get folders for a collection
 print("#########  Folders stuff #########")
 collectionFolders = g.get_folders(test_collid)
 print("# of folders: %s" % len(collectionFolders))
@@ -54,7 +57,6 @@ print("#########  All Items #########")
 for item in folder.items:
   print("folder items: %s" % item.title)
 
-
 print("########  Add a Folder Test #1 add folder to top of Collection ######")
 addFolder = g.add_folder(
     "folder top of collection", test_collSlug)
@@ -65,9 +67,27 @@ addFolder = g.add_folder(
     "folder in another folder 1", test_collSlug, parentFolder=test_parentFolder)
 print("add folder top of Collection - Title: %s" % addFolder.title)
 
-
 print("########  Add a Folder Test #3 add folder 2 folder, verify first")
 addFolder = g.add_folder(
     "folder in another folder - first", test_collSlug, parentFolder=test_parentFolder)
 print("add folder in folder, make sure it's still first - Title: %s" %
       addFolder.title)
+
+print("########  Add a Card to a Folder Testing... ##########")
+updatedFolder = g.add_card_to_folder(test_cardId, test_folderid)
+print(f"Card title: {updatedFolder}")
+
+# get a card now
+card = g.get_card(test_cardId)
+print(f"card name: {card.title}")
+
+# get a folder now...
+source_folder = g.get_folder(test_sourceFolderId)
+print(f"folder name: {source_folder.title}")
+
+target_folder = g.get_folder(test_targetFolderId)
+print(f"target folder nane: {target_folder.title}")
+
+response = g.add_card_to_folder(
+    card, source_folder, test_targetFolderId)
+print(response)
