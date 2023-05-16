@@ -2309,6 +2309,66 @@ class Guru:
     folders_response = self.__get_and_get_all(url, cache)
     return [Folder(f, guru=self) for f in folders_response]
 
+  def delete_folder(self, deleteFolder, collection=None, remove_type=None):
+    """
+    Deletes a folder
+
+    Args:
+        folder (str or Folder): The name or ID of a folder or a Folder object
+        collection (str or Collection, optional): The name or ID of a collection or a Collection object
+            to filter by. If this is not provided, the operation will be performed on all folders.
+        remove_type (str, optional): The type of removal to perform. 
+          Values are:
+            'FOLDERS_ONLY' - Just the folder is deleted, any Folders and Cards w/in the Folder are   assigned to the Collections home folder
+
+            FOLDERS_AND_CARDS - All Folders and Card w/in the Folder are deleted as well
+
+            'PROMOTE_TO_PARENT' - Default, any Folders or Cards are moved up to the parent of the folder being deleted.
+
+    Returns:
+        bool: True if the folder was successfully removed, False otherwise.
+    """
+    deleteFolderId = None
+
+    if remove_type == None:
+      remove_type = "PROMOTE_TO_PARENT"
+
+    # check if a collection was passed, if so, find it and use it
+    if collection:
+      collection_obj = self.get_collection(collection, cache=True)
+      if not collection_obj:
+        raise ValueError(f"Collection is not found!: {collection}")
+
+    # check if folder was passed, and get to what we need, a slug
+    if deleteFolder:
+      # is it a Folder object, get the slug
+      if isinstance(deleteFolder, Folder):
+        deleteFolderId = clean_slug(deleteFolder.slug)
+      else:
+        # is it a folder Id/slug
+        if is_id(deleteFolder):
+          if is_slug(deleteFolder):
+            deleteFolderId = clean_slug(deleteFolder)
+          else:
+            deleteFolderId = deleteFolder
+        else:
+          # Look for the passed in folder in all the Folders in the Collection
+          folder_obj = find_by_name_or_id(
+              self.get_folders(collection, deleteFolder, True), deleteFolder)
+          # got nothing, get out
+          if not folder_obj:
+            # raise error here, folder passed, but not found in the collection passed!
+            raise ValueError(
+                f"Folder not found!: {deleteFolderId}, was not found in collection provided.")
+          else:
+            deleteFolderId = clean_slug(folder_obj.slug)
+    else:
+      raise ValueError("no Folder information passed!")
+
+    url = f"{self.base_url}/folders/{deleteFolderId}?removeType={remove_type}"
+    response = self.__delete(url)
+    return status_to_bool(response.status_code)
+
   def add_folder(self, title, collection, parentFolder=None, description=None):
     """
     Creates a new folder in the specified collection and optionally in another Folder in the collection. This will alway put the folder at the top (fist) of the list.

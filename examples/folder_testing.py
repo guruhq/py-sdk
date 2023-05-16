@@ -15,9 +15,11 @@ test_homeslug = "your homeslug here"
 test_folderid = "your folder slug here"
 test_collSlug = "your collection slug here"
 test_parentFolder = "parent folder slug here"
+test_deleteFolderId = "delete folder id here"
 
 
 g = guru.Guru(email, token, qa=True)
+
 
 # get folders for a collection
 print("#########  Folders stuff #########")
@@ -71,3 +73,8 @@ addFolder = g.add_folder(
     "folder in another folder - first", test_collSlug, parentFolder=test_parentFolder)
 print("add folder in folder, make sure it's still first - Title: %s" %
       addFolder.title)
+
+
+print("########  Delete a Folder Test #1 using UUID, Slug, Object and Name")
+response = g.delete_folder(test_deleteFolderId)
+print("Delete worked? : %s" % response)
