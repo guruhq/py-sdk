@@ -2456,42 +2456,28 @@ class Guru:
       None
     """
 
-    # is card passed in an id or Object
-    if isinstance(card, Card):
-      source_card_id = card.id
-    else:
-      # check if we can find the card by id
-      source_card_id = self.get_card(card).id
-      if not source_card_id:
-        raise ValueError(f"couldn't find card! : {card}")
+    # check if we can find the card by id
+    card_id = self.get_card(card).id
+    if not card_id:
+      raise ValueError(f"couldn't find card! : {card}")
 
-    # is folder an id or Object
-    if isinstance(folder, Folder):
-      source_card = find_by_name_or_id(folder.cards, source_card_id)
-      # grab the slug for the folder
-      folder_slug = clean_slug(folder.slug)
-      # check if we have an object, if so, set the item_id to for paylod
-      if source_card:
-        card_item_id = source_card.item_id
-      else:
-        raise ValueError(f"couldn't find card in source_folder!: {card}")
-        return
-    else:
-      # it's an id/slug, gotta get the Folder object, then find card...
-      if is_id(folder):
-        # need to get folder object
-        source_folder = self.get_folder(folder)
-        if source_folder:
-          source_card = find_by_name_or_id(source_folder.cards, source_card_id)
-          folder_slug = clean_slug(source_folder.slug)
-          if source_card:
-            card_item_id = source_card.item_id
-          else:
-            raise ValueError(f"card is not found in folder: {source_card_id}")
-        else:
-          raise ValueError(
-              f"folder is not a valid id/slug: {folder}")
+    # get the Folder info
+    folder_obj = self.get_folder(folder)
+    if not folder_obj:
+      raise ValueError(f"couldn't find the folder!: {folder}")
 
+    # grab the folder's slug, used in the URL below
+    folder_slug = clean_slug(folder_obj.slug)
+
+    # grab the card from the Folder, if we don't find it, error out
+    card_obj = find_by_name_or_id(folder_obj.cards, card_id)
+    if not card_obj:
+      raise ValueError(f"couldn't find card: {card} in the folder: {folder}")
+
+    # we have a card in the folder, get it's item_id
+    card_item_id = card_obj.item_id
+
+    # build the request body
     data = {
         "actionType": "remove",
         "folderEntries": [
@@ -2503,8 +2489,7 @@ class Guru:
 
     url = f"{self.base_url}/folders/{folder_slug}/action"
     response = self.__post(url, data)
-    if status_to_bool(response.status_code):
-      return response
+    return status_to_bool(response.status_code)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """

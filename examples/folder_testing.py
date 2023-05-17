@@ -16,7 +16,13 @@ test_folderid = "your folder slug here"
 test_collSlug = "your collection slug here"
 test_parentFolder = "parent folder slug here"
 test_deleteFolderId = "delete folder id here"
-
+test_cardId = "card Id to use for Testing"
+test_cardItemId = "card itemID for moving a card"
+test_targetFolderId = "folderId for move/add card"
+test_sourceFolderId = "folderId for move/add card"
+test_invalidFolderId = "#$NoBueno!~"
+test_doesNotExistFolderId = "BadSlug"
+test_cardNotInFolderId = "cardId not in target folder"
 
 g = guru.Guru(email, token, qa=True)
 
@@ -79,5 +85,17 @@ print("########  Delete a Folder Test #1 using UUID, Slug, Object and Name")
 response = g.delete_folder(test_deleteFolderId)
 print("Delete worked? : %s" % response)
 
+
+# get Card, Source and Target objects to test add/move/remove cards w/objects..
+card = g.get_card(test_cardId)
+print(f"card name: {card.title}")
+
+source_folder = g.get_folder(test_sourceFolderId)
+print(f"folder name: {source_folder.title}")
+
+target_folder = g.get_folder(test_targetFolderId)
+print(f"target folder nane: {target_folder.title}")
+
 print("######## Remove a Card from a Folder ##########")
-response = g.remove_card_from_folder(test_cardId, test_targetFolderId)
+response = g.remove_card_from_folder(test_cardNotInFolderId, target_folder)
+print(f"Response: {response}")
