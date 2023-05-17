@@ -20,6 +20,9 @@ test_deleteFolderId = "delete folder id here"
 test_cardItemId = "card itemID for moving a card"
 test_targetFolderId = "folderId for move/add card"
 test_sourceFolderId = "folderId for move/add card"
+test_invalidFolderId = "#$NoBueno!~"
+test_doesNotExistFolderId = "BadSlug"
+test_cardNotInFolderId = "cardId not in target folder"
 
 
 g = guru.Guru(email, token, qa=True)
@@ -96,12 +99,11 @@ print(f"target folder nane: {target_folder.title}")
 
 # move a card from one folder to another, needs card, source and target folders
 response = g.move_card_to_folder(
-    card, test_sourceFolderId, test_targetFolderId)
+    card, source_folder, target_folder)
 print(response)
 
 # add an existing card to a folder, need card and target folder
 response = g.add_card_to_folder(test_cardId, test_targetFolderId)
-
 
 # move a card using the Folder object's .move_card() method
 response = source_folder.move_card(card, target_folder)

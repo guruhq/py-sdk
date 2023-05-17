@@ -2467,7 +2467,8 @@ class Guru:
       if not source_card_id:
         raise ValueError(f"couldn't find card! : {card}")
 
-    # is source_folder an id or Object
+    # following code looks for the card in the source_folder object, need to determine if
+    # the source_folder an id or Folder object, get in a position to look for card.
     if isinstance(source_folder, Folder):
       source_card = find_by_name_or_id(source_folder.cards, source_card_id)
       # check if we have an object, if so, set the item_id to for paylod
@@ -2475,9 +2476,26 @@ class Guru:
         source_card_item_id = source_card.item_id
       else:
         raise ValueError(f"couldn't find card in source_folder!: {card}")
-        return
+    else:
+      # it's an id/slug, gotta get the Folder object, then find card...
+      if is_id(source_folder):
+        # need to get folder object
+        folder_obj = self.get_folder(source_folder)
+        if folder_obj:
+          source_card = find_by_name_or_id(folder_obj.cards, source_card_id)
+          if source_card:
+            source_card_item_id = source_card.item_id
+          else:
+            raise ValueError(
+                f"card is not found in source_folder: {source_card_id}")
+        else:
+          raise ValueError(
+              f"source_folder is not found: {source_folder}")
+      else:
+        raise ValueError(
+            f"source_folder is not a valid id/slug: {source_folder}")
 
-    # is target_folder an id or Object
+      # is target_folder an id or Object
     if isinstance(target_folder, Folder):
       target_folder_slug = clean_slug(target_folder.slug)
     else:
