@@ -2452,63 +2452,38 @@ class Guru:
     Moves an existing in the collection card to another folder. The card will be added to the end
     Args:
       card (str, required): The ID or Card Object you are adding to the Folder.
-      source_folder (str, required): the ID/Slug/Folder Object where the card exists.
-      target_folder (str, required): the ID/Slug/Folder Object you are adding the Card to.
+      source_folder (str, required): the ID/Slug/Name/Folder Object where the card exists.
+      target_folder (str, required): the ID/Slug/Name/Folder Object you are adding the Card to.
 
       None
     """
 
-    # is card passed in an id or Object
-    if isinstance(card, Card):
-      source_card_id = card.id
-    else:
-      # check if we can find the card by id
-      source_card_id = self.get_card(card).id
-      if not source_card_id:
-        raise ValueError(f"couldn't find card! : {card}")
+    # get a Card object if possible...
+    card_obj = self.get_card(card)
+    if not card_obj:
+      raise ValueError(f"couldn't find card! : {card}")
+    source_card_id = card_obj.id
 
-    # following code looks for the card in the source_folder object, need to determine if
-    # the source_folder an id or Folder object, get in a position to look for card.
-    if isinstance(source_folder, Folder):
-      source_card = find_by_name_or_id(source_folder.cards, source_card_id)
-      # check if we have an object, if so, set the item_id to for paylod
-      if source_card:
-        source_card_item_id = source_card.item_id
-      else:
-        raise ValueError(f"couldn't find card in source_folder!: {card}")
-    else:
-      # it's an id/slug, gotta get the Folder object, then find card...
-      if is_id(source_folder):
-        # need to get folder object
-        folder_obj = self.get_folder(source_folder)
-        if folder_obj:
-          source_card = find_by_name_or_id(folder_obj.cards, source_card_id)
-          if source_card:
-            source_card_item_id = source_card.item_id
-          else:
-            raise ValueError(
-                f"card is not found in source_folder: {source_card_id}")
-        else:
-          raise ValueError(
-              f"source_folder is not found: {source_folder}")
-      else:
-        raise ValueError(
-            f"source_folder is not a valid id/slug: {source_folder}")
+    # get a folder object if possible...
+    source_folder_obj = self.get_folder(source_folder)
+    if not source_folder_obj:
+      raise ValueError(f"couldn't find source folder! : {source_folder}")
+    # find the card in the source folder...
+    source_card_obj = find_by_name_or_id(source_folder.cards, source_card_id)
+    # check if we have an object...
+    if not source_card_obj:
+      raise ValueError(f"couldn't find card in source_folder!: {card}")
+    # get the item_id from the source card object...
+    source_card_item_id = source_card_obj.item_id
 
-      # is target_folder an id or Object
-    if isinstance(target_folder, Folder):
-      target_folder_slug = clean_slug(target_folder.slug)
-    else:
-      # is it a folder Id/slug
-      if is_id(target_folder):
-        if is_slug(target_folder):
-          target_folder_slug = clean_slug(target_folder)
-        else:
-          target_folder_slug = target_folder
-      else:
-        raise ValueError(
-            f"target_folder is not a valid id/slug: {target_folder}")
+    # get folder object if possible...
+    target_folder_obj = self.get_folder(target_folder)
+    if not target_folder_obj:
+      raise ValueError(f"couldn't find target folder! : {target_folder}")
+    # get the target_folder's clean slug...
+    target_folder_slug = clean_slug(target_folder_obj.slug)
 
+    # buld the request payload...
     data = {
         "actionType": "move",
         "folderEntries": [
@@ -2522,41 +2497,32 @@ class Guru:
 
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
     response = self.__post(url, data)
-    if status_to_bool(response.status_code):
-      return response
+    return status_to_bool(response.status_code)
 
   def add_card_to_folder(self, card, target_folder):
     """
     Add an existing in the collection card to a folder. The card will be added to the end
     Args:
       card (str, required): The ID or Card Object you are adding to the Folder.
-      target_folder (str, required): the ID/Slug/Folder Object you are adding the Card to.
+      target_folder (str, required): the ID/Slug/Name/Folder Object you are adding the Card to.
 
     Returns: None
     """
-    # is card passed in an id or Object
-    if isinstance(card, Card):
-      source_card_id = card.id
-    else:
-      # check if we can find the card by id
-      source_card_id = self.get_card(card).id
-      if not source_card_id:
-        raise ValueError(f"couldn't find card! : {card}")
 
-    # is target_folder an id or Object
-    if isinstance(target_folder, Folder):
-      target_folder_slug = clean_slug(target_folder.slug)
-    else:
-      # is it a folder Id/slug
-      if is_id(target_folder):
-        if is_slug(target_folder):
-          target_folder_slug = clean_slug(target_folder)
-        else:
-          target_folder_slug = target_folder
-      else:
-        raise ValueError(
-            f"target_folder is not a valid id/slug: {target_folder}")
+    # get a Card object if possible...
+    card_obj = self.get_card(card)
+    if not card_obj:
+      raise ValueError(f"couldn't find card! : {card}")
+    source_card_id = card_obj.id
 
+    # get a Folder object if possible...
+    target_folder_obj = self.get_folder(target_folder)
+    if not target_folder_obj:
+      raise ValueError(f"couldn't find target folder! : {target_folder}")
+    # get the folder's clean slug...
+    target_folder_slug = clean_slug(target_folder_obj.slug)
+
+    # build the request payload...
     data = {
         "actionType": "add",
         "folderEntries": [
@@ -2570,8 +2536,7 @@ class Guru:
 
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
     response = self.__post(url, data)
-    if status_to_bool(response.status_code):
-      return response
+    return status_to_bool(response.status_code)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
