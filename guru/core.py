@@ -2495,7 +2495,7 @@ class Guru:
         "prevSiblingItemId": "first"
     }
 
-    # clear the cache for the folder since we removed a card...
+    # clear the cache for the folder since we moved a card...
     self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
 
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
@@ -2537,7 +2537,7 @@ class Guru:
         "prevSiblingItemId": "first"
     }
 
-    # clear the cache for the folder since we removed a card...
+    # clear the cache for the folder since we added a card...
     self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
 
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
