@@ -78,3 +78,6 @@ print("add folder in folder, make sure it's still first - Title: %s" %
 print("########  Delete a Folder Test #1 using UUID, Slug, Object and Name")
 response = g.delete_folder(test_deleteFolderId)
 print("Delete worked? : %s" % response)
+
+print("######## Remove a Card from a Folder ##########")
+response = g.remove_card_from_folder(test_cardId, test_targetFolderId)

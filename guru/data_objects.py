@@ -221,14 +221,14 @@ class Folder:
   #   """
   #   return self.guru.add_card_to_board(card, self, collection=self.collection)
 
-  # def remove_card(self, card):
-  #   """
-  #   Removes a card from the board.
+  def remove_card(self, card):
+    """
+    Removes a card from the board.
 
-  #   Args:
-  #     card (str or Card): The card's ID or slug, or a Card object.
-  #   """
-  #   return self.guru.remove_card_from_board(card, self)
+    Args:
+      card (str or Card): The card's ID or slug, or a Card object.
+    """
+    return self.guru.remove_card_from_folder(card, self)
 
   # def get_groups(self):
   #   """
