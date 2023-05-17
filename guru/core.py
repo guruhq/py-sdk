@@ -2447,9 +2447,9 @@ class Guru:
     if status_to_bool(response.status_code):
       return Folder(response.json(), guru=self)
 
-  def add_card_to_folder(self, card, source_folder, target_folder):
+  def move_card_to_folder(self, card, source_folder, target_folder):
     """
-    Adds an existing card to Folder. The card will be added to the end
+    Moves an existing in the collection card to another folder. The card will be added to the end
     Args:
       card (str, required): The ID or Card Object you are adding to the Folder.
       source_folder (str, required): the ID/Slug/Folder Object where the card exists.
@@ -2497,6 +2497,54 @@ class Guru:
             {
                 "entryType": "card",
                 "id": source_card_item_id
+            }
+        ],
+        "prevSiblingItemId": "first"
+    }
+
+    url = f"{self.base_url}/folders/{target_folder_slug}/action"
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      return response
+
+  def add_card_to_folder(self, card, target_folder):
+    """
+    Add an existing in the collection card to a folder. The card will be added to the end
+    Args:
+      card (str, required): The ID or Card Object you are adding to the Folder.
+      target_folder (str, required): the ID/Slug/Folder Object you are adding the Card to.
+
+    Returns: None
+    """
+    # is card passed in an id or Object
+    if isinstance(card, Card):
+      source_card_id = card.id
+    else:
+      # check if we can find the card by id
+      source_card_id = self.get_card(card).id
+      if not source_card_id:
+        raise ValueError(f"couldn't find card! : {card}")
+
+    # is target_folder an id or Object
+    if isinstance(target_folder, Folder):
+      target_folder_slug = clean_slug(target_folder.slug)
+    else:
+      # is it a folder Id/slug
+      if is_id(target_folder):
+        if is_slug(target_folder):
+          target_folder_slug = clean_slug(target_folder)
+        else:
+          target_folder_slug = target_folder
+      else:
+        raise ValueError(
+            f"target_folder is not a valid id/slug: {target_folder}")
+
+    data = {
+        "actionType": "add",
+        "folderEntries": [
+            {
+                "cardId": source_card_id,
+                "entryType": "card"
             }
         ],
         "prevSiblingItemId": "first"

@@ -217,14 +217,24 @@ class Folder:
 
   def add_card(self, card):
     """
-    Adds a card to the folder. The card will be added to the end
+    Adds a card to the folder. The card will be added to the top
     of the folder.
 
     Args:
       card (str or Card): The card to add to this folder. Can either be a Card object or a string
         that's the card's ID or slug.
     """
-    return self.guru.add_card_to_folder(card, self, collection=self.collection)
+    return self.guru.add_card_to_folder(card, self)
+
+  def move_card(self, card, folder):
+    """
+    Moves a card from this folder to another folder. The card will be added to the top of the folder
+
+    Args:
+      card (str, required) - The card Id or Ojbect in this folder to be moved
+      folder (str, required) - The target folder Id or Object to move card to
+    """
+    return self.guru.move_card_to_folder(card, self, folder)
 
   # def remove_card(self, card):
   #   """

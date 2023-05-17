@@ -4,10 +4,10 @@ import guru
 # call script with the credentials of the user you want to use
 # ex: GURU_USER=user@example.com GURU_TOKEN=abcd1234-abcd-abcd-abcd-abcdabcdabcd python getCardExport.py
 
-""" 
+
+# API token info
 email = "someperson@yourcompany.com"
 token = "yourapitokengoeshere"
-
 
 # test collection id
 test_collid = "your collection id here"
@@ -15,16 +15,15 @@ test_homeslug = "your homeslug here"
 test_folderid = "your folder slug here"
 test_collSlug = "your collection slug here"
 test_parentFolder = "parent folder slug here"
-
 test_cardId = "card Id to use for Testing"
-
- """
 test_deleteFolderId = "delete folder id here"
+test_cardItemId = "card itemID for moving a card"
+test_targetFolderId = "folderId for move/add card"
+test_sourceFolderId = "folderId for move/add card"
 
 
 g = guru.Guru(email, token, qa=True)
 
-""" """  # get folders for a collection
 
 # get folders for a collection
 print("#########  Folders stuff #########")
@@ -81,21 +80,31 @@ print("########  Add a Card to a Folder Testing... ##########")
 updatedFolder = g.add_card_to_folder(test_cardId, test_folderid)
 print(f"Card title: {updatedFolder}")
 
-# get a card now
+print("########  Delete a Folder Test #1 using UUID, Slug, Object and Name")
+response = g.delete_folder(test_deleteFolderId)
+print("Delete worked? : %s" % response)
+
+# get Card, Source and Target objects to test add/move cards w/objects..
 card = g.get_card(test_cardId)
 print(f"card name: {card.title}")
 
-# get a folder now...
 source_folder = g.get_folder(test_sourceFolderId)
 print(f"folder name: {source_folder.title}")
 
 target_folder = g.get_folder(test_targetFolderId)
 print(f"target folder nane: {target_folder.title}")
 
-response = g.add_card_to_folder(
-    card, source_folder, test_targetFolderId)
+# move a card from one folder to another, needs card, source and target folders
+response = g.move_card_to_folder(
+    card, test_sourceFolderId, test_targetFolderId)
 print(response)
 
-print("########  Delete a Folder Test #1 using UUID, Slug, Object and Name")
-response = g.delete_folder(test_deleteFolderId)
-print("Delete worked? : %s" % response)
+# add an existing card to a folder, need card and target folder
+response = g.add_card_to_folder(test_cardId, test_targetFolderId)
+
+
+# move a card using the Folder object's .move_card() method
+response = source_folder.move_card(card, target_folder)
+
+# add a card using the Folder object's .add_card() method
+response = source_folder.add_card(card)
