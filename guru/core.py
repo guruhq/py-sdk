@@ -2495,6 +2495,9 @@ class Guru:
         "prevSiblingItemId": "first"
     }
 
+    # clear the cache for the folder since we removed a card...
+    self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
+
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
     response = self.__post(url, data)
     return status_to_bool(response.status_code)
@@ -2533,6 +2536,9 @@ class Guru:
         ],
         "prevSiblingItemId": "first"
     }
+
+    # clear the cache for the folder since we removed a card...
+    self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
 
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
     response = self.__post(url, data)
