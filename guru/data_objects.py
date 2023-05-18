@@ -101,7 +101,6 @@ class Folder:
   # such as cards or folders to the Folders object. e.g. add_card_to_folder() updates the items array
   # and will do a save_folder() call.
     self.items = []
-    self.__all_items = []
     self.__cards = []
     self.__folders = []
 
@@ -147,15 +146,32 @@ class Folder:
       self.__get_items()
     return tuple(self.__cards)
 
-  @property
-  def all_items(self):
-    if not self.__has_items:
-      self.__get_items()
-    return tuple(self.__all_items)
+  def update_lists(self, obj, action):
+    """
+    Updates internal __folder_items for when doing move/add/remove folders.
+
+    Args: 
+      obj (Folder/Card object, required) - the object to process
+      action (add/remove, required) - what to do with the object
+
+    Return: Nothing
+    """
+    print(f"objects: {len(self.__cards)}")
+    for i in self.__cards:
+      print(f"cards before remove: {i.title}")
+    # if action == 'add':
+    #   self.__folder_items.append(obj)
+    # elif action == 'remove':
+    print(f"want to remove: {obj.title}")
+    self.__cards.remove(obj)
+    for i in self.__cards:
+      print(f"cards after remove{i.title}")
 
   def __get_items(self):
     """
       method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
+
+      Args: refresh (Boolean, optional) - provides a means to force a refresh of folder items when things change like with a remove, add or move of objects w/in the folder_items
     """
 
     # setting flag that we have attemped to retrieve items...
@@ -172,12 +188,10 @@ class Folder:
       if item.get("type") == "folder":
         folder = Folder(item, guru=self.guru)
         self.items.append(folder)
-        self.__all_items.append(folder)
         self.__folders.append(folder)
       else:
         card = Card(item, guru=self.guru)
         self.items.append(card)
-        self.__all_items.append(card)
         self.__cards.append(card)
 
 ### BELOW ITEMS ARE NOT YET CONSIDERED FOR IMPLEMENTATION ###

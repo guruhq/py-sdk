@@ -2449,7 +2449,8 @@ class Guru:
 
   def move_card_to_folder(self, card, source_folder, target_folder):
     """
-    Moves an existing in the collection card to another folder. The card will be added to the end
+    Moves an existing card in the collection card to another folder. The card will be added to the top of the target folder
+
     Args:
       card (str, required): The ID or Card Object you are adding to the Folder.
       source_folder (str, required): the ID/Slug/Name/Folder Object where the card exists.
@@ -2497,14 +2498,20 @@ class Guru:
 
     # clear the cache for the folder since we moved a card...
     self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
+    self.__clear_cache(
+        f"{self.base_url}/folders/{clean_slug(source_folder_obj.slug)}/items")
 
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
     response = self.__post(url, data)
-    return status_to_bool(response.status_code)
+    if status_to_bool(response.status_code):
+      # # refresh the internal items for the source Folder
+      source_folder_obj.update_lists(card_obj, "remove")
+      # return the response
+      return status_to_bool(response.status_code)
 
   def add_card_to_folder(self, card, target_folder):
     """
-    Add an existing in the collection card to a folder. The card will be added to the end
+    Add an existing card in the collection card to a folder. The card will be added to the top of the folder.
     Args:
       card (str, required): The ID or Card Object you are adding to the Folder.
       target_folder (str, required): the ID/Slug/Name/Folder Object you are adding the Card to.
@@ -2542,7 +2549,9 @@ class Guru:
 
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
     response = self.__post(url, data)
-    return status_to_bool(response.status_code)
+    if status_to_bool(response.status_code):
+      # update local objects with new info
+      return status_to_bool(response.status_code)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
