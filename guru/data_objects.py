@@ -169,11 +169,11 @@ class Folder:
       else:
         return
     elif action == "add" and self.__has_items:
-      self.items.append(obj)
+      self.items.insert(0, obj)
       if isinstance(obj, Card):
-        self.__cards.append(obj)
+        self.__cards.insert(0, obj)
       elif isinstance(obj, Folder):
-        self.__folders.append(obj)
+        self.__folders.insert(0, obj)
       else:
         return
 
