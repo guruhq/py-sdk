@@ -146,6 +146,10 @@ class Folder:
       self.__get_items()
     return tuple(self.__cards)
 
+  @property
+  def has_items(self):
+    return self.__has_items
+
   def update_lists(self, obj, action):
     """
     Updates internal items, and/or __card / __folders arrays when doing move/add/remove folders.
@@ -156,28 +160,27 @@ class Folder:
 
     Return: Nothing
     """
-    if action == 'remove':
+    if action == "remove" and self.__has_items:
+      self.items.remove(obj)
       if isinstance(obj, Card):
         self.__cards.remove(obj)
       elif isinstance(obj, Folder):
         self.__folders.remove(obj)
       else:
         return
-      self.items.remove(obj)
-    elif action == "add":
+    elif action == "add" and self.__has_items:
+      self.items.append(obj)
       if isinstance(obj, Card):
         self.__cards.append(obj)
       elif isinstance(obj, Folder):
         self.__folders.append(obj)
       else:
         return
-      self.items.append(obj)
 
   def __get_items(self):
     """
       method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
 
-      Args: refresh (Boolean, optional) - provides a means to force a refresh of folder items when things change like with a remove, add or move of objects w/in the folder_items
     """
 
     # setting flag that we have attemped to retrieve items...
