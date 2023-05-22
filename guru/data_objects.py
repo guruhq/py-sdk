@@ -146,6 +146,10 @@ class Folder:
       self.__get_items()
     return tuple(self.__cards)
 
+  @property
+  def has_items(self):
+    return self.__has_items
+
   def update_lists(self, obj, action):
     """
     Updates internal items, and/or __card / __folders arrays when doing move/add/remove folders.

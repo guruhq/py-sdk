@@ -2503,9 +2503,9 @@ class Guru:
     }
 
     # clear the cache for the folder since we moved a card...
-    # self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
-    # self.__clear_cache(
-    #     f"{self.base_url}/folders/{clean_slug(source_folder_obj.slug)}/items")
+    self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
+    self.__clear_cache(
+        f"{self.base_url}/folders/{clean_slug(source_folder_obj.slug)}/items")
 
     url = f"{self.base_url}/folders/{target_folder_slug}/action"
     response = self.__post(url, data)
@@ -2514,7 +2514,7 @@ class Guru:
       source_folder_obj.update_lists(source_card_obj, "remove")
       target_folder_obj.update_lists(source_card_obj, "add")
       # return the response
-      return status_to_bool(response.status_code)
+    return status_to_bool(response.status_code)
 
   def add_card_to_folder(self, card, target_folder):
     """
