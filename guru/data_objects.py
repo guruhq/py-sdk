@@ -148,7 +148,7 @@ class Folder:
 
   def update_lists(self, obj, action):
     """
-    Updates internal __folder_items for when doing move/add/remove folders.
+    Updates internal items, and/or __card / __folders arrays when doing move/add/remove folders.
 
     Args: 
       obj (Folder/Card object, required) - the object to process
@@ -156,16 +156,22 @@ class Folder:
 
     Return: Nothing
     """
-    print(f"objects: {len(self.__cards)}")
-    for i in self.__cards:
-      print(f"cards before remove: {i.title}")
-    # if action == 'add':
-    #   self.__folder_items.append(obj)
-    # elif action == 'remove':
-    print(f"want to remove: {obj.title}")
-    self.__cards.remove(obj)
-    for i in self.__cards:
-      print(f"cards after remove{i.title}")
+    if action == 'remove':
+      if isinstance(obj, Card):
+        self.__cards.remove(obj)
+      elif isinstance(obj, Folder):
+        self.__folders.remove(obj)
+      else:
+        return
+      self.items.remove(obj)
+    elif action == "add":
+      if isinstance(obj, Card):
+        self.__cards.append(obj)
+      elif isinstance(obj, Folder):
+        self.__folders.append(obj)
+      else:
+        return
+      self.items.append(obj)
 
   def __get_items(self):
     """
