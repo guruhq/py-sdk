@@ -263,7 +263,7 @@ class Folder:
 
   def remove_card(self, card):
     """
-    Removes a card from the board.
+    Removes a card from the folder.
 
     Args:
       card (str or Card): The card's ID or slug, or a Card object.
