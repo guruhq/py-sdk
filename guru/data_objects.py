@@ -97,8 +97,10 @@ class Folder:
     else:
       self.collection = None
 
-  # arrays to hold contents of the Folder, returned with
-    self.__all_items = []
+  # arrays to hold contents of the Folder.  Note: items array is exposed for other methods to add objects
+  # such as cards or folders to the Folders object. e.g. add_card_to_folder() updates the items array
+  # and will do a save_folder() call.
+    self.items = []
     self.__cards = []
     self.__folders = []
 
@@ -148,11 +150,39 @@ class Folder:
   def items(self):
     if not self.__has_items:
       self.__get_items()
-    return tuple(self.__all_items)
+    return tuple(self.items)
+
+  def update_lists(self, obj, action):
+    """
+    Updates internal items, and/or __card / __folders arrays when doing move/add/remove folders.
+
+    Args: 
+      obj (Folder/Card object, required) - the object to process
+      action (add/remove, required) - what to do with the object
+
+    Return: Nothing
+    """
+    if action == "remove" and self.__has_items:
+      self.items.remove(obj)
+      if isinstance(obj, Card):
+        self.__cards.remove(obj)
+      elif isinstance(obj, Folder):
+        self.__folders.remove(obj)
+      else:
+        return
+    elif action == "add" and self.__has_items:
+      self.items.insert(0, obj)
+      if isinstance(obj, Card):
+        self.__cards.insert(0, obj)
+      elif isinstance(obj, Folder):
+        self.__folders.insert(0, obj)
+      else:
+        return
 
   def __get_items(self):
     """
       method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
+
     """
 
     # setting flag that we have attemped to retrieve items...
@@ -168,11 +198,11 @@ class Folder:
     for item in folder_items:
       if item.get("type") == "folder":
         folder = Folder(item, guru=self.guru)
-        self.__all_items.append(folder)
+        self.items.append(folder)
         self.__folders.append(folder)
       else:
         card = Card(item, guru=self.guru)
-        self.__all_items.append(card)
+        self.items.append(card)
         self.__cards.append(card)
 
 ### BELOW ITEMS ARE NOT YET CONSIDERED FOR IMPLEMENTATION ###
@@ -210,16 +240,26 @@ class Folder:
   #     card_obj = find_by_name_or_id(self.__cards, card)
   #   return card_obj
 
-  # def add_card(self, card):
-  #   """
-  #   Adds a card to the folder. The card will be added to the end
-  #   of the folder.
+  def add_card(self, card):
+    """
+    Adds a card to the folder. The card will be added to the top
+    of the folder.
 
-  #   Args:
-  #     card (str or Card): The card to add to this board. Can either be a Card object or a string
-  #       that's the card's ID or slug.
-  #   """
-  #   return self.guru.add_card_to_board(card, self, collection=self.collection)
+    Args:
+      card (str or Card): The card to add to this folder. Can either be a Card object or a string
+        that's the card's ID or slug.
+    """
+    return self.guru.add_card_to_folder(card, self)
+
+  def move_card(self, card, folder):
+    """
+    Moves a card from this folder to another folder. The card will be added to the top of the folder
+
+    Args:
+      card (str, required) - The card Id or Ojbect in this folder to be moved
+      folder (str, required) - The target folder Id or Object to move card to
+    """
+    return self.guru.move_card_to_folder(card, self, folder)
 
   # def remove_card(self, card):
   #   """
@@ -1523,11 +1563,14 @@ class Card:
 
   def lite_json(self):
     """internal"""
-    return {
+    data = {
         "type": "fact",
-        "id": self.id,
-        "itemId": self.item_id
+        "id": self.id
     }
+    if self.item_id:
+      data["itemId"] = self.item_id
+
+    return data
 
 
 class Draft:
