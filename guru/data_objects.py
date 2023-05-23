@@ -147,8 +147,10 @@ class Folder:
     return tuple(self.__cards)
 
   @property
-  def has_items(self):
-    return self.__has_items
+  def items(self):
+    if not self.__has_items:
+      self.__get_items()
+    return tuple(self.items)
 
   def update_lists(self, obj, action):
     """
