@@ -3,6 +3,7 @@ from gc import collect
 from operator import truediv
 import os
 import re
+from string import capwords
 import sys
 import time
 import base64
@@ -2321,7 +2322,7 @@ class Guru:
           Values are:
             'FOLDERS_ONLY' - Just the folder is deleted, any Folders and Cards w/in the Folder are   assigned to the Collections home folder
 
-            FOLDERS_AND_CARDS - All Folders and Card w/in the Folder are deleted as well
+            'FOLDERS_AND_CARDS' - All Folders and Card w/in the Folder are deleted as well
 
             'PROMOTE_TO_PARENT' - Default, any Folders or Cards are moved up to the parent of the folder being deleted.
 
@@ -2364,6 +2365,9 @@ class Guru:
             deleteFolderId = clean_slug(folder_obj.slug)
     else:
       raise ValueError("no Folder information passed!")
+
+    # clear the cache for the folder since it's now deleted
+    self.__clear_cache(f"{self.base_url}/folders/{deleteFolderId}/items")
 
     url = f"{self.base_url}/folders/{deleteFolderId}?removeType={remove_type}"
     response = self.__delete(url)
@@ -2495,6 +2499,119 @@ class Guru:
     response = self.__post(url, data)
     if status_to_bool(response.status_code):
       folder_obj.update_lists(card_item_obj, "remove")
+    return status_to_bool(response.status_code)
+
+  def move_card_to_folder(self, card, source_folder, target_folder):
+    """
+    Moves an existing card in the collection card to another folder. The card will be added to the top of the target folder
+
+    Args:
+      card (str, required): The ID or Card Object you are adding to the Folder.
+      source_folder (str, required): the ID/Slug/Name/Folder Object where the card exists.
+      target_folder (str, required): the ID/Slug/Name/Folder Object you are adding the Card to.
+
+    Returns:
+      Boolean
+    """
+
+    # get a Card object if possible...
+    card_obj = self.get_card(card)
+    if not card_obj:
+      raise ValueError(f"couldn't find card! : {card}")
+    source_card_id = card_obj.id
+
+    # get a folder object if possible...
+    source_folder_obj = self.get_folder(source_folder)
+    if not source_folder_obj:
+      raise ValueError(f"couldn't find source folder! : {source_folder}")
+
+    # find the card in the source folder...
+    source_card_obj = find_by_name_or_id(source_folder.cards, source_card_id)
+    # check if we have an object...
+    if not source_card_obj:
+      raise ValueError(f"couldn't find card in source_folder!: {card}")
+
+    # get the item_id from the source card object...
+    source_card_item_id = source_card_obj.item_id
+
+    # get folder object if possible...
+    target_folder_obj = self.get_folder(target_folder)
+    if not target_folder_obj:
+      raise ValueError(f"couldn't find target folder! : {target_folder}")
+    # get the target_folder's clean slug...
+    target_folder_slug = clean_slug(target_folder_obj.slug)
+
+    # buld the request payload...
+    data = {
+        "actionType": "move",
+        "folderEntries": [
+            {
+                "entryType": "card",
+                "id": source_card_item_id
+            }
+        ],
+        "prevSiblingItemId": "first"
+    }
+
+    # clear the cache for the folder since we moved a card...
+    self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
+    self.__clear_cache(
+        f"{self.base_url}/folders/{clean_slug(source_folder_obj.slug)}/items")
+
+    url = f"{self.base_url}/folders/{target_folder_slug}/action"
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      # refresh the internal items for the source and target Folders
+      source_folder_obj.update_lists(source_card_obj, "remove")
+      target_folder_obj.update_lists(source_card_obj, "add")
+      # return the response
+    return status_to_bool(response.status_code)
+
+  def add_card_to_folder(self, card, target_folder):
+    """
+    Add an existing card in the collection card to a folder. The card will be added to the top of the folder.
+    Args:
+      card (str, required): The ID or Card Object you are adding to the Folder.
+      target_folder (str, required): the ID/Slug/Name/Folder Object you are adding the Card to.
+
+    Returns: 
+      Boolean
+    """
+
+    # get a Card object if possible...
+    card_obj = self.get_card(card)
+    if not card_obj:
+      raise ValueError(f"couldn't find card! : {card}")
+    source_card_id = card_obj.id
+
+    # get a Folder object if possible...
+    target_folder_obj = self.get_folder(target_folder)
+    if not target_folder_obj:
+      raise ValueError(f"couldn't find target folder! : {target_folder}")
+    # get the folder's clean slug...
+    target_folder_slug = clean_slug(target_folder_obj.slug)
+
+    # build the request payload...
+    data = {
+        "actionType": "add",
+        "folderEntries": [
+            {
+                "cardId": source_card_id,
+                "entryType": "card"
+            }
+        ],
+        "prevSiblingItemId": "first"
+    }
+
+    # clear the cache for the folder since we added a card...
+    self.__clear_cache(f"{self.base_url}/folders/{target_folder_slug}/items")
+
+    url = f"{self.base_url}/folders/{target_folder_slug}/action"
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      # refresh the internal items for the source Folder
+      target_folder_obj.update_lists(card_obj, "add")
+    # return the response
     return status_to_bool(response.status_code)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
