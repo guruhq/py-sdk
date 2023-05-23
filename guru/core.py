@@ -2456,10 +2456,11 @@ class Guru:
       None
     """
 
-    # check if we can find the card by id
-    card_id = self.get_card(card).id
-    if not card_id:
+    # check if we can find the card...
+    card_obj = self.get_card(card)
+    if not card_obj:
       raise ValueError(f"couldn't find card! : {card}")
+    card_id = card_obj.id
 
     # get the Folder info
     folder_obj = self.get_folder(folder)
@@ -2470,12 +2471,12 @@ class Guru:
     folder_slug = clean_slug(folder_obj.slug)
 
     # grab the card from the Folder, if we don't find it, error out
-    card_obj = find_by_name_or_id(folder_obj.cards, card_id)
-    if not card_obj:
+    card_item_obj = find_by_name_or_id(folder_obj.cards, card_id)
+    if not card_item_obj:
       raise ValueError(f"couldn't find card: {card} in the folder: {folder}")
 
     # we have a card in the folder, get it's item_id
-    card_item_id = card_obj.item_id
+    card_item_id = card_item_obj.item_id
 
     # build the request body
     data = {
@@ -2487,8 +2488,13 @@ class Guru:
             }
         ]}
 
+    # clear the cache for the folder since we removed a card...
+    self.__clear_cache(f"{self.base_url}/folders/{folder_slug}/items")
+
     url = f"{self.base_url}/folders/{folder_slug}/action"
     response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      folder_obj.update_lists(card_item_obj, "remove")
     return status_to_bool(response.status_code)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
