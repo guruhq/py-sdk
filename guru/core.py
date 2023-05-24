@@ -2454,8 +2454,8 @@ class Guru:
     """
     Removes the card from the folder.
     Args:
-      card (str, required): The ID or Card Object you are removing
-      folder (str, required): the ID/Slug/Folder Object where the card exists.
+      card (str, required): The ID or Card object to be removed.
+      folder (str, required): the ID or Folder Object from which to remove the card.
     Returns:
       None
     """

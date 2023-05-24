@@ -103,10 +103,10 @@ print(f"target folder nane: {target_folder.title}")
 # response = g.remove_card_from_folder(test_cardNotInFolderId, target_folder)
 # print(f"Response: {response}")
 
-print("######## Remove a Card from a Folder using Folder helper ##########")
+# print("######## Remove a Card from a Folder using Folder helper ##########")
 
-response = source_folder.remove_card(card)
-print(f"Response: {response}")
+# response = source_folder.remove_card(card)
+# print(f"Response: {response}")
 
 
 # move a card from one folder to another, needs card, source and target folders
