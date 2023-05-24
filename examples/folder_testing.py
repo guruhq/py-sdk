@@ -29,7 +29,7 @@ token = "0ab65098-43df-42d6-9d22-bf4117f6b163"
 test_collid = "786f6fc8-413b-418d-ba9b-fba974192401"
 test_otherCollId = "bb332378-fbb4-4c98-868f-fd5b5c7c1983"
 test_homeslug = "iGqxqEgT"
-test_folderid = "TEqxqbac"
+test_folderid = "TKa7z7Bc"
 test_collSlug = "88p0n1"
 test_parentFolder = "T78e4oKc"
 test_cardId = "cce89717-a41c-46a4-a3eb-1427cf9578da"
@@ -139,4 +139,4 @@ print("folder name: %s" % folder)
 # response = source_folder.add_card(card)
 
 # move folder to another collection
-response = folder.move_to_collection(test_otherCollId)
+response = folder.move_to_collection(test_collid)

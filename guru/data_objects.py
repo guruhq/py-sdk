@@ -100,7 +100,7 @@ class Folder:
   # arrays to hold contents of the Folder.  Note: items array is exposed for other methods to add objects
   # such as cards or folders to the Folders object. e.g. add_card_to_folder() updates the items array
   # and will do a save_folder() call.
-    self.items = []
+    self.__items = []
     self.__cards = []
     self.__folders = []
 
@@ -150,7 +150,7 @@ class Folder:
   def items(self):
     if not self.__has_items:
       self.__get_items()
-    return tuple(self.items)
+    return tuple(self.__items)
 
   def update_lists(self, obj, action):
     """
@@ -163,7 +163,7 @@ class Folder:
     Return: Nothing
     """
     if action == "remove" and self.__has_items:
-      self.items.remove(obj)
+      self.__items.remove(obj)
       if isinstance(obj, Card):
         self.__cards.remove(obj)
       elif isinstance(obj, Folder):
@@ -171,7 +171,7 @@ class Folder:
       else:
         return
     elif action == "add" and self.__has_items:
-      self.items.insert(0, obj)
+      self.__items.insert(0, obj)
       if isinstance(obj, Card):
         self.__cards.insert(0, obj)
       elif isinstance(obj, Folder):
@@ -198,11 +198,11 @@ class Folder:
     for item in folder_items:
       if item.get("type") == "folder":
         folder = Folder(item, guru=self.guru)
-        self.items.append(folder)
+        self.__items.append(folder)
         self.__folders.append(folder)
       else:
         card = Card(item, guru=self.guru)
-        self.items.append(card)
+        self.__items.append(card)
         self.__cards.append(card)
 
 ### BELOW ITEMS ARE NOT YET CONSIDERED FOR IMPLEMENTATION ###
@@ -335,7 +335,7 @@ class Folder:
     }
 
     if include_items:
-      data["items"] = [i.lite_json() for i in self.items]
+      data["items"] = [i.lite_json() for i in self.__items]
     if include_item_id:
       data["itemId"] = self.item_id
     if self.collection and include_collection:
