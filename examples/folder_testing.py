@@ -4,7 +4,7 @@ import guru
 # call script with the credentials of the user you want to use
 # ex: GURU_USER=user@example.com GURU_TOKEN=abcd1234-abcd-abcd-abcd-abcdabcdabcd python getCardExport.py
 
-""" 
+
 # API token info
 email = "someperson@yourcompany.com"
 token = "yourapitokengoeshere"
@@ -23,38 +23,24 @@ test_sourceFolderId = "folderId for move/add card"
 test_invalidFolderId = "#$NoBueno!~"
 test_doesNotExistFolderId = "BadSlug"
 test_cardNotInFolderId = "cardId not in target folder"
- """
-email = "mhornak@getguru.com"
-token = "0ab65098-43df-42d6-9d22-bf4117f6b163"
-test_collid = "786f6fc8-413b-418d-ba9b-fba974192401"
-test_homeslug = "iGqxqEgT"
-test_folderid = "TEqxqbac"
-test_collSlug = "88p0n1"
-test_parentFolder = "T78e4oKc"
-test_cardId = "cce89717-a41c-46a4-a3eb-1427cf9578da"
-test_cardItemId = "4144d703-c192-4ad4-9328-c149e952a719"
-test_targetFolderId = "id99LrRT"
-test_sourceFolderId = "TEqxqbac"
-test_invalidFolderId = "#$NoBueno!~"
-test_doesNotExistFolderId = "BadSlug"
-test_cardNotInFolderId = "e7e48e2b-26c7-469d-86ab-33ee9bef314c"
 
 
 g = guru.Guru(email, token, qa=True)
 
-""" 
+
 # get folders for a collection
-print("#########  Folders stuff #########")
-collectionFolders = g.get_folders(test_collid)
-print("# of folders: %s" % len(collectionFolders))
-for colFolder in collectionFolders:
-  print("collection Folder: %s" % colFolder.title)
+# print("#########  Folders stuff #########")
+# collectionFolders = g.get_folders(test_collid)
+# print("# of folders: %s" % len(collectionFolders))
+# for colFolder in collectionFolders:
+#   print("collection Folder: %s" % colFolder.title)
 
 # get a folder now...
-print("#########  Folder stuff #########")
-folder = g.get_folder(test_folderid)
-print("folder name: %s" % folder)
+# print("#########  Folder stuff #########")
+# folder = g.get_folder(test_folderid)
+# print("folder name: %s" % folder)
 
+"""
 # iterate thru the folders
 for subfolder in folder.folders:
   print("sub folder name: %s" % subfolder.title)
@@ -105,25 +91,25 @@ print("Delete worked? : %s" % response)
 
 
 # get Card, Source and Target objects to test add/move cards w/objects..
-card = g.get_card(test_cardId)
-print(f"card name: {card.title}")
+# card = g.get_card(test_cardId)
+# print(f"card name: {card.title}")
 
-source_folder = g.get_folder(test_sourceFolderId)
-print(f"folder name: {source_folder.title}")
+# source_folder = g.get_folder(test_sourceFolderId)
+# print(f"folder name: {source_folder.title}")
 
-target_folder = g.get_folder(test_targetFolderId)
-print(f"target folder nane: {target_folder.title}")
+# target_folder = g.get_folder(test_targetFolderId)
+# print(f"target folder nane: {target_folder.title}")
 
 # move a card from one folder to another, needs card, source and target folders
-response = g.move_card_to_folder(
-    card, source_folder, target_folder)
-print(response)
+# response = g.move_card_to_folder(
+#     card, source_folder, target_folder)
+# print(response)
 # add an existing card to a folder, need card and target folder
 
 # response = g.add_card_to_folder(test_cardId, test_targetFolderId)
 
-for x in source_folder.cards:
-  print(f"source card title: {x.title}")
+# for x in source_folder.cards:
+#   print(f"source card title: {x.title}")
 
 # for c in target_folder.cards:
 #   print(f"target card title: {c.title}")
@@ -137,3 +123,17 @@ for x in source_folder.cards:
 
 # # add a card using the Folder object's .add_card() method
 # response = source_folder.add_card(card)
+
+# print(folder.add_group("Second Folder Group"))
+
+# folderPerms = folder.get_groups()
+# print(f"# of Perms: {len(folderPerms)}")
+# for g in folderPerms:
+#   print(f"shared group name: {g.group.name}")
+
+# print(folder.remove_group("Second Folder Group"))
+
+# folderPerms = folder.get_groups()
+# print(f"# of Perms: {len(folderPerms)}")
+# for g in folderPerms:
+#   print(f"shared group name: {g.group.name}")
