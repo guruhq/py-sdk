@@ -97,9 +97,7 @@ class Folder:
     else:
       self.collection = None
 
-  # arrays to hold contents of the Folder.  Note: items array is exposed for other methods to add objects
-  # such as cards or folders to the Folders object. e.g. add_card_to_folder() updates the items array
-  # and will do a save_folder() call.
+    # internal arrays to hold contents of the Folder.
     self.__items = []
     self.__cards = []
     self.__folders = []
@@ -261,14 +259,14 @@ class Folder:
     """
     return self.guru.move_card_to_folder(card, self, folder)
 
-  # def remove_card(self, card):
-  #   """
-  #   Removes a card from the board.
+  def remove_card(self, card):
+    """
+    Removes a card from the folder.
 
-  #   Args:
-  #     card (str or Card): The card's ID or slug, or a Card object.
-  #   """
-  #   return self.guru.remove_card_from_board(card, self)
+    Args:
+      card (str or Card): The card's ID or slug, or a Card object.
+    """
+    return self.guru.remove_card_from_folder(card, self)
 
   def get_groups(self):
     """

@@ -2450,6 +2450,57 @@ class Guru:
     if status_to_bool(response.status_code):
       return Folder(response.json(), guru=self)
 
+  def remove_card_from_folder(self, card, folder):
+    """
+    Removes the card from the folder.
+    Args:
+      card (str, required): The ID or Card object to be removed.
+      folder (str, required): the ID or Folder Object from which to remove the card.
+    Returns:
+      Boolean
+    """
+
+    # check if we can find the card...
+    card_obj = self.get_card(card)
+    if not card_obj:
+      raise ValueError(f"couldn't find card! : {card}")
+    card_id = card_obj.id
+
+    # get the Folder info
+    folder_obj = self.get_folder(folder)
+    if not folder_obj:
+      raise ValueError(f"couldn't find the folder!: {folder}")
+
+    # grab the folder's slug, used in the URL below
+    folder_slug = clean_slug(folder_obj.slug)
+
+    # grab the card from the Folder, if we don't find it, error out
+    card_item_obj = find_by_name_or_id(folder_obj.cards, card_id)
+    if not card_item_obj:
+      raise ValueError(f"couldn't find card: {card} in the folder: {folder}")
+
+    # we have a card in the folder, get its item_id
+    card_item_id = card_item_obj.item_id
+
+    # build the request body
+    data = {
+        "actionType": "remove",
+        "folderEntries": [
+            {
+                "entryType": "card",
+                "id": card_item_id
+            }
+        ]}
+
+    # clear the cache for the folder since we removed a card...
+    self.__clear_cache(f"{self.base_url}/folders/{folder_slug}/items")
+
+    url = f"{self.base_url}/folders/{folder_slug}/action"
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      folder_obj.update_lists(card_item_obj, "remove")
+    return status_to_bool(response.status_code)
+
   def move_card_to_folder(self, card, source_folder, target_folder):
     """
     Moves an existing card in the collection card to another folder. The card will be added to the top of the target folder
