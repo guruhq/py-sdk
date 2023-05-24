@@ -97,7 +97,7 @@ class Folder:
     else:
       self.collection = None
 
-  # internal arrays to hold contents of the Folder.
+    # internal arrays to hold contents of the Folder.
     self.__items = []
     self.__cards = []
     self.__folders = []

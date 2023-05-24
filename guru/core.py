@@ -2457,7 +2457,7 @@ class Guru:
       card (str, required): The ID or Card object to be removed.
       folder (str, required): the ID or Folder Object from which to remove the card.
     Returns:
-      None
+      Boolean
     """
 
     # check if we can find the card...
@@ -2479,7 +2479,7 @@ class Guru:
     if not card_item_obj:
       raise ValueError(f"couldn't find card: {card} in the folder: {folder}")
 
-    # we have a card in the folder, get it's item_id
+    # we have a card in the folder, get its item_id
     card_item_id = card_item_obj.item_id
 
     # build the request body
