@@ -97,9 +97,7 @@ class Folder:
     else:
       self.collection = None
 
-  # arrays to hold contents of the Folder.  Note: items array is exposed for other methods to add objects
-  # such as cards or folders to the Folders object. e.g. add_card_to_folder() updates the items array
-  # and will do a save_folder() call.
+    # internal arrays to hold contents of the Folder.
     self.__items = []
     self.__cards = []
     self.__folders = []
@@ -261,14 +259,14 @@ class Folder:
     """
     return self.guru.move_card_to_folder(card, self, folder)
 
-  # def remove_card(self, card):
-  #   """
-  #   Removes a card from the board.
+  def remove_card(self, card):
+    """
+    Removes a card from the folder.
 
-  #   Args:
-  #     card (str or Card): The card's ID or slug, or a Card object.
-  #   """
-  #   return self.guru.remove_card_from_board(card, self)
+    Args:
+      card (str or Card): The card's ID or slug, or a Card object.
+    """
+    return self.guru.remove_card_from_folder(card, self)
 
   # def get_groups(self):
   #   """
@@ -300,22 +298,22 @@ class Folder:
   #   return self.guru.remove_shared_group(self, group)
 
   def move_to_collection(self, collection, timeout=0):
-    #   """
-    #   Moves the folder to a different collection.
+    """
+    Moves the folder to a different collection.
 
-    #   These operations are done asynchronously and can take a little while
-    #   to complete. If you want to wait for the operation to complete you
-    #   can pass in a `timeout` parameter -- this tells the SDK two things:
-    #   first, that you want to wait for the operation to complete and second,
-    #   how long it should wait.
+    These operations are done asynchronously and can take a little while
+    to complete. If you want to wait for the operation to complete you
+    can pass in a `timeout` parameter -- this tells the SDK two things:
+    first, that you want to wait for the operation to complete and second,
+    how long it should wait.
 
-    #   Args:
-    #     collection (str or Collection): The collection's name or ID or a Collection object.
-    #     timeout (int, optional): If you want to wait for the move to complete, this is the
-    #       maximum amount of time (in seconds) that you'll wait. By default this is zero which
-    #       means this function call returns before the folder has actually been moved to its
-    #       new collection.
-    #   """
+    Args:
+      collection (str or Collection): The collection's name or ID or a Collection object.
+      timeout (int, optional): If you want to wait for the move to complete, this is the
+        maximum amount of time (in seconds) that you'll wait. By default this is zero which
+        means this function call returns before the folder has actually been moved to its
+        new collection.
+    """
     self.guru.move_folder_to_collection(self, collection, timeout)
 
   # def delete(self):

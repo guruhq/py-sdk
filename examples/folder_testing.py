@@ -4,7 +4,7 @@ import guru
 # call script with the credentials of the user you want to use
 # ex: GURU_USER=user@example.com GURU_TOKEN=abcd1234-abcd-abcd-abcd-abcdabcdabcd python getCardExport.py
 
-""" 
+
 # API token info
 email = "someperson@yourcompany.com"
 token = "yourapitokengoeshere"
@@ -17,13 +17,15 @@ test_collSlug = "your collection slug here"
 test_parentFolder = "parent folder slug here"
 test_cardId = "card Id to use for Testing"
 test_deleteFolderId = "delete folder id here"
+test_cardId = "card Id to use for Testing"
 test_cardItemId = "card itemID for moving a card"
 test_targetFolderId = "folderId for move/add card"
 test_sourceFolderId = "folderId for move/add card"
 test_invalidFolderId = "#$NoBueno!~"
 test_doesNotExistFolderId = "BadSlug"
 test_cardNotInFolderId = "cardId not in target folder"
- """
+
+"""
 email = "mhornak@getguru.com"
 token = "0ab65098-43df-42d6-9d22-bf4117f6b163"
 test_collid = "786f6fc8-413b-418d-ba9b-fba974192401"
@@ -39,7 +41,7 @@ test_sourceFolderId = "TEqxqbac"
 test_invalidFolderId = "#$NoBueno!~"
 test_doesNotExistFolderId = "BadSlug"
 test_cardNotInFolderId = "e7e48e2b-26c7-469d-86ab-33ee9bef314c"
-
+"""
 
 g = guru.Guru(email, token, qa=True)
 
@@ -103,7 +105,6 @@ print("folder name: %s" % folder)
 # response = g.delete_folder(test_deleteFolderId)
 # print("Delete worked? : %s" % response)
 
-
 # get Card, Source and Target objects to test add/move cards w/objects..
 # card = g.get_card(test_cardId)
 # print(f"card name: {card.title}")
@@ -113,6 +114,16 @@ print("folder name: %s" % folder)
 
 # target_folder = g.get_folder(test_targetFolderId)
 # print(f"target folder nane: {target_folder.title}")
+
+# print("######## Remove a Card from a Folder ##########")
+# response = g.remove_card_from_folder(test_cardNotInFolderId, target_folder)
+# print(f"Response: {response}")
+
+# print("######## Remove a Card from a Folder using Folder helper ##########")
+
+# response = source_folder.remove_card(card)
+# print(f"Response: {response}")
+
 
 # move a card from one folder to another, needs card, source and target folders
 # response = g.move_card_to_folder(
