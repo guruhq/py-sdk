@@ -297,24 +297,24 @@ class Folder:
   #   """
   #   return self.guru.remove_shared_group(self, group)
 
-  # def move_to_collection(self, collection, timeout=0):
-  #   """
-  #   Moves the board to a different collection.
+  def move_to_collection(self, collection, timeout=0):
+    """
+    Moves the folder to a different collection.
 
-  #   These operations are done asynchronously and can take a little while
-  #   to complete. If you want to wait for the operation to complete you
-  #   can pass in a `timeout` parameter -- this tells the SDK two things:
-  #   first, that you want to wait for the operation to complete and second,
-  #   how long it should wait.
+    These operations are done asynchronously and can take a little while
+    to complete. If you want to wait for the operation to complete you
+    can pass in a `timeout` parameter -- this tells the SDK two things:
+    first, that you want to wait for the operation to complete and second,
+    how long it should wait.
 
-  #   Args:
-  #     collection (str or Collection): The collection's name or ID or a Collection object.
-  #     timeout (int, optional): If you want to wait for the move to complete, this is the
-  #       maximum amount of time (in seconds) that you'll wait. By default this is zero which
-  #       means this function call returns before the board has actually been moved to its
-  #       new collection.
-  #   """
-  #   self.guru.move_board_to_collection(self, collection, timeout)
+    Args:
+      collection (str or Collection): The collection's name or ID or a Collection object.
+      timeout (int, optional): If you want to wait for the move to complete, this is the
+        maximum amount of time (in seconds) that you'll wait. By default this is zero which
+        means this function call returns before the folder has actually been moved to its
+        new collection.
+    """
+    self.guru.move_folder_to_collection(self, collection, timeout)
 
   # def delete(self):
   #   """
