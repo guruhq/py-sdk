@@ -54,11 +54,10 @@ g = guru.Guru(email, token, qa=True)
 #   print("collection Folder: %s" % colFolder.title)
 
 # get a folder now...
-# print("#########  Folder stuff #########")
-# folder = g.get_folder(test_folderid)
-# print("folder name: %s" % folder)
+print("#########  Folder stuff #########")
+folder = g.get_folder(test_folderid)
+print("folder name: %s" % folder)
 
-"""
 # iterate thru the folders
 # for subfolder in folder.folders:
 #   print("sub folder name: %s" % subfolder.title)
@@ -150,21 +149,5 @@ g = guru.Guru(email, token, qa=True)
 # # add a card using the Folder object's .add_card() method
 # response = source_folder.add_card(card)
 
-<<<<<<< HEAD
-# print(folder.add_group("Second Folder Group"))
-
-# folderPerms = folder.get_groups()
-# print(f"# of Perms: {len(folderPerms)}")
-# for g in folderPerms:
-#   print(f"shared group name: {g.group.name}")
-
-# print(folder.remove_group("Second Folder Group"))
-
-# folderPerms = folder.get_groups()
-# print(f"# of Perms: {len(folderPerms)}")
-# for g in folderPerms:
-#   print(f"shared group name: {g.group.name}")
-=======
 # move folder to another collection
 response = folder.move_to_collection(test_collid)
->>>>>>> origin/develop
