@@ -132,3 +132,7 @@ print(f"target folder nane: {target_folder.title}")
 
 # # add a card using the Folder object's .add_card() method
 # response = source_folder.add_card(card)
+
+# move folder to another folder
+response = source_folder.move_to_folder(target_folder)
+print(f"return from move_to_Folder: {response}")

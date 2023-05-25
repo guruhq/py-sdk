@@ -2501,6 +2501,58 @@ class Guru:
       folder_obj.update_lists(card_item_obj, "remove")
     return status_to_bool(response.status_code)
 
+  def move_folder_to_folder(self, source_folder, target_folder):
+    """
+    Moves an existing folder in the collection to another folder in the collection. The folder will be added to the top of the target folder
+
+    Args:
+      source_folder (str, required): the ID/Slug/Name/Folder Object where the card exists.
+      target_folder (str, required): the ID/Slug/Name/Folder Object you are adding the Card to.
+
+    Returns:
+      Boolean
+    """
+
+    # get the source folder object if possible...
+    source_folder_obj = self.get_folder(source_folder)
+    if not source_folder_obj:
+      raise ValueError(f"couldn't find source folder! : {source_folder}")
+    source_folder_slug = clean_slug(source_folder_obj.slug)
+
+    # get the target folder object if possible...
+    target_folder_obj = self.get_folder(target_folder)
+    if not target_folder_obj:
+      raise ValueError(f"couldn't find target folder! : {target_folder}")
+    target_folder_slug = clean_slug(target_folder_obj.slug)
+
+    # buld the request payload...
+    data = {
+        "actionType": "move",
+        "folderEntries": [
+            {
+                "entryType": "folder",
+                "id": source_folder_obj.item_id
+                "legacyType": "BOARD"
+            }
+        ],
+        "prevSiblingItemId": "first"
+    }
+
+    # clear the cache for the folder since we moved a card...
+    self.__clear_cache(
+        f"{self.base_url}/folders/{target_folder_slug}/items")
+    self.__clear_cache(
+        f"{self.base_url}/folders/{source_folder_slug}/items")
+
+    url = f"{self.base_url}/folders/{target_folder_slug}/action"
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      # refresh the internal items for the source and target Folders
+      source_folder_obj.update_lists(source_folder_obj, "remove")
+      target_folder_obj.update_lists(target_folder_obj, "add")
+      # return the response
+    return status_to_bool(response.status_code)
+
   def move_card_to_folder(self, card, source_folder, target_folder):
     """
     Moves an existing card in the collection card to another folder. The card will be added to the top of the target folder

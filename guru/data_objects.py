@@ -297,6 +297,17 @@ class Folder:
   #   """
   #   return self.guru.remove_shared_group(self, group)
 
+  def move_folder(self, folder):
+    """
+    Moves a folder to another folder in the collection
+
+    Args:
+      folder (str, required) - The target folder Id or Object to move the folder to
+    Returns:
+      Boolean
+    """
+    return self.guru.move_folder_to_folder(self, folder)
+
   # def move_to_collection(self, collection, timeout=0):
   #   """
   #   Moves the board to a different collection.
@@ -316,14 +327,14 @@ class Folder:
   #   """
   #   self.guru.move_board_to_collection(self, collection, timeout)
 
-  # def delete(self):
-  #   """
-  #   deletes board
+  def delete(self):
+    """
+    deletes folder
 
-  #   Returns:
-  #     bool: True if it was successful and False otherwise.
-  #   """
-  #   return self.guru.delete_board(self, self.collection.id)
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    return self.guru.delete_folder(self, self.collection.id)
 
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {
