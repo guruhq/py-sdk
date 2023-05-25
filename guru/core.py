@@ -2614,107 +2614,61 @@ class Guru:
     # return the response
     return status_to_bool(response.status_code)
 
-  def get_shared_folder_groups(self, folder):
+  def move_folder_to_collection(self, folder, collection, timeout=0):
     """
-      Get shared groups on a folder
-      Args:
-        folder (str, required): the ID/Slug/Name/Folder Object you are getting groups for
-
-      Returns: 
-        FolderPermissions object.
-    """
-    folder_obj = self.get_folder(folder)
-    if not folder_obj:
-      raise ValueError(f"couldn't find folder! : {folder}")
-
-    url = "%s/folders/%s/permissions" % (self.base_url, folder_obj.id)
-    response = self.__get(url)
-    return [FolderPermission(f) for f in response.json()]
-
-  def add_shared_folder_group(self, folder, group):
-    """
-    Shares a folder with a group using the folder Permissions settings.
-    This is how you share specific folders with groups that don't have full
-    read access to the collection.
-
-    You can also do this through the folder object's .add_group() method:
-
-    ```
-    # load a folder using its slug and share it with a group:
-    folder = g.get_folder("KTRX8zMT")
-    folder.add_group("Sales")
-    ```
-
+    Moves a folder to a different collection.
     Args:
-            folder (str or folder): The folder's ID or slug or a folder object.
-            group (str or Group): The group's name or ID or a Group object.
+            folder (str or Folder): The folder to be moved. Valid values : id, slug, or a Folder object.
+            collection (str or Collection): The collection you're moving the folder to. Can
+                    either be the collection's title, ID, or the Collection object.
+            timeout (int, optional): The API call to move a folder just queues up the operation.
+                    This parameter is used if you want to wait until Guru is done moving the folder to
+                    its new collection. This helpful if you want to do multiple operations, like move
+                    a folder to a new collection then add it to a folder group there. By default this is
+                    0 so it doesn't wait. If you set a timeout of 10, we'll wait up to 10 seconds to
+                    see if the move completes.
 
     Returns:
-            bool: True if it was successful and False otherwise.
+            Boolean: True if it was successful and False otherwise. False could mean that there was
+                     an error or that you were waiting for the operation to finish and it timed out.
     """
-    group_obj = self.get_group(group)
-    if not group_obj:
-      raise ValueError(f"couldn't find group! : {group}")
-
     folder_obj = self.get_folder(folder)
     if not folder_obj:
-      raise ValueError(f"couldn't find folder! : {folder}")
+      raise ValueError(f"could not find folder! : {folder}")
 
-    data = [{
-        "type": "group",
-        "role": "MEMBER",
-        "group": {
-            "id": group_obj.id
-        }
-    }]
+    collection_obj = self.get_collection(collection)
+    if not collection_obj:
+      raise ValueError(f"could not find collection: {collection}")
 
-    url = "%s/folders/%s/permissions" % (self.base_url, folder_obj.id)
-    response = self.__post(url, data)
-    return status_to_bool(response.status_code)
-
-  def remove_shared_folder_group(self, folder, group):
-    """
-    removes a group from the folder.
-    You can also do this through the folder object's .remove_group() method
-
-    ```
-    # load a folder using its slug and share it with a group:
-    folder = g.get_folder("KTRX8zMT")
-    folder.remove_group("Sales")
-    ```
-
-    Args:
-            folder (str or folder): The folder's ID or slug or a folder object.
-            group (str or Group): The group's name or ID or a Group object.
-
-    Returns:
-            Boolean: True if it was successful and False otherwise.
-    """
-    group_obj = self.get_group(group)
-    if not group_obj:
-      raise ValueError(f"couldn't find group! : {group}")
-
-    folder_obj = self.get_folder(folder)
-    if not folder_obj:
-      raise ValueError(f"couldn't find folder! : {folder}")
-
-    # find the id of the permission assignment.
-    perm_obj = None
-    for perm in self.get_shared_folder_groups(folder_obj):
-      if perm.group.id == group_obj.id:
-        perm_obj = perm
-        break
-
-    if not perm_obj:
-      # did not find perm, just log message here and return False. No Error
-      self.__log(make_red(
-          "could not find assigned permission for group %s, maybe it's not assigned to this folder" % group))
+    # if the folder is already in that collection, do nothing.
+    if folder_obj.collection and folder_obj.collection.id == collection_obj.id:
+      self.__log(make_red("folder", folder_obj.title,
+                          "is already in collection", collection_obj.name))
       return False
 
-    url = "%s/folders/%s/permissions/%s" % (
-        self.base_url, folder_obj.id, perm_obj.id)
-    response = self.__delete(url)
-    return status_to_bool(response.status_code)
+    # make the bulk op call to move the folder to the other collection.
+    data = {
+        "action": {
+            "type": "move-folder",
+            "collectionId": collection_obj.id
+        },
+        "items": {
+            "type": "id",
+            "itemIds": [folder_obj.id]
+        }
+    }
+
+    url = "%s/folders/bulkop" % self.base_url
+    response = self.__post(url, data)
+
+    # if there's a timeout and the operation is being done async, we wait.
+    if timeout and response.status_code == 202:
+      # poll and wait for the bulk operation to finish.
+      bulk_op_id = response.json().get("id")
+      url = "%s/folders/bulkop/%s" % (self.base_url, bulk_op_id)
+      return self.__wait_for_bulkop(url, timeout)
+    else:
+      return status_to_bool(response.status_code)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """

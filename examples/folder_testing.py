@@ -25,6 +25,23 @@ test_invalidFolderId = "#$NoBueno!~"
 test_doesNotExistFolderId = "BadSlug"
 test_cardNotInFolderId = "cardId not in target folder"
 
+"""
+email = "mhornak@getguru.com"
+token = "0ab65098-43df-42d6-9d22-bf4117f6b163"
+test_collid = "786f6fc8-413b-418d-ba9b-fba974192401"
+test_otherCollId = "bb332378-fbb4-4c98-868f-fd5b5c7c1983"
+test_homeslug = "iGqxqEgT"
+test_folderid = "TKa7z7Bc"
+test_collSlug = "88p0n1"
+test_parentFolder = "T78e4oKc"
+test_cardId = "cce89717-a41c-46a4-a3eb-1427cf9578da"
+test_cardItemId = "4144d703-c192-4ad4-9328-c149e952a719"
+test_targetFolderId = "id99LrRT"
+test_sourceFolderId = "TEqxqbac"
+test_invalidFolderId = "#$NoBueno!~"
+test_doesNotExistFolderId = "BadSlug"
+test_cardNotInFolderId = "e7e48e2b-26c7-469d-86ab-33ee9bef314c"
+"""
 
 g = guru.Guru(email, token, qa=True)
 
@@ -43,52 +60,51 @@ g = guru.Guru(email, token, qa=True)
 
 """
 # iterate thru the folders
-for subfolder in folder.folders:
-  print("sub folder name: %s" % subfolder.title)
-  # Ok, now see if lazy loading of the folders work, not explicity calling get_items, that is handled undder the .folders and .cards methods of the Folder object.
-  # subfolder.get_items()
+# for subfolder in folder.folders:
+#   print("sub folder name: %s" % subfolder.title)
+#   # Ok, now see if lazy loading of the folders work, not explicity calling get_items, that is handled undder the .folders and .cards methods of the Folder object.
+#   # subfolder.get_items()
 
-  for subsubfolder in subfolder.folders:
-    print("sub-sub-folder name: %s" % subsubfolder.title)
+#   for subsubfolder in subfolder.folders:
+#     print("sub-sub-folder name: %s" % subsubfolder.title)
 
 # get a non-existent folder now...
-print("#########  Non-Existent Folder stuff #########")
-nonfolder = g.get_folder("ThisFolderSlugDoesntExist")
-if nonfolder == None:
-  print("folder does not exist!!!")
+# print("#########  Non-Existent Folder stuff #########")
+# nonfolder = g.get_folder("ThisFolderSlugDoesntExist")
+# if nonfolder == None:
+#   print("folder does not exist!!!")
 
-print("#########  Cards #########")
-for card in folder.cards:
-  print("card name: %s" % card.title)
+# print("#########  Cards #########")
+# for card in folder.cards:
+#   print("card name: %s" % card.title)
 
-print("#########  All Items #########")
-for item in folder.items:
-  print("folder items: %s" % item.title)
+# print("#########  All Items #########")
+# for item in folder.items:
+#   print("folder items: %s" % item.title)
 
-print("########  Add a Folder Test #1 add folder to top of Collection ######")
-addFolder = g.add_folder(
-    "folder top of collection", test_collSlug)
-print("add folder top of Collection - Title: %s" % addFolder.title)
+# print("########  Add a Folder Test #1 add folder to top of Collection ######")
+# addFolder = g.add_folder(
+#     "folder top of collection", test_collSlug)
+# print("add folder top of Collection - Title: %s" % addFolder.title)
 
-print("########  Add a Folder Test #2 add folder to another folder in the collection")
-addFolder = g.add_folder(
-    "folder in another folder 1", test_collSlug, parentFolder=test_parentFolder)
-print("add folder top of Collection - Title: %s" % addFolder.title)
+# print("########  Add a Folder Test #2 add folder to another folder in the collection")
+# addFolder = g.add_folder(
+#     "folder in another folder 1", test_collSlug, parentFolder=test_parentFolder)
+# print("add folder top of Collection - Title: %s" % addFolder.title)
 
-print("########  Add a Folder Test #3 add folder 2 folder, verify first")
-addFolder = g.add_folder(
-    "folder in another folder - first", test_collSlug, parentFolder=test_parentFolder)
-print("add folder in folder, make sure it's still first - Title: %s" %
-      addFolder.title)
+# print("########  Add a Folder Test #3 add folder 2 folder, verify first")
+# addFolder = g.add_folder(
+#     "folder in another folder - first", test_collSlug, parentFolder=test_parentFolder)
+# print("add folder in folder, make sure it's still first - Title: %s" %
+#       addFolder.title)
 
-print("########  Add a Card to a Folder Testing... ##########")
-updatedFolder = g.add_card_to_folder(test_cardId, test_folderid)
-print(f"Card title: {updatedFolder}")
+# print("########  Add a Card to a Folder Testing... ##########")
+# updatedFolder = g.add_card_to_folder(test_cardId, test_folderid)
+# print(f"Card title: {updatedFolder}")
 
-print("########  Delete a Folder Test #1 using UUID, Slug, Object and Name")
-response = g.delete_folder(test_deleteFolderId)
-print("Delete worked? : %s" % response)
-"""
+# print("########  Delete a Folder Test #1 using UUID, Slug, Object and Name")
+# response = g.delete_folder(test_deleteFolderId)
+# print("Delete worked? : %s" % response)
 
 # get Card, Source and Target objects to test add/move cards w/objects..
 # card = g.get_card(test_cardId)
@@ -134,6 +150,7 @@ print("Delete worked? : %s" % response)
 # # add a card using the Folder object's .add_card() method
 # response = source_folder.add_card(card)
 
+<<<<<<< HEAD
 # print(folder.add_group("Second Folder Group"))
 
 # folderPerms = folder.get_groups()
@@ -147,3 +164,7 @@ print("Delete worked? : %s" % response)
 # print(f"# of Perms: {len(folderPerms)}")
 # for g in folderPerms:
 #   print(f"shared group name: {g.group.name}")
+=======
+# move folder to another collection
+response = folder.move_to_collection(test_collid)
+>>>>>>> origin/develop
