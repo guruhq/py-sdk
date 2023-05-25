@@ -182,7 +182,6 @@ class Folder:
       method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
 
     """
-
     # setting flag that we have attemped to retrieve items...
     self.__has_items = True
 
