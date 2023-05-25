@@ -2616,11 +2616,9 @@ class Guru:
 
   def move_folder_to_collection(self, folder, collection, timeout=0):
     """
-    Moves a folder from one collection to another.
-
+    Moves a folder to a different collection.
     Args:
-            folder (str or Folder): The folder to be moved. Can either be the folder's title,
-                    ID, slug, or the Folder object.
+            folder (str or Folder): The folder to be moved. Valid values : id, slug, or a Folder object.
             collection (str or Collection): The collection you're moving the folder to. Can
                     either be the collection's title, ID, or the Collection object.
             timeout (int, optional): The API call to move a folder just queues up the operation.
@@ -2634,7 +2632,7 @@ class Guru:
             Boolean: True if it was successful and False otherwise. False could mean that there was
                      an error or that you were waiting for the operation to finish and it timed out.
     """
-    folder_obj = self.get_folder(folder, collection=collection)
+    folder_obj = self.get_folder(folder)
     if not folder_obj:
       raise ValueError(f"could not find folder! : {folder}")
 
@@ -2646,7 +2644,7 @@ class Guru:
     if folder_obj.collection and folder_obj.collection.id == collection_obj.id:
       self.__log(make_red("folder", folder_obj.title,
                           "is already in collection", collection_obj.name))
-      return
+      return False
 
     # make the bulk op call to move the folder to the other collection.
     data = {
