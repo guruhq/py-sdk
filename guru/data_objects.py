@@ -322,7 +322,7 @@ class Folder:
     Returns:
       bool: True if it was successful and False otherwise.
     """
-    return self.guru.delete_folder(self, self.collection.id)
+    return self.guru.delete_folder(self, self.collection)
 
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {

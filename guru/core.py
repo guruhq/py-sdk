@@ -2624,12 +2624,11 @@ class Guru:
     """
     folder_obj = self.get_folder(folder)
     if not folder_obj:
-      self.__log(make_red("could not find folder:", folder))
-      return
+      raise ValueError(f"couldn't find folder! : {folder}")
 
     url = "%s/folders/%s/permissions" % (self.base_url, folder_obj.id)
     response = self.__get(url)
-    return [FolderPermission(f) for f in response.json()]
+    return [FolderPermission(f, guru=self, folder=folder_obj) for f in response.json()]
 
   def add_shared_folder_group(self, folder, group):
     """
@@ -2650,13 +2649,11 @@ class Guru:
     """
     group_obj = self.get_group(group)
     if not group_obj:
-      self.__log(make_red("could not find group:", group))
-      return
+      raise ValueError(f"couldn't find group! : {group}")
 
     folder_obj = self.get_folder(folder)
     if not folder_obj:
-      self.__log(make_red("could not find folder:", folder))
-      return
+      raise ValueError(f"couldn't find folder! : {folder}")
 
     data = [{
         "type": "group",
@@ -2688,12 +2685,10 @@ class Guru:
     group_obj = self.get_group(group)
     if not group_obj:
       raise ValueError(f"couldn't find group! : {group}")
-      return
 
     folder_obj = self.get_folder(folder)
     if not folder_obj:
       raise ValueError(f"couldn't find folder! : {folder}")
-      return
 
     # find the id of the permission assignment.
     perm_obj = None
@@ -2705,7 +2700,7 @@ class Guru:
     if not perm_obj:
       self.__log(make_red(
           "could not find assigned permission for group %s, maybe it's not assigned to this folder" % group))
-      return
+      return False
 
     url = "%s/folders/%s/permissions/%s" % (
         self.base_url, folder_obj.id, perm_obj.id)
