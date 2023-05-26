@@ -28,7 +28,7 @@ test_cardNotInFolderId = "cardId not in target folder"
 
 g = guru.Guru(email, token, qa=True)
 
-""" 
+"""
 # get folders for a collection
 print("#########  Folders stuff #########")
 collectionFolders = g.get_folders(test_collid)
@@ -90,11 +90,11 @@ print("Delete worked? : %s" % response)
 """
 
 # get Card, Source and Target objects to test add/move cards w/objects..
-card = g.get_card(test_cardId)
-print(f"card name: {card.title}")
+# card = g.get_card(test_cardId)
+# print(f"card name: {card.title}")
 
 source_folder = g.get_folder(test_sourceFolderId)
-print(f"folder name: {source_folder.title}")
+print(f"source folder name: {source_folder.title}")
 
 target_folder = g.get_folder(test_targetFolderId)
 print(f"target folder nane: {target_folder.title}")
@@ -134,5 +134,16 @@ print(f"target folder nane: {target_folder.title}")
 # response = source_folder.add_card(card)
 
 # move folder to another folder
-response = source_folder.move_to_folder(target_folder)
-print(f"return from move_to_Folder: {response}")
+
+# parent_folder = source_folder.get_parent()
+# print(f"parent folder title: {parent_folder.title}")
+
+# home_folder = source_folder.get_home()
+# print(f"home folder title: {home_folder.title}")
+
+parent_folder = source_folder.get_parent()
+print(f"parent folder title: {parent_folder.title}")
+grand_parent_folder = parent_folder.get_parent()
+print(f"g-parent folder title: {grand_parent_folder.title}")
+response = source_folder.move_folder(grand_parent_folder)
+print(f"return from move_folder: {response}")

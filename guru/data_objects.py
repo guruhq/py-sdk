@@ -118,11 +118,11 @@ class Folder:
     if self.__item_id:
       return self.__item_id
 
-    # load the parent folder (if necessary), find this folder, and set its item_id.
+    # load the folder's parent folder (if necessary), find this folder, and set its item_id.
     if not self.parent_folder:
       self.parent_folder = self.get_parent_folder(self.collection)
 
-    folder_item = find_by_id(self.parent_folder.folder, self.id)
+    folder_item = find_by_id(self.parent_folder.folders, self.id)
     if not folder_item:
       print("could not find folder in the parent folder")
     else:
@@ -182,7 +182,6 @@ class Folder:
       method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
 
     """
-
     # setting flag that we have attemped to retrieve items...
     self.__has_items = True
 
@@ -237,6 +236,24 @@ class Folder:
   #     # then check all cards, including those in sections
   #     card_obj = find_by_name_or_id(self.__cards, card)
   #   return card_obj
+
+  def get_parent(self):
+    """
+    Gets folder's parent folder
+
+    Returns:
+      Folder object.
+    """
+    return self.guru.get_parent_folder(self)
+
+  def get_home(self):
+    """
+    Gets a Folder's collection's home board
+
+    Returns:
+      Folder object.
+    """
+    return self.guru.get_home_folder(self.collection)
 
   def add_card(self, card):
     """
@@ -901,6 +918,15 @@ class Collection:
       list of CollectionAccess: A list of CollectionAccess objects.
     """
     return self.guru.get_groups_on_collection(self)
+
+  def home_folder(self):
+    """
+    Gets the collections home folder (folders and cards)
+
+    Returns:
+      Folder object
+    """
+    return self.guru.get_home_folder(self)
 
   def json(self):
     return {

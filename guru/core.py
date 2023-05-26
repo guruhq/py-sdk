@@ -2506,8 +2506,8 @@ class Guru:
     Moves an existing folder in the collection to another folder in the collection. The folder will be added to the top of the target folder
 
     Args:
-      source_folder (str, required): the ID/Slug/Name/Folder Object where the card exists.
-      target_folder (str, required): the ID/Slug/Name/Folder Object you are adding the Card to.
+      source_folder (str, required): the ID/Slug/Name/Folder Object for source folder.
+      target_folder (str, required): the ID/Slug/Name/Folder Object for target folder.
 
     Returns:
       Boolean
@@ -2531,7 +2531,7 @@ class Guru:
         "folderEntries": [
             {
                 "entryType": "folder",
-                "id": source_folder_obj.item_id
+                "id": source_folder_obj.item_id,
                 "legacyType": "BOARD"
             }
         ],
@@ -2665,6 +2665,51 @@ class Guru:
       target_folder_obj.update_lists(card_obj, "add")
     # return the response
     return status_to_bool(response.status_code)
+
+  def get_parent_folder(self, folder):
+    """
+    Gets a folder's parent Folder object
+
+    Args: 
+      folder (str, required): the ID/Slug/Name/Folder Object
+
+    Returns:
+      folder object representing the folder's parent
+    """
+    # get the folder object if possible...
+    folder_obj = self.get_folder(folder)
+    if not folder_obj:
+      raise ValueError(f"couldn't find folder! : {folder}")
+    folder_slug = clean_slug(folder_obj.slug)
+
+    # we have a folder_id, make the call to get the parent folder
+    url = f"{self.base_url}/folders/{folder_slug}/parent"
+    folder_response = self.__get(url)
+    if status_to_bool(folder_response.status_code):
+      return Folder(folder_response.json(), guru=self)
+
+  def get_home_folder(self, collection):
+    """
+    Loads a collection's home folder. The home folder is the object
+    that lists all of the folders and cards in the collection
+    and shows you the order they're in.
+
+    Args:
+            collection (str): The name or ID of the collection whose home
+                    board you're loading.
+
+    Returns:
+            Folder: An object representing the collection's Home Folder.
+    """
+    collection_obj = self.get_collection(collection, cache=True)
+    if not collection_obj:
+      self.__log(make_red("could not find collection:", collection))
+      return
+
+    url = "%s/folders/%s" % (
+        self.base_url, clean_slug(collection_obj.homeFolderSlug))
+    response = self.__get(url)
+    return Folder(response.json(), guru=self)
 
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
@@ -2813,29 +2858,6 @@ class Guru:
         self.base_url, board_obj.collection.id)
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
-
-  def get_parent_folder(self, collection):
-    """
-    Loads a collection's parent folder. The parent folder is the object
-    that lists all of the folders and cards in the collection
-    and shows you the order they're in.
-
-    Args:
-            collection (str): The name or ID of the collection whose home
-                    board you're loading.
-
-    Returns:
-            ParentFolder: An object representing the parentFolder.
-    """
-    collection_obj = self.get_collection(collection, cache=True)
-    if not collection_obj:
-      self.__log(make_red("could not find collection:", collection))
-      return
-
-    url = "%s/folders/%s/items" % (
-        self.base_url, collection_obj.homeBoardSlug)
-    response = self.__get(url)
-    return Folder(response.json(), guru=self)
 
   def get_home_board(self, collection):
     """
