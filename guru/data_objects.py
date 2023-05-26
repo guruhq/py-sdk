@@ -182,7 +182,6 @@ class Folder:
       method to load items for a Folder.  Useful if the intent is to keep the references to the Folders and sub-Folders in tact.  Loads items on a Folder for those folders that were not already retrieved with a get_folder(<slug>) call.
 
     """
-
     # setting flag that we have attemped to retrieve items...
     self.__has_items = True
 
@@ -268,34 +267,34 @@ class Folder:
     """
     return self.guru.remove_card_from_folder(card, self)
 
-  # def get_groups(self):
-  #   """
-  #   Gets the list of groups the board has been shared with
-  #   via board permissioning. This does not include the groups
-  #   who can see the board due to the collection's permissioning.
+  def get_groups(self):
+    """
+    Gets the list of groups the folder has been shared with
+    via folder permissioning. This does not include the groups
+    who can see the folder due to the collection's permissioning.
 
-  #   Returns:
-  #     list of Group: A list of Group objects for each group the board has been shared with.
-  #   """
-  #   return self.guru.get_shared_groups(self)
+    Returns:
+      list of Group: A list of Group objects for each group the folder has been shared with.
+    """
+    return self.guru.get_shared_folder_groups(self)
 
-  # def add_group(self, group):
-  #   """
-  #   Shares the board with an additional group.
+  def add_group(self, group):
+    """
+    Shares the folder with an additional group.
 
-  #   Args:
-  #     group (str or Group): The group's ID or name, or a Group object.
-  #   """
-  #   return self.guru.add_shared_group(self, group)
+    Args:
+      group (str or Group): The group's ID or name, or a Group object.
+    """
+    return self.guru.add_shared_folder_group(self, group)
 
-  # def remove_group(self, group):
-  #   """
-  #   Removes a shared group from this board.
+  def remove_group(self, group):
+    """
+    Removes a shared group from this folder.
 
-  #   Args:
-  #     group (str or Group): The group's ID or name, or a Group object.
-  #   """
-  #   return self.guru.remove_shared_group(self, group)
+    Args:
+      group (str or Group): The group's ID or name, or a Group object.
+    """
+    return self.guru.remove_shared_folder_group(self, group)
 
   def move_to_collection(self, collection, timeout=0):
     """
@@ -316,14 +315,14 @@ class Folder:
     """
     self.guru.move_folder_to_collection(self, collection, timeout)
 
-  # def delete(self):
-  #   """
-  #   deletes board
+  def delete(self):
+    """
+    deletes folder
 
-  #   Returns:
-  #     bool: True if it was successful and False otherwise.
-  #   """
-  #   return self.guru.delete_board(self, self.collection.id)
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    return self.guru.delete_folder(self, self.collection)
 
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {
@@ -340,6 +339,14 @@ class Folder:
       data["collection"] = self.collection.json()
 
     return data
+
+
+class FolderPermission:
+  def __init__(self, data, guru=None, folder=None):
+    self.guru = guru
+    self.folder = folder
+    self.id = data.get("id")
+    self.group = Group(data.get("group"))
 
 
 class Board:

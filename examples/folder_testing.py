@@ -25,23 +25,6 @@ test_invalidFolderId = "#$NoBueno!~"
 test_doesNotExistFolderId = "BadSlug"
 test_cardNotInFolderId = "cardId not in target folder"
 
-"""
-email = "mhornak@getguru.com"
-token = "0ab65098-43df-42d6-9d22-bf4117f6b163"
-test_collid = "786f6fc8-413b-418d-ba9b-fba974192401"
-test_otherCollId = "bb332378-fbb4-4c98-868f-fd5b5c7c1983"
-test_homeslug = "iGqxqEgT"
-test_folderid = "TKa7z7Bc"
-test_collSlug = "88p0n1"
-test_parentFolder = "T78e4oKc"
-test_cardId = "cce89717-a41c-46a4-a3eb-1427cf9578da"
-test_cardItemId = "4144d703-c192-4ad4-9328-c149e952a719"
-test_targetFolderId = "id99LrRT"
-test_sourceFolderId = "TEqxqbac"
-test_invalidFolderId = "#$NoBueno!~"
-test_doesNotExistFolderId = "BadSlug"
-test_cardNotInFolderId = "e7e48e2b-26c7-469d-86ab-33ee9bef314c"
-"""
 
 g = guru.Guru(email, token, qa=True)
 
@@ -150,4 +133,18 @@ print("folder name: %s" % folder)
 # response = source_folder.add_card(card)
 
 # move folder to another collection
-response = folder.move_to_collection(test_collid)
+# response = folder.move_to_collection(test_collid)
+
+response = folder.add_group("Third Folder Group")
+print(response)
+
+folder_perms = folder.get_groups()
+for pg in folder_perms:
+  print(f"Perm: {pg.group.name}")
+
+response = folder.remove_group("Third Folder Group")
+print(response)
+
+folder_perms = folder.get_groups()
+for pg in folder_perms:
+  print(f"Perm: {pg.group.name}")
