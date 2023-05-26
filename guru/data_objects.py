@@ -202,40 +202,20 @@ class Folder:
         self.__items.append(card)
         self.__cards.append(card)
 
-### BELOW ITEMS ARE NOT YET CONSIDERED FOR IMPLEMENTATION ###
+  def get_card(self, card):
+    """
+    Gets Card object from Folder
 
-  # def set_item_order(self, *items):
-  #   """
-  #   Rearranges the items on the board based on the list of strings
-  #   you pass in here. For example, if you have a board about
-  #   onboarding and it has sections called Week 1, Week 2, and Week 3,
-  #   here's how you'd arrange them to make sure they're in order:
+    Returns:
+      Card object.
+    """
+    if isinstance(card, Card):
+      card = card.id
 
-  #   ```
-  #   board = g.get_board("TrE4qxgc")
-  #   board.set_item_order("Week 1", "Week 2", "Week 3")
-  #   ```
-
-  #   Remember, the items on a board aren't all sections, it can be a
-  #   mix of cards and sections. The strings you pass in here are expected
-  #   to match section or card titles.
-
-  #   Args:
-  #     *items (str): Any number of strings that specifies the order
-  #       you want the items to appear in.
-  #   """
-  #   return self.guru.set_item_order(self.collection, self, *items)
-
-  # def get_card(self, card, section=None):
-  #   if isinstance(card, Card):
-  #     card = card.id
-
-  #   # otherwise, first check for an immediate child card
-  #   card_obj = find_by_name_or_id(self.items, card)
-  #   if not card_obj:
-  #     # then check all cards, including those in sections
-  #     card_obj = find_by_name_or_id(self.__cards, card)
-  #   return card_obj
+    # Check cards in the Folder
+    card_obj = find_by_name_or_id(self.__cards, card)
+    if card_obj:
+      return card_obj
 
   def get_parent(self):
     """
@@ -285,34 +265,34 @@ class Folder:
     """
     return self.guru.remove_card_from_folder(card, self)
 
-  # def get_groups(self):
-  #   """
-  #   Gets the list of groups the board has been shared with
-  #   via board permissioning. This does not include the groups
-  #   who can see the board due to the collection's permissioning.
+  def get_groups(self):
+    """
+    Gets the list of groups the folder has been shared with
+    via folder permissioning. This does not include the groups
+    who can see the folder due to the collection's permissioning.
 
-  #   Returns:
-  #     list of Group: A list of Group objects for each group the board has been shared with.
-  #   """
-  #   return self.guru.get_shared_groups(self)
+    Returns:
+      list of Group: A list of Group objects for each group the folder has been shared with.
+    """
+    return self.guru.get_shared_folder_groups(self)
 
-  # def add_group(self, group):
-  #   """
-  #   Shares the board with an additional group.
+  def add_group(self, group):
+    """
+    Shares the folder with an additional group.
 
-  #   Args:
-  #     group (str or Group): The group's ID or name, or a Group object.
-  #   """
-  #   return self.guru.add_shared_group(self, group)
+    Args:
+      group (str or Group): The group's ID or name, or a Group object.
+    """
+    return self.guru.add_shared_folder_group(self, group)
 
-  # def remove_group(self, group):
-  #   """
-  #   Removes a shared group from this board.
+  def remove_group(self, group):
+    """
+    Removes a shared group from this folder.
 
-  #   Args:
-  #     group (str or Group): The group's ID or name, or a Group object.
-  #   """
-  #   return self.guru.remove_shared_group(self, group)
+    Args:
+      group (str or Group): The group's ID or name, or a Group object.
+    """
+    return self.guru.remove_shared_folder_group(self, group)
 
   def move_folder(self, folder):
     """
@@ -328,21 +308,24 @@ class Folder:
   # def move_to_collection(self, collection, timeout=0):
   #   """
   #   Moves the board to a different collection.
+  def move_to_collection(self, collection, timeout=0):
+    """
+    Moves the folder to a different collection.
 
-  #   These operations are done asynchronously and can take a little while
-  #   to complete. If you want to wait for the operation to complete you
-  #   can pass in a `timeout` parameter -- this tells the SDK two things:
-  #   first, that you want to wait for the operation to complete and second,
-  #   how long it should wait.
+    These operations are done asynchronously and can take a little while
+    to complete. If you want to wait for the operation to complete you
+    can pass in a `timeout` parameter -- this tells the SDK two things:
+    first, that you want to wait for the operation to complete and second,
+    how long it should wait.
 
-  #   Args:
-  #     collection (str or Collection): The collection's name or ID or a Collection object.
-  #     timeout (int, optional): If you want to wait for the move to complete, this is the
-  #       maximum amount of time (in seconds) that you'll wait. By default this is zero which
-  #       means this function call returns before the board has actually been moved to its
-  #       new collection.
-  #   """
-  #   self.guru.move_board_to_collection(self, collection, timeout)
+    Args:
+      collection (str or Collection): The collection's name or ID or a Collection object.
+      timeout (int, optional): If you want to wait for the move to complete, this is the
+        maximum amount of time (in seconds) that you'll wait. By default this is zero which
+        means this function call returns before the folder has actually been moved to its
+        new collection.
+    """
+    self.guru.move_folder_to_collection(self, collection, timeout)
 
   def delete(self):
     """
@@ -351,7 +334,7 @@ class Folder:
     Returns:
       bool: True if it was successful and False otherwise.
     """
-    return self.guru.delete_folder(self, self.collection.id)
+    return self.guru.delete_folder(self, self.collection)
 
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {
@@ -368,6 +351,14 @@ class Folder:
       data["collection"] = self.collection.json()
 
     return data
+
+
+class FolderPermission:
+  def __init__(self, data, guru=None, folder=None):
+    self.guru = guru
+    self.folder = folder
+    self.id = data.get("id")
+    self.group = Group(data.get("group"))
 
 
 class Board:
