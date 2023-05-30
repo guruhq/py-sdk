@@ -2538,17 +2538,14 @@ class Guru:
         "prevSiblingItemId": "first"
     }
 
-    # clear the cache for the folder since we moved a card...
+    # clear the cache for the folder since we moved folder...
     self.__clear_cache(
-        f"{self.base_url}/folders/{target_folder_obj.id}/items")
-    self.__clear_cache(
-        f"{self.base_url}/folders/{source_folder_slug}/items")
+        f"{self.base_url}/folders/{target_folder_slug}/items")
 
-    url = f"{self.base_url}/folders/{target_folder_obj.id}/action"
+    url = f"{self.base_url}/folders/{target_folder_slug}/action"
     response = self.__post(url, data)
     if status_to_bool(response.status_code):
       # refresh the internal items for the source and target Folders
-      source_folder_obj.update_lists(source_folder_obj, "remove")
       target_folder_obj.update_lists(target_folder_obj, "add")
       # return the response
     return status_to_bool(response.status_code)
