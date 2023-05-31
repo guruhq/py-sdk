@@ -163,3 +163,10 @@ print("folder name: %s" % folder)
 
 # print(
 #     f"Card from Folder object: {folder.get_card(test_cardId).title}")
+
+#### testing add and removing a card to a folder from Card object! ####
+# get Card,
+# card = g.get_card(test_cardId)
+# print(f"card name: {card.title}")
+# print(f"add card: {card.add_to_folder(test_targetFolderId)}")
+# print(f"remove card: {card.remove_from_folder(test_targetFolderId)}")
