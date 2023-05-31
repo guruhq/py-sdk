@@ -28,7 +28,6 @@ test_cardNotInFolderId = "cardId not in target folder"
 
 g = guru.Guru(email, token, qa=True)
 
-
 # get folders for a collection
 # print("#########  Folders stuff #########")
 # collectionFolders = g.get_folders(test_collid)
@@ -135,16 +134,32 @@ print("folder name: %s" % folder)
 # move folder to another collection
 # response = folder.move_to_collection(test_collid)
 
-response = folder.add_group("Third Folder Group")
-print(response)
+# response = folder.add_group("Third Folder Group")
+# print(response)
 
-folder_perms = folder.get_groups()
-for pg in folder_perms:
-  print(f"Perm: {pg.group.name}")
+# folder_perms = folder.get_groups()
+# for pg in folder_perms:
+#   print(f"Perm: {pg.group.name}")
 
-response = folder.remove_group("Third Folder Group")
-print(response)
+# response = folder.remove_group("Third Folder Group")
+# print(response)
 
-folder_perms = folder.get_groups()
-for pg in folder_perms:
-  print(f"Perm: {pg.group.name}")
+# folder_perms = folder.get_groups()
+# for pg in folder_perms:
+#   print(f"Perm: {pg.group.name}")
+
+# Move a Folder to another Folder
+# response = folder.move_folder(test_targetFolderId)
+# print(response)
+
+# Parent and Home Folder
+# print(f"Parent Folder: {folder.get_parent().title}")
+# print(f"Home board: {folder.get_home().title}")
+
+# Get a card from a Folder
+
+# for c in folder.cards:
+#   print(f"target card title: {c.id}")
+
+# print(
+#     f"Card from Folder object: {folder.get_card(test_cardId).title}")

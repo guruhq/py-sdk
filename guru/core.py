@@ -2501,6 +2501,55 @@ class Guru:
       folder_obj.update_lists(card_item_obj, "remove")
     return status_to_bool(response.status_code)
 
+  def move_folder_to_folder(self, source_folder, target_folder):
+    """
+    Moves an existing folder in the collection to another folder in the collection. The folder will be added to the top of the target folder
+
+    Args:
+      source_folder (str, required): the ID/Slug/Name/Folder Object for source folder.
+      target_folder (str, required): the ID/Slug/Name/Folder Object for target folder.
+
+    Returns:
+      Boolean
+    """
+
+    # get the source folder object if possible...
+    source_folder_obj = self.get_folder(source_folder)
+    if not source_folder_obj:
+      raise ValueError(f"couldn't find source folder! : {source_folder}")
+    source_folder_slug = clean_slug(source_folder_obj.slug)
+
+    # get the target folder object if possible...
+    target_folder_obj = self.get_folder(target_folder)
+    if not target_folder_obj:
+      raise ValueError(f"couldn't find target folder! : {target_folder}")
+    target_folder_slug = clean_slug(target_folder_obj.slug)
+
+    # buld the request payload...
+    data = {
+        "actionType": "move",
+        "folderEntries": [
+            {
+                "entryType": "folder",
+                "id": source_folder_obj.item_id,
+                "legacyType": "BOARD"
+            }
+        ],
+        "prevSiblingItemId": "first"
+    }
+
+    # clear the cache for the folder since we moved folder...
+    self.__clear_cache(
+        f"{self.base_url}/folders/{target_folder_slug}/items")
+
+    url = f"{self.base_url}/folders/{target_folder_slug}/action"
+    response = self.__post(url, data)
+    if status_to_bool(response.status_code):
+      # refresh the internal items for the source and target Folders
+      target_folder_obj.update_lists(target_folder_obj, "add")
+      # return the response
+    return status_to_bool(response.status_code)
+
   def move_card_to_folder(self, card, source_folder, target_folder):
     """
     Moves an existing card in the collection card to another folder. The card will be added to the top of the target folder
@@ -2614,6 +2663,50 @@ class Guru:
     # return the response
     return status_to_bool(response.status_code)
 
+  def get_parent_folder(self, folder):
+    """
+    Return a folder's parent Folder
+
+    Args: 
+      folder (str, required): the ID/Slug/Name/Folder Object
+
+    Returns:
+      Folder object
+    """
+    # get the folder object if possible...
+    folder_obj = self.get_folder(folder)
+    if not folder_obj:
+      raise ValueError(f"couldn't find folder! : {folder}")
+    folder_slug = clean_slug(folder_obj.slug)
+
+    # we have a folder_id, make the call to get the parent folder
+    url = f"{self.base_url}/folders/{folder_slug}/parent"
+    response = self.__get(url)
+    if status_to_bool(response.status_code):
+      return Folder(response.json(), guru=self)
+
+  def get_home_folder(self, collection):
+    """
+    Returns a collection's home folder. The home folder is the object
+    that lists all of the folders and cards in the collection
+    and shows you the order they're in.
+
+    Args:
+      collection (str): The name or ID of the collection.
+
+    Returns:
+      Folder object
+    """
+    collection_obj = self.get_collection(collection, cache=True)
+    if not collection_obj:
+      raise ValueError(f"couldn't find collection! : {collection}")
+
+    url = "%s/folders/%s" % (
+        self.base_url, clean_slug(collection_obj.homeFolderSlug))
+    response = self.__get(url)
+    if status_to_bool(response.status_code):
+      return Folder(response.json(), guru=self)
+
   def get_shared_folder_groups(self, folder):
     """
       Get shared groups on a folder
@@ -2628,7 +2721,8 @@ class Guru:
 
     url = "%s/folders/%s/permissions" % (self.base_url, folder_obj.id)
     response = self.__get(url)
-    return [FolderPermission(f, guru=self, folder=folder_obj) for f in response.json()]
+    if status_to_bool(response.status_code):
+      return [FolderPermission(f, guru=self, folder=folder_obj) for f in response.json()]
 
   def add_shared_folder_group(self, folder, group):
     """
@@ -2642,10 +2736,10 @@ class Guru:
     folder.add_group("Sales")
     ```
     Args:
-            folder (str or folder): The folder's ID or slug or a folder object.
-            group (str or Group): The group's name or ID or a Group object.
+      folder (str or folder): The folder's ID or slug or a folder object.
+      group (str or Group): The group's name or ID or a Group object.
     Returns:
-            bool: True if it was successful and False otherwise.
+      bool: True if it was successful and False otherwise.
     """
     group_obj = self.get_group(group)
     if not group_obj:
@@ -2677,10 +2771,10 @@ class Guru:
     folder.remove_group("Sales")
     ```
     Args:
-            folder (str or folder): The folder's ID or slug or a folder object.
-            group (str or Group): The group's name or ID or a Group object.
+      folder (str or folder): The folder's ID or slug or a folder object.
+      group (str or Group): The group's name or ID or a Group object.
     Returns:
-            bool: True if it was successful and False otherwise.
+      bool: True if it was successful and False otherwise.
     """
     group_obj = self.get_group(group)
     if not group_obj:
@@ -2711,19 +2805,18 @@ class Guru:
     """
     Moves a folder to a different collection.
     Args:
-            folder (str or Folder): The folder to be moved. Valid values : id, slug, or a Folder object.
-            collection (str or Collection): The collection you're moving the folder to. Can
-                    either be the collection's title, ID, or the Collection object.
-            timeout (int, optional): The API call to move a folder just queues up the operation.
-                    This parameter is used if you want to wait until Guru is done moving the folder to
-                    its new collection. This helpful if you want to do multiple operations, like move
-                    a folder to a new collection then add it to a folder group there. By default this is
-                    0 so it doesn't wait. If you set a timeout of 10, we'll wait up to 10 seconds to
-                    see if the move completes.
+      folder (str or Folder): The folder to move. Valid values : id, slug, or a Folder object.
+      collection (str or Collection): The collection you're moving the folder to. Can
+              either be the collection's title, ID, or the Collection object.
+      timeout (int, optional): The API call to move a folder just queues up the operation.
+              This parameter is used if you want to wait until Guru is done moving the folder to
+              its new collection. This helpful if you want to do multiple operations, like move
+              a folder to a new collection then add it to a folder group there. By default this is
+              0 so it doesn't wait. If you set a timeout of 10, we'll wait up to 10 seconds to
+              see if the move completes.
 
     Returns:
-            Boolean: True if it was successful and False otherwise. False could mean that there was
-                     an error or that you were waiting for the operation to finish and it timed out.
+      Boolean: True if it was successful and False otherwise. False could mean that there was an error or that you were waiting for the operation to finish and it timed out.
     """
     folder_obj = self.get_folder(folder)
     if not folder_obj:
@@ -2910,29 +3003,6 @@ class Guru:
         self.base_url, board_obj.collection.id)
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
-
-  def get_parent_folder(self, collection):
-    """
-    Loads a collection's parent folder. The parent folder is the object
-    that lists all of the folders and cards in the collection
-    and shows you the order they're in.
-
-    Args:
-            collection (str): The name or ID of the collection whose home
-                    board you're loading.
-
-    Returns:
-            ParentFolder: An object representing the parentFolder.
-    """
-    collection_obj = self.get_collection(collection, cache=True)
-    if not collection_obj:
-      self.__log(make_red("could not find collection:", collection))
-      return
-
-    url = "%s/folders/%s/items" % (
-        self.base_url, collection_obj.homeBoardSlug)
-    response = self.__get(url)
-    return Folder(response.json(), guru=self)
 
   def get_home_board(self, collection):
     """

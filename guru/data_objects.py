@@ -118,11 +118,11 @@ class Folder:
     if self.__item_id:
       return self.__item_id
 
-    # load the parent folder (if necessary), find this folder, and set its item_id.
+    # load the folder's parent folder (if necessary), find this folder, and set its item_id.
     if not self.parent_folder:
       self.parent_folder = self.get_parent_folder(self.collection)
 
-    folder_item = find_by_id(self.parent_folder.folder, self.id)
+    folder_item = find_by_id(self.parent_folder.folders, self.id)
     if not folder_item:
       print("could not find folder in the parent folder")
     else:
@@ -202,40 +202,38 @@ class Folder:
         self.__items.append(card)
         self.__cards.append(card)
 
-### BELOW ITEMS ARE NOT YET CONSIDERED FOR IMPLEMENTATION ###
+  def get_card(self, card):
+    """
+    Gets Card object from Folder
 
-  # def set_item_order(self, *items):
-  #   """
-  #   Rearranges the items on the board based on the list of strings
-  #   you pass in here. For example, if you have a board about
-  #   onboarding and it has sections called Week 1, Week 2, and Week 3,
-  #   here's how you'd arrange them to make sure they're in order:
+    Returns:
+      Card object.
+    """
+    if isinstance(card, Card):
+      card = card.id
 
-  #   ```
-  #   board = g.get_board("TrE4qxgc")
-  #   board.set_item_order("Week 1", "Week 2", "Week 3")
-  #   ```
+    # Check cards in the Folder
+    card_obj = find_by_name_or_id(self.__cards, card)
+    if card_obj:
+      return card_obj
 
-  #   Remember, the items on a board aren't all sections, it can be a
-  #   mix of cards and sections. The strings you pass in here are expected
-  #   to match section or card titles.
+  def get_parent(self):
+    """
+    Gets folder's parent folder
 
-  #   Args:
-  #     *items (str): Any number of strings that specifies the order
-  #       you want the items to appear in.
-  #   """
-  #   return self.guru.set_item_order(self.collection, self, *items)
+    Returns:
+      Folder object.
+    """
+    return self.guru.get_parent_folder(self)
 
-  # def get_card(self, card, section=None):
-  #   if isinstance(card, Card):
-  #     card = card.id
+  def get_home(self):
+    """
+    Gets a Folder's collection's home board
 
-  #   # otherwise, first check for an immediate child card
-  #   card_obj = find_by_name_or_id(self.items, card)
-  #   if not card_obj:
-  #     # then check all cards, including those in sections
-  #     card_obj = find_by_name_or_id(self.__cards, card)
-  #   return card_obj
+    Returns:
+      Folder object.
+    """
+    return self.guru.get_home_folder(self.collection)
 
   def add_card(self, card):
     """
@@ -296,6 +294,20 @@ class Folder:
     """
     return self.guru.remove_shared_folder_group(self, group)
 
+  def move_folder(self, folder):
+    """
+    Moves a folder to another folder in the collection
+
+    Args:
+      folder (str, required) - The target folder Id or Object to move the folder to
+    Returns:
+      Boolean
+    """
+    return self.guru.move_folder_to_folder(self, folder)
+
+  # def move_to_collection(self, collection, timeout=0):
+  #   """
+  #   Moves the board to a different collection.
   def move_to_collection(self, collection, timeout=0):
     """
     Moves the folder to a different collection.
@@ -897,6 +909,15 @@ class Collection:
       list of CollectionAccess: A list of CollectionAccess objects.
     """
     return self.guru.get_groups_on_collection(self)
+
+  def home_folder(self):
+    """
+    Gets the collections home folder (folders and cards)
+
+    Returns:
+      Folder object
+    """
+    return self.guru.get_home_folder(self)
 
   def json(self):
     return {
