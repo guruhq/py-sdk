@@ -1,12 +1,12 @@
 """
-This script shows how to use Guru's SDK to publish cards, boards, or entire
+This script shows how to use Guru's SDK to publish cards, folders, or entire
 collections to an external site -- in this case, Salesforce Knowledge.
 
-This script takes the contents of a board in Guru and makes API calls to
+This script takes the contents of a folder in Guru and makes API calls to
 Salesforce to create or update Knowledge objects as needed.
 
-1. Behind the scenes, the SDK enumerates all the sections and cards on the
-   board we specify.
+1. Behind the scenes, the SDK enumerates all the cards on the
+   folder we specify.
 2. The SDK also writes a metadata .json file to keep track of which cards have
    been published before.
 3. Using the metadata, the SDK knows whether a card has been published before
@@ -45,13 +45,13 @@ EXTERNAL_COLLECTION = "Publish to Salesforce (External)"
 VALIDATED_INTERNAL_ONLY = "Validated Internal only"
 VALIDATED_EXTERNAL = "Validated External"
 
-# we expect that data categories are represented in guru as board
+# we expect that data categories are represented in guru as folder
 # assignments, but we might also want to use specific tags to also
 # represent a data category assignment.
 TAGS_THAT_ARE_DATA_CATEGORIES = [
-  "tag 1",
-  "tag 2",
-  "tag 3"
+    "tag 1",
+    "tag 2",
+    "tag 3"
 ]
 
 
@@ -62,14 +62,15 @@ def is_external(card):
   """
   return card.collection.title == EXTERNAL_COLLECTION
 
+
 def get_data_categories(card):
   """
   This returns a list of strings that are the data category names the
   card should be assigned to. This is a combination of the names of the
-  boards the card is on, plus some special tags.
+  folders the card is on, plus some special tags.
   """
-  # every board corresponds to a data category.
-  categories = [b.title for b in card.boards]
+  # every folder corresponds to a data category.
+  categories = [f.title for f in card.folders]
 
   # there are also specific tags that also correspond to data categories.
   for tag in card.tags:
@@ -77,6 +78,7 @@ def get_data_categories(card):
       categories.append(tag.value)
 
   return categories
+
 
 def convert_card_to_article(card):
   """
@@ -86,16 +88,16 @@ def convert_card_to_article(card):
   internal article or external one.
   """
   data = {
-    "title": card.title,
+      "title": card.title,
 
-    # this is the Knowledge object's rich text field which is not configured by default.
-    # i called mine 'Body' so that's why this is 'Body__c'.
-    "Body__c": card.content,
+      # this is the Knowledge object's rich text field which is not configured by default.
+      # i called mine 'Body' so that's why this is 'Body__c'.
+      "Body__c": card.content,
 
-    # the UrlName is like the title but meant to be displayed in a URL, in Guru
-    # we have the card's slug which serves the same purpose. the slug has two
-    # parts, an ID and title, so we just need the second part here.
-    "UrlName": card.slug.split("/")[1].strip("-"),
+      # the UrlName is like the title but meant to be displayed in a URL, in Guru
+      # we have the card's slug which serves the same purpose. the slug has two
+      # parts, an ID and title, so we just need the second part here.
+      "UrlName": card.slug.split("/")[1].strip("-"),
   }
 
   # we set some properties differently whether it's an internal or external article.
@@ -125,18 +127,19 @@ class SalesforcePublisher(guru.Publisher):
     # I set this connection up in salesforce by following this guide:
     # https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/CR_quickstart_oauth.htm
     data = {
-      "grant_type": "password",
-      "client_id": os.environ.get("SFDC_CLIENT_ID"),
-      "client_secret": os.environ.get("SFDC_CLIENT_SECRET"),
-      "username": os.environ.get("SFDC_USERNAME"),
-      "password": os.environ.get("SFDC_PASSWORD") + os.environ.get("SFDC_TOKEN")
+        "grant_type": "password",
+        "client_id": os.environ.get("SFDC_CLIENT_ID"),
+        "client_secret": os.environ.get("SFDC_CLIENT_SECRET"),
+        "username": os.environ.get("SFDC_USERNAME"),
+        "password": os.environ.get("SFDC_PASSWORD") + os.environ.get("SFDC_TOKEN")
     }
-    response = requests.post("https://login.salesforce.com/services/oauth2/token", data=data)
+    response = requests.post(
+        "https://login.salesforce.com/services/oauth2/token", data=data)
 
     if response.status_code >= 400:
       error_message = "Failed to authenticate with Salesforce, response status %s, response body %s" % (
-        response.status_code,
-        response.content
+          response.status_code,
+          response.content
       )
       self.log_error(error_message)
       raise RuntimeError(error_message)
@@ -176,7 +179,7 @@ class SalesforcePublisher(guru.Publisher):
     the salesforce instance URL as a prefix and parses the JSON response.
     """
     headers = {
-      "Authorization": "Bearer %s" % self.sfdc_token
+        "Authorization": "Bearer %s" % self.sfdc_token
     }
 
     # you can pass in just "/services/data/..." as the url and we'll add the prefix.
@@ -187,9 +190,9 @@ class SalesforcePublisher(guru.Publisher):
 
     if response.status_code >= 400:
       return self.log_error("Salesforce API Error, URL: %s, response status %s, response body: %s" % (
-        url,
-        response.status_code,
-        response.content
+          url,
+          response.status_code,
+          response.content
       ))
 
     return response.json()
@@ -200,7 +203,7 @@ class SalesforcePublisher(guru.Publisher):
     the salesforce instance URL as a prefix and parses the JSON response.
     """
     headers = {
-      "Authorization": "Bearer %s" % self.sfdc_token
+        "Authorization": "Bearer %s" % self.sfdc_token
     }
 
     # you can pass in just "/services/data/..." as the url and we'll add the prefix.
@@ -211,9 +214,9 @@ class SalesforcePublisher(guru.Publisher):
 
     if response.status_code >= 400:
       return self.log_error("Salesforce API Error, URL: %s, response status %s, response body: %s" % (
-        url,
-        response.status_code,
-        response.content
+          url,
+          response.status_code,
+          response.content
       ))
 
     return response.json()
@@ -224,7 +227,7 @@ class SalesforcePublisher(guru.Publisher):
     the salesforce instance URL as a prefix and parses the JSON response.
     """
     headers = {
-      "Authorization": "Bearer %s" % self.sfdc_token
+        "Authorization": "Bearer %s" % self.sfdc_token
     }
 
     # you can pass in just "/services/data/..." as the url and we'll add the prefix.
@@ -235,9 +238,9 @@ class SalesforcePublisher(guru.Publisher):
 
     if response.status_code >= 400:
       return self.log_error("Salesforce API Error, URL: %s, response status %s, response body: %s" % (
-        url,
-        response.status_code,
-        response.content
+          url,
+          response.status_code,
+          response.content
       ))
 
     return True
@@ -248,7 +251,7 @@ class SalesforcePublisher(guru.Publisher):
     the salesforce instance URL as a prefix and parses the JSON response.
     """
     headers = {
-      "Authorization": "Bearer %s" % self.sfdc_token
+        "Authorization": "Bearer %s" % self.sfdc_token
     }
 
     # you can pass in just "/services/data/..." as the url and we'll add the prefix.
@@ -269,7 +272,8 @@ class SalesforcePublisher(guru.Publisher):
     able to look up the ID when we need it without making extra API calls.
     """
     # https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_query.htm
-    data_category_groups = self.sfdc_get("/services/data/v52.0/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion&topCategoriesOnly=false").get("categoryGroups")
+    data_category_groups = self.sfdc_get(
+        "/services/data/v52.0/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion&topCategoriesOnly=false").get("categoryGroups")
 
     # data categories are arranged in a tree so we use this function to recursively
     # find all categories and build a flat list.
@@ -286,9 +290,9 @@ class SalesforcePublisher(guru.Publisher):
       # so we add each one to the list and recursively add child categories.
       for object in objects:
         categories.append({
-          "group_name": group_name,
-          "name": object.get("name"),
-          "label": object.get("label")
+            "group_name": group_name,
+            "name": object.get("name"),
+            "label": object.get("label")
         })
 
         # if there are child categories, add them recursively.
@@ -301,8 +305,8 @@ class SalesforcePublisher(guru.Publisher):
     data_categories = []
     for group in data_category_groups:
       data_categories += find_categories(
-        group.get("name"),
-        group.get("topCategories")[0].get("childCategories")
+          group.get("name"),
+          group.get("topCategories")[0].get("childCategories")
       )
 
     return data_categories
@@ -310,11 +314,11 @@ class SalesforcePublisher(guru.Publisher):
   def set_data_category_mappings(self, card, knowledge_id, remove_existing=False):
     """
     Updates the Date Category mappings of a Knowledge Object. These are based
-    the Guru Boards the card is on.
+    the Guru folders the card is on.
 
     This method removes all existing mappings as this is an easy way to keep
     Salesforce and Guru in sync -- remove all the mappings, then add back the
-    ones we need. That way, it doesn't matter how the Card's Board assignments
+    ones we need. That way, it doesn't matter how the Card's folder assignments
     changed. If some were added and some were removed, this process will make
     sure the Knowldege object has the correct Data Categories assigned.
 
@@ -365,14 +369,14 @@ class SalesforcePublisher(guru.Publisher):
     # if the data category name isn't found, we can stop here.
     if not data_category_group_name:
       return self.log_error("Could not find Data Category called '%s' for the article '%s'" % (
-        data_category_name,
-        card.title
+          data_category_name,
+          card.title
       ))
 
     data = {
-      "DataCategoryGroupName": data_category_group_name,
-      "DataCategoryName": data_category_name,
-      "ParentId": knowledge_id
+        "DataCategoryGroupName": data_category_group_name,
+        "DataCategoryName": data_category_name,
+        "ParentId": knowledge_id
     }
     url = "/services/data/v52.0/sobjects/Knowledge__DataCategorySelection/"
     self.sfdc_post(url, data)
@@ -388,7 +392,7 @@ class SalesforcePublisher(guru.Publisher):
     url = "/services/data/v52.0/sobjects/Knowledge__DataCategorySelection/%s" % mapping_id
     return self.sfdc_delete(url)
 
-  def create_external_card(self, card, changes, section, board, board_group, collection):
+  def create_external_card(self, card, changes, folder, collection):
     """
     This method is called automatically when the SDK sees a card
     that it knows hasn't been published before. This means we need
@@ -415,8 +419,8 @@ class SalesforcePublisher(guru.Publisher):
     self.set_data_category_mappings(card, knowledge_id)
 
     return knowledge_id
-  
-  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
+
+  def update_external_card(self, external_id, card, changes, folder, collection):
     """
     This method is called automatically when the SDK sees a card that has been
     published before. We know its Salesforce ID so we can make the PUT call to
@@ -431,18 +435,18 @@ class SalesforcePublisher(guru.Publisher):
     if not response:
       return self.log_error("Error updating article '%s'" % card.title)
 
-    # the boards in guru determine what data categories the knowledge article is mapped to.
-    # when you add or remove board assignments in guru, we need to update salesforce accordingly.
+    # the folders in guru determine what data categories the knowledge article is mapped to.
+    # when you add or remove folder assignments in guru, we need to update salesforce accordingly.
     self.set_data_category_mappings(card, external_id, remove_existing=True)
 
     return response
-  
+
   def delete_external_card(self, external_id):
     """
     If you want to automatically delete Salesforce Knowledge articles when the
     corresponding card is archived or removed from what you're publishing,
     that's implemented here.
-    
+
     We'll detect when a card is no longer in the set of cards being published
     and call this method. All you need to do here is implement the SFDC API
     call to delete the Knowledge object.
