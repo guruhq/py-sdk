@@ -1172,8 +1172,11 @@ class Card:
     self.version = data.get("version")
     self.archived = data.get("archived", False)
     self.favorited = data.get("favorited", False)
-    self.boards = [Board(b, guru) for b in data.get("boards") or []]
+
     self.__doc = None
+    # internal array to hold Folders on the card.
+    self.__has_folders = False
+    self.__folders = []
 
   @property
   def doc(self):
@@ -1292,6 +1295,14 @@ class Card:
         365: interval_string % "year",
     }
     return interval_map.get(interval, "On a specific date")
+
+  @property
+  def folders(self):
+    # if we have already loaded items for this object...cool, if not go get em
+    if not self.__has_folders:
+      self.__folders = self.guru.get_folders_for_a_card(self.id)
+      self.__has_folders = True
+    return tuple(self.__folders)
 
   def archive(self):
     """
