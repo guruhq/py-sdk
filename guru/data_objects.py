@@ -1300,7 +1300,7 @@ class Card:
   def folders(self):
     # if we have already loaded items for this object...cool, if not go get em
     if not self.__has_folders:
-      self.__folders = self.guru.get_folders_for_a_card(self.id)
+      self.__folders = self.guru.get_folders_for_card(self)
       self.__has_folders = True
     return tuple(self.__folders)
 

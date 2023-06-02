@@ -2550,7 +2550,7 @@ class Guru:
       # return the response
     return status_to_bool(response.status_code)
 
-  def get_folders_for_a_card(self, card):
+  def get_folders_for_card(self, card):
     """
     Gets folders that a card is currently assigned to.
 
