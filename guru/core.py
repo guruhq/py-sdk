@@ -2550,6 +2550,26 @@ class Guru:
       # return the response
     return status_to_bool(response.status_code)
 
+  def get_folders_for_card(self, card):
+    """
+    Gets folders that a card is currently assigned to.
+
+    Args:
+      card (str, required): The ID or Card object to get folders for
+
+    Returns:
+      folder(s): A list of Folder objects the card belongs to
+    """
+    # get a Card object if possible...
+    card_obj = self.get_card(card)
+    if not card_obj:
+      raise ValueError(f"couldn't find card! : {card}")
+
+    # we have a legit Card, make the call to get the folder(s)
+    url = f"{self.base_url}/cards/{card_obj.id}/folders"
+    response = self.__get_and_get_all(url)
+    return [Folder(f, guru=self) for f in response]
+
   def move_card_to_folder(self, card, source_folder, target_folder):
     """
     Moves an existing card in the collection card to another folder. The card will be added to the top of the target folder

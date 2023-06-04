@@ -36,9 +36,9 @@ g = guru.Guru(email, token, qa=True)
 #   print("collection Folder: %s" % colFolder.title)
 
 # get a folder now...
-print("#########  Folder stuff #########")
-folder = g.get_folder(test_folderid)
-print("folder name: %s" % folder)
+# print("#########  Folder stuff #########")
+# folder = g.get_folder(test_folderid)
+# print("folder name: %s" % folder)
 
 # iterate thru the folders
 # for subfolder in folder.folders:
@@ -163,3 +163,22 @@ print("folder name: %s" % folder)
 
 # print(
 #     f"Card from Folder object: {folder.get_card(test_cardId).title}")
+
+#### testing add and removing a card to a folder from Card object! ####
+# get Card,
+
+# card = g.get_card(test_cardId)
+# print(f"card name: {card.title}")
+# print(f"add card: {card.add_to_folder(test_targetFolderId)}")
+# print(f"remove card: {card.remove_from_folder(test_targetFolderId)}")
+
+# for f in card.folders:
+#   print(f"card board titles: {f.title}")
+
+# call it again to show that folders already loaded, should not see another API call!
+# for f in card.folders:
+#   print(f"card board titles: {f.slug}")
+
+# folders = g.get_folders_for_a_card(test_cardId)
+# for f in folders:
+#   print(f"folders in the card: {f.title}")

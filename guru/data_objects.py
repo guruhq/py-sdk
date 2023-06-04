@@ -305,9 +305,6 @@ class Folder:
     """
     return self.guru.move_folder_to_folder(self, folder)
 
-  # def move_to_collection(self, collection, timeout=0):
-  #   """
-  #   Moves the board to a different collection.
   def move_to_collection(self, collection, timeout=0):
     """
     Moves the folder to a different collection.
@@ -1175,8 +1172,11 @@ class Card:
     self.version = data.get("version")
     self.archived = data.get("archived", False)
     self.favorited = data.get("favorited", False)
-    self.boards = [Board(b, guru) for b in data.get("boards") or []]
+
     self.__doc = None
+    # internal array to hold Folders on the card.
+    self.__has_folders = False
+    self.__folders = []
 
   @property
   def doc(self):
@@ -1295,6 +1295,14 @@ class Card:
         365: interval_string % "year",
     }
     return interval_map.get(interval, "On a specific date")
+
+  @property
+  def folders(self):
+    # if we have already loaded items for this object...cool, if not go get em
+    if not self.__has_folders:
+      self.__folders = self.guru.get_folders_for_card(self)
+      self.__has_folders = True
+    return tuple(self.__folders)
 
   def archive(self):
     """
@@ -1535,6 +1543,29 @@ class Card:
 
   def get_resolved_card_comments(self):
     return self.guru.get_card_comments(self, status="RESOLVED")
+
+  def add_to_folder(self, folder):
+    """
+    Adds the card to a folder.
+
+    Args:
+      folder (str or Folder): The name of the folder you're adding the card to, or the Folder object.
+    Returns:
+      bool: True if it was successful and False otherwise
+    """
+    return self.guru.add_card_to_folder(self, folder)
+
+  def remove_from_folder(self, folder):
+    """
+    Removes the card from a folder.
+
+    Args:
+      folder (str or Folder): The name of the folder you're removing the card from, or the Folder object.
+
+    Returns:
+      bool: True if it was successful and False otherwise.
+    """
+    return self.guru.remove_card_from_folder(self, folder)
 
   def add_to_board(self, board, section=None, board_group=None):
     """
