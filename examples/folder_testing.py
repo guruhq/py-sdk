@@ -4,7 +4,7 @@ import guru
 # call script with the credentials of the user you want to use
 # ex: GURU_USER=user@example.com GURU_TOKEN=abcd1234-abcd-abcd-abcd-abcdabcdabcd python getCardExport.py
 
-
+""" 
 # API token info
 email = "someperson@yourcompany.com"
 token = "yourapitokengoeshere"
@@ -24,9 +24,10 @@ test_sourceFolderId = "folderId for move/add card"
 test_invalidFolderId = "#$NoBueno!~"
 test_doesNotExistFolderId = "BadSlug"
 test_cardNotInFolderId = "cardId not in target folder"
+ """
 
 
-g = guru.Guru(email, token, qa=True)
+# g = guru.Guru(email, token, qa=True)
 
 # get folders for a collection
 # print("#########  Folders stuff #########")
@@ -43,8 +44,6 @@ g = guru.Guru(email, token, qa=True)
 # iterate thru the folders
 # for subfolder in folder.folders:
 #   print("sub folder name: %s" % subfolder.title)
-#   # Ok, now see if lazy loading of the folders work, not explicity calling get_items, that is handled undder the .folders and .cards methods of the Folder object.
-#   # subfolder.get_items()
 
 #   for subsubfolder in subfolder.folders:
 #     print("sub-sub-folder name: %s" % subsubfolder.title)
