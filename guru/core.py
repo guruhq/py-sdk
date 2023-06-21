@@ -2261,12 +2261,14 @@ class Guru:
     if status_to_bool(folder_response.status_code):
       return Folder(folder_response.json(), guru=self)
 
-  def get_folder_items(self, folder_id, cache=True):
+  def get_folder_items(self, folder_id, cache=True, cardDetail="FULL"):
     """
       Get the items for the folder slug passed in
 
       Args:
-        self (str): Folder ojbect reference.
+        folder_id (str): Folder ojbect reference.
+        cache (bool): do we cache the results
+        cardDetail (str): FULL == return all card details; BASIC == return min card details.
 
       Returns:
         List: An list object representing the items in the folder.  The Folder object will create the underlying Folder and Card objects
@@ -2280,7 +2282,8 @@ class Guru:
       raise ValueError("folder_id is not a id or slug '%s'" % folder_id)
 
     # id is good, make the call.
-    url = "%s/folders/%s/items" % (self.base_url, folder_id)
+    # url = "%s/folders/%s/items?cardDetail=FULL" % (self.base_url, folder_id)
+    url = f"{self.base_url}/folders/{folder_id}/items?cardDetail={cardDetail}"
     return self.__get_and_get_all(url, cache)
 
   def get_folders(self, collection=None, folder=None, cache=False):
@@ -2375,7 +2378,7 @@ class Guru:
 
   def add_folder(self, title, collection, parentFolder=None, description=None):
     """
-    Creates a new folder in the specified collection and optionally in another Folder in the collection. This will alway put the folder at the top (fist) of the list.
+    Creates a new folder in the specified collection and optionally in another Folder in the collection. This will always put the folder at the top (fist) of the list.
 
     Args:
       title (str, required): The title of the folder you're creating. Folder titles are not
