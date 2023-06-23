@@ -29,6 +29,7 @@ test_cardNotInFolderId = "cardId not in target folder"
 
 # g = guru.Guru(email, token, qa=True)
 
+
 # get folders for a collection
 # print("#########  Folders stuff #########")
 # collectionFolders = g.get_folders(test_collid)
@@ -38,8 +39,13 @@ test_cardNotInFolderId = "cardId not in target folder"
 
 # get a folder now...
 # print("#########  Folder stuff #########")
-# folder = g.get_folder(test_folderid)
-# print("folder name: %s" % folder)
+# folder = g.get_folder(test_targetFolderId)
+# print("parent folder name: %s" % folder)
+
+# newFolder = folder.add_folder("Folder from Folder Oject")
+# print(f"new folder: {newFolder.title}")
+# for f in folder.items:
+#   print(f"og filders - title:{f.title} id:{f.id}")
 
 # iterate thru the folders
 # for subfolder in folder.folders:
@@ -181,3 +187,9 @@ test_cardNotInFolderId = "cardId not in target folder"
 # folders = g.get_folders_for_a_card(test_cardId)
 # for f in folders:
 #   print(f"folders in the card: {f.title}")
+
+# resort items in a collection based on the list provided.  Names must be exact match to cards or folders in the collection
+# folder.set_folder_item_order("A", "D", "testa", "C")
+
+# for f in folder.items:
+#   print(f.title)

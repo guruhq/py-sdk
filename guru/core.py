@@ -2879,6 +2879,39 @@ class Guru:
     else:
       return status_to_bool(response.status_code)
 
+  def set_item_save_folder(self, folder):
+    """
+    Specific save ability for when items in a folder were reordered....
+    """
+
+    # get the folder object if possible...
+    folder_obj = self.get_folder(folder)
+    if not folder_obj:
+      raise ValueError(f"couldn't find folder! : {folder}")
+
+      # build the request payload...
+    data = {
+        "actionType": "move",
+        "folderEntries": [],
+        "prevSiblingItemId": "first"
+    }
+    # going to loop the objects sortedItems and create folderEntries
+    for item in folder_obj.sortedItems:
+      folder_entry = {
+          "entryType": item.type.lower(),
+          "id": item.item_id
+      }
+      data["folderEntries"].append(folder_entry)
+
+    # clear the cache for the folder since we reordered
+    self.__clear_cache(f"{self.base_url}/folders/{folder.id}/items")
+
+    url = f"{self.base_url}/folders/{folder.id }/action"
+    response = self.__post(url, data)
+
+    # return bool
+    return status_to_bool(response.status_code)
+
   def get_boards(self, collection=None, board_group=None, cache=False):
     """
     Gets a list of boards you can see. You can optionally filter by collection.

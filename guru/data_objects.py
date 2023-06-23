@@ -102,6 +102,10 @@ class Folder:
     self.__cards = []
     self.__folders = []
 
+    # special array for internal sorting of items,
+    # cliff notes: needed b/c it is referenced in core.py and can't be an __variable due to mangling.
+    self.sortedItems = []
+
     # if folder_items were passed to Folders class, call __get_items to load them. Otherwise items will be lazy loaded when the .folders or .cards method is called.
     if self.__folder_items:
       self.__get_items()
@@ -154,7 +158,7 @@ class Folder:
     """
     Updates internal items, and/or __card / __folders arrays when doing move/add/remove folders.
 
-    Args: 
+    Args:
       obj (Folder/Card object, required) - the object to process
       action (add/remove, required) - what to do with the object
 
@@ -294,6 +298,15 @@ class Folder:
     """
     return self.guru.remove_shared_folder_group(self, group)
 
+  def add_folder(self, title):
+    """
+    Add a folder to this folder.
+
+    Args:
+      title (str): name of the folder
+    """
+    return self.guru.add_folder(title, self.collection, parentFolder=self)
+
   def move_folder(self, folder):
     """
     Moves a folder to another folder in the collection
@@ -324,6 +337,45 @@ class Folder:
     """
     self.guru.move_folder_to_collection(self, collection, timeout)
 
+  def set_folder_item_order(self, *items):
+    """
+    Rearranges a folder's items (cards or folders) based on the values provided.
+    This doesn't add or remove any items, it just rearranges the items that
+    are already there.
+
+    This method is often not called directly. Instead you'd make the call to
+    load a folder then call its set_folder_item_order method, like this:
+
+    ```
+    folder = g.get_folder("My Cool Folder")
+    folder.set_folder_item_order("Card 1", "Card 2", "Card 3")
+    ```
+
+    Args:
+            folder (str or Folder): Either a string that'll match a
+                    folder's name or the Folder object whose items you're
+                    rearranging.
+            *items (str): The names of the objects in the order you want them to appear.
+
+    Returns:
+            boolean : True if it worked, False if there was an error
+    """
+    def get_key(b):
+      for i in range(len(items)):
+        if b.title.lower().strip() == items[i].lower().strip():
+          return i
+      # if we couldn't find it, move it to the back.
+      return len(items)
+
+    # sort items based on the keys passed in.
+    self.__items.sort(key=get_key)
+
+    # set the sortedItem array to the internal array just for sorting purposes.
+    self.sortedItems = self.__items
+
+    # calling save specific for set item work!
+    return self.guru.set_item_save_folder(self)
+
   def delete(self):
     """
     deletes folder
@@ -348,6 +400,9 @@ class Folder:
       data["collection"] = self.collection.json()
 
     return data
+
+  def lite_json(self):
+    return self.json()
 
 
 class FolderPermission:
@@ -457,14 +512,14 @@ class Board:
     for section in self.__sections:
       self.__update_cards_in_list(section.items, card_lookup)
 
-  @property
+  @ property
   def url(self):
     if self.slug:
       return "https://app.getguru.com/boards/%s" % self.slug
     else:
       return ""
 
-  @property
+  @ property
   def item_id(self):
     if self.__item_id:
       return self.__item_id
@@ -481,15 +536,15 @@ class Board:
 
     return self.__item_id
 
-  @property
+  @ property
   def cards(self):
     return tuple(self.__cards)
 
-  @property
+  @ property
   def sections(self):
     return tuple(self.__sections)
 
-  @property
+  @ property
   def all_items(self):
     return tuple(self.__all_items)
 
@@ -760,11 +815,11 @@ class HomeBoard:
         self.__board_groups.append(board_group)
         self.__boards += board_group.items
 
-  @property
+  @ property
   def boards(self):
     return tuple(self.__boards)
 
-  @property
+  @ property
   def board_groups(self):
     return tuple(self.__board_groups)
 
@@ -864,7 +919,7 @@ class Collection:
     self.public_cards_enabled = data.get("publicCardsEnabled")
     self.roles = data.get("roles")
 
-  @property
+  @ property
   def title(self):
     return self.name
 
@@ -939,7 +994,7 @@ class Framework:
     self.name = data.get("collection").get("name")
     self.collection = Collection(data.get("collection"), guru=guru)
 
-  @property
+  @ property
   def title(self):
     return self.name
 
@@ -1002,7 +1057,7 @@ class User:
     self.access_type = user_attr.get("ACCESS_TYPE")
     self.groups = [Group(group) for group in data.get("groups", [])]
 
-  @property
+  @ property
   def full_name(self):
     """String combining first and last name of `User`
 
@@ -1014,12 +1069,12 @@ class User:
     else:
       return self.email
 
-  @property
+  @ property
   def is_light(self):
     """Boolean telling if user is a light user"""
     return self.access_type == "READ_ONLY" and self.billing_type == "FREE"
 
-  @property
+  @ property
   def is_core(self):
     """Boolean telling if user is a core user"""
     return self.access_type == "CORE" and self.billing_type == "CORE"
@@ -1178,7 +1233,7 @@ class Card:
     self.__has_folders = False
     self.__folders = []
 
-  @property
+  @ property
   def doc(self):
     """
     The `doc` property is a [BeautifulSoup object](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
@@ -1196,7 +1251,7 @@ class Card:
       self.__doc = BeautifulSoup(self.content, "html.parser")
     return self.__doc
 
-  @property
+  @ property
   def content(self):
     """
     The card's content as either HTML or Markdown. Most cards
@@ -1212,7 +1267,7 @@ class Card:
     if self.__doc:
       self.__doc = BeautifulSoup(content, "html.parser")
 
-  @property
+  @ property
   def url(self):
     """
     Returns the card's URL. You can piece this together yourself
@@ -1233,7 +1288,7 @@ class Card:
     else:
       return ""
 
-  @property
+  @ property
   def verifier_label(self):
     """
     This is a string that represents the card's verifier.
@@ -1262,7 +1317,7 @@ class Card:
     else:
       return verifier.user.email
 
-  @property
+  @ property
   def interval_label(self):
     """
     This is a string that represents the card's verification interval,
@@ -1296,7 +1351,7 @@ class Card:
     }
     return interval_map.get(interval, "On a specific date")
 
-  @property
+  @ property
   def folders(self):
     # if we have already loaded items for this object...cool, if not go get em
     if not self.__has_folders:
