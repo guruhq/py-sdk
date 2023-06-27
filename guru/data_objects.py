@@ -102,10 +102,6 @@ class Folder:
     self.__cards = []
     self.__folders = []
 
-    # special array for internal sorting of items,
-    # cliff notes: needed b/c it is referenced in core.py and can't be an __variable due to mangling.
-    self.sortedItems = []
-
     # if folder_items were passed to Folders class, call __get_items to load them. Otherwise items will be lazy loaded when the .folders or .cards method is called.
     if self.__folder_items:
       self.__get_items()
