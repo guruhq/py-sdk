@@ -25,9 +25,10 @@ else:
 MAX_FILE_SIZE = 5000000000
 
 TRACKING_HEADERS = {
-  "X-Guru-Application": "sdk",
-  "X-Amzn-Trace-Id": "GApp=sdk"
+    "X-Guru-Application": "sdk",
+    "X-Amzn-Trace-Id": "GApp=sdk"
 }
+
 
 def load_html(url, cache=False, make_links_absolute=True, headers=None):
   """Fetches HTML from the given URL and returns it as a BeautifulSoup document object."""
@@ -55,6 +56,7 @@ def load_html(url, cache=False, make_links_absolute=True, headers=None):
 
   return doc, status_code
 
+
 def http_get(url, cache=False, headers=None):
   """Makes an HTTP GET request and returns the body content."""
   if not headers:
@@ -79,8 +81,9 @@ def http_get(url, cache=False, headers=None):
   # html = response.content.decode("utf-8").encode("ascii", "ignore")
   html = response.content.decode("utf-8")
   write_file(cached_file, html)
-  
+
   return html, response.status_code
+
 
 def http_post(url, data=None, cache=False, headers=None):
   """Makes an HTTP POST request and returns the body content."""
@@ -105,6 +108,7 @@ def http_post(url, data=None, cache=False, headers=None):
 
   return html, response.status_code
 
+
 def download_file(url, filename, headers=None, cache=False):
   """Downloads an image and saves it as the full filename you provide."""
   if cache and os.path.isfile(filename):
@@ -127,14 +131,15 @@ def download_file(url, filename, headers=None, cache=False):
         file_size = len(response.raw)
         response.raw.decode_content = True
         shutil.copyfileobj(response.raw, file_out)
-  
+
   return response.status_code, file_size
-  
+
 
 def make_dir(filename):
   """Given a path or full filename, this creates the directory if it doesn't exist."""
   if not os.path.exists(os.path.dirname(filename)):
     os.makedirs(os.path.dirname(filename))
+
 
 def clear_dir(dir):
   """Deletes all files and folders inside the given directory."""
@@ -150,11 +155,13 @@ def clear_dir(dir):
     except:
       pass
 
+
 def write_file(filename, content):
   """Writes a text file."""
   make_dir(filename)
   with open(filename, "w") as file_out:
     file_out.write(content)
+
 
 def read_file(filename):
   """Reads a text file."""
@@ -163,6 +170,7 @@ def read_file(filename):
       return file_in.read()
   except:
     pass
+
 
 def copy_file(src, dest):
   """Copies a file."""
@@ -180,8 +188,10 @@ def copy_file(src, dest):
   except:
     return False
 
+
 def to_yaml(data):
   return yaml.dump(data, allow_unicode=True).replace("!!python/unicode ", "").replace("!!python/str ", "")
+
 
 def find_by_name_or_id(lst, name_or_id):
   if not lst:
@@ -204,6 +214,7 @@ def find_by_name_or_id(lst, name_or_id):
     if hasattr(obj, "slug") and obj.slug and obj.slug.startswith(name_or_id + "/"):
       return obj
 
+
 def find_by_email(lst, email):
   def func(obj):
     return (obj.email or "").strip().lower() == (email or "").strip().lower()
@@ -211,12 +222,14 @@ def find_by_email(lst, email):
   if filtered:
     return filtered[0]
 
+
 def find_by_id(lst, id):
   def func(obj):
     return (obj.id or "").strip().lower() == (id or "").strip().lower()
   filtered = [x for x in lst if func(x)]
   if filtered:
     return filtered[0]
+
 
 def format_timestamp(timestamp):
   """
@@ -227,6 +240,7 @@ def format_timestamp(timestamp):
   """
   return "%s-00:00" % dateutil.parser.parse(timestamp).isoformat()
 
+
 def compare_datetime_string(date_to_compare, comparison, date_to_compare_against="", tz_aware=False):
   """
   Compares 2 datetime strings
@@ -236,7 +250,7 @@ def compare_datetime_string(date_to_compare, comparison, date_to_compare_against
     comparison (str): comparison operator (i.e. lt, lt_or_eq, eq, ne, gt, or gt_or_eq)
     date_to_compare_against (str or datetime obj): date to compare against
     tz_aware (bool, optional): is `date_to_compare` time-zone aware
-  
+
   Default:
     Compares date provided to the current datetime
 
@@ -250,7 +264,6 @@ def compare_datetime_string(date_to_compare, comparison, date_to_compare_against
     date_to_compare_against = datetime.now(pytz.utc)
   else:
     date_to_compare_against = datetime.now()
-  
 
   if comparison == "gt":
     return date_to_compare > date_to_compare_against
@@ -265,7 +278,9 @@ def compare_datetime_string(date_to_compare, comparison, date_to_compare_against
   elif comparison == "ne":
     return date_to_compare != date_to_compare_against
   else:
-    raise ValueError("Please provide a valid comparison option (lt, gt, lt_or_eq, gt_or_eq, eq, ne")
+    raise ValueError(
+        "Please provide a valid comparison option (lt, gt, lt_or_eq, gt_or_eq, eq, ne")
+
 
 def load_json(filename):
   """returns JSON object from file."""
@@ -275,10 +290,12 @@ def load_json(filename):
   except:
     return {}
 
+
 def save_json(filename, data):
   """writes data to a file, as JSON."""
   with open(filename, "w") as file_out:
     file_out.write(json.dumps(data, indent=2))
 
 
-
+def clean_slug(string):
+  return re.sub(r"/.*", "", string)

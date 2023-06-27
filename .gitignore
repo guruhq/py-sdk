@@ -15,3 +15,5 @@ pydoc-markdown.yml
 build/
 tests/download_file.html
 venv
+.DS_Store
+examples/test_folders.py
