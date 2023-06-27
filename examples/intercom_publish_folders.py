@@ -225,7 +225,7 @@ if __name__ == "__main__":
   # 'Gi6dzBxi' is the slug that identifies the board we publish to Intercom.
   # you can find this ID in the board's URL, like:
   # https://app.getguru.com/boards/Gi6dzBxi/Intercom-Articles
-  publisher.publish_board("Gi6dzBxi")
+  publisher.publish_folder("Gi6dzBxi")
 
   # for now, we haven't implemented any of the 'delete' methods. if we do want to
   # be able to delete Intercom articles when the guru cards are archived (or when

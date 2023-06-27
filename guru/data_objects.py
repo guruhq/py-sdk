@@ -154,7 +154,7 @@ class Folder:
     """
     Updates internal items, and/or __card / __folders arrays when doing move/add/remove folders.
 
-    Args: 
+    Args:
       obj (Folder/Card object, required) - the object to process
       action (add/remove, required) - what to do with the object
 
@@ -294,6 +294,15 @@ class Folder:
     """
     return self.guru.remove_shared_folder_group(self, group)
 
+  def add_folder(self, title):
+    """
+    Add a folder to this folder.
+
+    Args:
+      title (str): name of the folder
+    """
+    return self.guru.add_folder(title, self.collection, parentFolder=self)
+
   def move_folder(self, folder):
     """
     Moves a folder to another folder in the collection
@@ -324,6 +333,46 @@ class Folder:
     """
     self.guru.move_folder_to_collection(self, collection, timeout)
 
+  def set_folder_item_order(self, *items):
+    """
+    Rearranges a folder's items (cards or folders) based on the values provided.
+    This doesn't add or remove any items, it just rearranges the items that
+    are already there.
+
+    This method is often not called directly. Instead you'd make the call to
+    load a folder then call its set_folder_item_order method, like this:
+
+    ```
+    folder = g.get_folder("My Cool Folder")
+    folder.set_folder_item_order("Card 1", "Card 2", "Card 3")
+    ```
+
+    Args:
+            folder (str or Folder): Either a string that'll match a
+                    folder's name or the Folder object whose items you're
+                    rearranging.
+            *items (str): The names of the objects in the order you want them to appear.
+
+    Returns:
+            boolean : True if it worked, False if there was an error
+    """
+    def get_key(b):
+      for i in range(len(items)):
+        if b.title.lower().strip() == items[i].lower().strip():
+          return i
+      # if we couldn't find it, move it to the back.
+      return len(items)
+
+    # check that items are loaded, get them if not.
+    if not self.__has_items:
+      self.__get_items()
+
+    # sort items based on the keys passed in.
+    self.__items.sort(key=get_key)
+
+    # calling save specific for set item work!
+    return self.guru.set_item_save_folder(self)
+
   def delete(self):
     """
     deletes folder
@@ -348,6 +397,9 @@ class Folder:
       data["collection"] = self.collection.json()
 
     return data
+
+  def lite_json(self):
+    return self.json()
 
 
 class FolderPermission:
