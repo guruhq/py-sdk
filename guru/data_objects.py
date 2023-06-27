@@ -367,11 +367,12 @@ class Folder:
       # if we couldn't find it, move it to the back.
       return len(items)
 
+    # check that items are loaded, get them if not.
+    if not self.__has_items:
+      self.__get_items()
+
     # sort items based on the keys passed in.
     self.__items.sort(key=get_key)
-
-    # set the sortedItem array to the internal array just for sorting purposes.
-    self.sortedItems = self.__items
 
     # calling save specific for set item work!
     return self.guru.set_item_save_folder(self)

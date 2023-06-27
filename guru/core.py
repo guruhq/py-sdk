@@ -2895,8 +2895,8 @@ class Guru:
         "folderEntries": [],
         "prevSiblingItemId": "first"
     }
-    # going to loop the objects sortedItems and create folderEntries
-    for item in folder_obj.sortedItems:
+    # going to loop the objects in items()
+    for item in folder_obj.items:
       folder_entry = {
           "entryType": item.type.lower(),
           "id": item.item_id
