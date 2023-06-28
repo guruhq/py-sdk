@@ -1,15 +1,15 @@
 """
 This script shows how to use Guru's SDK to publish cards,
-boards, or entire collections to an external site, like a
+folders, or entire collections to an external site, like a
 third-party help site.
 
-This script takes the contents of a board in Guru and makes
+This script takes the contents of a folder in Guru and makes
 API calls to Intercom (https://www.intercom.com/) to create
 or update articles in Intercom based on the changes seen in
 Guru. There are a few parts to this:
 
-1. Behind the scenes, the SDK enumerates all the sections
-   and cards on the board we specify.
+1. Behind the scenes, the SDK enumerates all the folders
+   and cards on the folder we specify.
 2. The SDK also writes a metadata .json file to keep track
    of which cards have been published before.
 3. Using the metadata, the SDK knows whether a card has been
@@ -102,7 +102,7 @@ class IntercomPublisher(guru.PublisherFolders):
 
   def update_external_collection(self, external_id, collection):
     """
-    This is similar to create_external_board except it's called when
+    This is similar to create_external_folder except it's called when
     a Guru collection is updated (e.g. you changed it's name) and this would
     make the Intercom API call to update an Intercom collection:
 
@@ -222,13 +222,13 @@ if __name__ == "__main__":
   g = guru.Guru(GURU_USER, GURU_API_TOKEN)
   publisher = IntercomPublisher(g)
 
-  # 'Gi6dzBxi' is the slug that identifies the board we publish to Intercom.
-  # you can find this ID in the board's URL, like:
-  # https://app.getguru.com/boards/Gi6dzBxi/Intercom-Articles
+  # 'Gi6dzBxi' is the slug that identifies the folder we publish to Intercom.
+  # you can find this ID in the folder's URL, like:
+  # https://app.getguru.com/folder/Gi6dzBxi/Intercom-Articles
   publisher.publish_folder("Gi6dzBxi")
 
   # for now, we haven't implemented any of the 'delete' methods. if we do want to
   # be able to delete Intercom articles when the guru cards are archived (or when
-  # they're removed from our 'intercom' board), we'll need to implement the delete
+  # they're removed from our 'intercom' folder), we'll need to implement the delete
   # method and also call process_deletions().
   # publisher.process_deletions()
