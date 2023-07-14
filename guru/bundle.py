@@ -20,8 +20,8 @@ from guru.util import clear_dir, write_file, copy_file, download_file, to_yaml, 
 
 # node types
 NONE = "NONE"
-BOARD_GROUP = "BOARD_GROUP"
-BOARD = "BOARD"
+FOLDER_GROUP = "FOLDER_GROUP"
+FOLDER = "FOLDER"
 SECTION = "SECTION"
 CARD = "CARD"
 
@@ -62,7 +62,7 @@ def _parse_style(text):
     key = pair[0:index].strip()
     value = pair[index + 1:].strip()
     result[key] = value
-  
+
   return result
 
 def _format_style(values):
@@ -120,7 +120,7 @@ def clean_up_html(html):
     li.insert(0, "- ")
     li.insert(0, br)
     li.unwrap()
-  
+
   for ul in doc.select("td ul, td ol"):
     ul.unwrap()
 
@@ -237,7 +237,7 @@ def clean_up_html(html):
   for el in doc.select("span"):
     if not el.attrs or not el.attrs.get("style"):
       el.unwrap()
-  
+
   # remove empty blocks. for a block to be empty it has to meet all of these criteria:
   #
   #  - contain no visible text.
@@ -330,10 +330,10 @@ def make_spreadsheet(node, parent, depth, rows):
   if node.type == CARD:
     values.append("")
     values.append("")
-  elif node.type == BOARD_GROUP:
+  elif node.type == FOLDER_GROUP:
     values.append(len(node.children))
     values.append("")
-  elif node.type == BOARD:
+  elif node.type == FOLDER:
     all_children = node.get_children_recursively()
     sections = list(filter(lambda n: n.type == SECTION, all_children))
     values.append(len(all_children))
@@ -372,7 +372,7 @@ def make_spreadsheet(node, parent, depth, rows):
   rows.append(values)
 
 def make_html_tree(node, parent, depth, html_pieces):
-  """internal: This builds the board/card tree in the HTML preview page."""
+  """internal: This builds the folder/card tree in the HTML preview page."""
   if node.removed:
     return
 
@@ -398,89 +398,89 @@ def print_node(node, parent, depth):
 def print_type(node, parent, depth):
   print("%s- %s" % ("  " * min(3, depth), node.type))
 
-def assign_types(node, parent, depth, post=False, favor_boards=None, favor_sections=None):
+def assign_types(node, parent, depth, post=False, favor_folders=None, favor_sections=None):
   """
   internal:
   When you're done adding content to a bundle we call this for every
-  node to figure out which nodes become board groups, boards, cards,
+  node to figure out which nodes become folder groups, folders, cards,
   or sections.
 
-  There are two ways we can do this: favoring boards or favoring sections.
+  There are two ways we can do this: favoring folders or favoring sections.
   This determines what we do if we have 3 levels of content -- if we favor
-  boards, it'll be: board group > board > card. If we favor sections it'll
-  be: board > section > card.
+  folders, it'll be: folder group > folder > card. If we favor sections it'll
+  be: folder > section > card.
   """
   if favor_sections:
     if post:
-      # post-traversal if this node is a board and it has a board as a child,
-      # that means the node should actually be a board group.
-      if node.type == BOARD:
+      # post-traversal if this node is a folder and it has a folder as a child,
+      # that means the node should actually be a folder group.
+      if node.type == FOLDER:
         for id in node.children:
           child = node.bundle.node(id)
-          if child.type == BOARD:
-            node.type = BOARD_GROUP
+          if child.type == FOLDER:
+            node.type = FOLDER_GROUP
             break
     else:
       if not node.children and not parent and node.content:
         node.type = CARD
       elif node.children and depth == 0:
-        node.type = BOARD
+        node.type = FOLDER
       elif not node.children:
-        if parent and parent.type == BOARD and not node.content:
+        if parent and parent.type == FOLDER and not node.content:
           node.type = SECTION
         else:
           node.type = CARD
       elif depth > 2:
         node.type = CARD
-      elif parent.type == BOARD and depth == 1:
+      elif parent.type == FOLDER and depth == 1:
         node.type = SECTION
       elif parent.type == SECTION and depth == 2:
-        parent.type = BOARD
+        parent.type = FOLDER
         node.type = SECTION
       else:
         node.type = CARD
   else:
     if not post:
-      # figure out which nodes are board groups, boards, etc.
+      # figure out which nodes are folder groups, folders, etc.
       if not node.children and not parent and node.content:
         node.type = CARD
       elif depth == 0:
-        node.type = BOARD
+        node.type = FOLDER
       elif not node.children:
         node.type = CARD
       elif depth > 2:
         node.type = CARD
-      elif parent.type == BOARD and depth == 1:
-        node.type = BOARD
-        parent.type = BOARD_GROUP
-      elif parent.type == BOARD and depth == 2:
+      elif parent.type == FOLDER and depth == 1:
+        node.type = FOLDER
+        parent.type = FOLDER_GROUP
+      elif parent.type == FOLDER and depth == 2:
         node.type = SECTION
-      elif parent.type == BOARD_GROUP:
-        node.type = BOARD
+      elif parent.type == FOLDER_GROUP:
+        node.type = FOLDER
 
 def insert_nodes(node, parent, depth):
   """
   internal:
-  If a node that ends up being a board or board group also has
+  If a node that ends up being a folder or folder group also has
   content of its own, we need to insert additional nodes so its
   content has a place to go.
 
-  For a board group that has content we insert a board then add
-  a card to it. For a board or section that has content we just
+  For a folder group that has content we insert a folder then add
+  a card to it. For a folder or section that has content we just
   add a card as a child of that node.
   """
-  # add content nodes/boards as needed.
-  # if a board has content, make a sectionless "content" card as the first child.
-  # if a board group has content, make a content board as the first child.
-  
+  # add content nodes/folders as needed.
+  # if a folder has content, make a sectionless "content" card as the first child.
+  # if a folder group has content, make a content folder as the first child.
+
   bundle = node.bundle
 
-  # board groups have to have a board as a child to be a board group, 
-  # so if it has content, we can add it to the first board in the group
-  if node.content and node.type == BOARD_GROUP:
-    # Add a card to the first board in the board group.
+  # folder groups have to have a folder as a child to be a folder group,
+  # so if it has content, we can add it to the first folder in the group
+  if node.content and node.type == FOLDER_GROUP:
+    # Add a card to the first folder in the folder group.
     content_id = "%s_content" % node.id
-    board_id = node.children[0]
+    folder_id = node.children[0]
 
     content_node = bundle.node(
       id=content_id,
@@ -490,16 +490,16 @@ def insert_nodes(node, parent, depth):
       alt_urls=node.alt_urls,
       type=CARD
     )
-    bundle.node(board_id).add_child(content_node, first=True)
+    bundle.node(folder_id).add_child(content_node, first=True)
 
     # we clear the url because the new content_node has this url and
     # when we look for card-to-card links, we want things to link to
     # content_node and not this node.
     node.url = ""
 
-  # if the node has content and is a board or section we just make
+  # if the node has content and is a folder or section we just make
   # a new node (as the card) inside this node.
-  elif node.content and (node.type == BOARD or node.type == SECTION):
+  elif node.content and (node.type == FOLDER or node.type == SECTION):
     # add a card as the first item inside this node.
     content_id = "%s_content" % node.id
     content_node = bundle.node(
@@ -512,20 +512,20 @@ def insert_nodes(node, parent, depth):
     )
     node.add_child(content_node, first=True)
     node.url = ""
-  
+
   # todo: figure out how this happens.
-  # if a board group contains a card directly we need to move the card into a board.
-  elif node.type == CARD and parent and parent.type == BOARD_GROUP:
-    # add the card to the board group's "_content" board.
-    content_id = "%s_content_board" % parent.id
+  # if a folder group contains a card directly we need to move the card into a folder.
+  elif node.type == CARD and parent and parent.type == FOLDER_GROUP:
+    # add the card to the folder group's "_content" folder.
+    content_id = "%s_content_folder" % parent.id
     content_title = "%s Content" % parent.title
-    content_board = bundle.node(content_id, title=content_title, type=BOARD)
-    node.move_to(content_board)
-    parent.add_child(content_board, first=True)
+    content_folder = bundle.node(content_id, title=content_title, type=FOLDER)
+    node.move_to(content_folder)
+    parent.add_child(content_folder, first=True)
 
   # i forget why this was needed.
   # i think this was because of a problem i ran into while doing a google sites migration.
-  elif node.type == CARD and node.children and parent.type == BOARD:
+  elif node.type == CARD and node.children and parent.type == FOLDER:
     section_node = bundle.node(
       id="%s_section" % node.id,
       title=node.title,
@@ -558,7 +558,7 @@ class BundleNode:
     """Adds this object as a child of the given node."""
     node.add_child(self)
     return self
-  
+
   def remove(self):
     self.bundle.remove_node(self)
 
@@ -589,11 +589,11 @@ class BundleNode:
   def add_child(self, child, first=False, after=None):
     """
     Adds the given node as a child of this one.
-    
+
     By default children are added to the end of the parent's list
     of children but passing first=True makes the new child go first.
     """
-    
+
     # check if 'child' is already an ancestor of 'self'.
     for ancestor in self.ancestors():
       if ancestor.id == child.id:
@@ -604,7 +604,7 @@ class BundleNode:
     # nodes can only have a child once.
     if child.id in self.children:
       return
-    
+
     child.parents.append(self)
     if first:
       self.children.insert(0, child.id)
@@ -614,9 +614,9 @@ class BundleNode:
       self.children.insert(index + 1, child.id)
     else:
       self.children.append(child.id)
-    
+
     return self
-  
+
   def get_children_recursively(self):
     all_children = []
     for id in self.children:
@@ -653,13 +653,13 @@ class BundleNode:
             "Title": node.title,
             "Items": section_items
           })
-      # we'd never hit this case because only a board group would have boards as its
-      # children and we don't need to call __make_items_list for a board group because
-      # its list of children _is_ its list of items -- board group yaml files don't
+      # we'd never hit this case because only a folder group would have folders as its
+      # children and we don't need to call __make_items_list for a folder group because
+      # its list of children _is_ its list of items -- folder group yaml files don't
       # need a nested list of items.
-      # elif node.type == BOARD:
+      # elif node.type == FOLDER:
       #   items.append(node.id)
-    
+
     return items
 
   def split_all(self, selector, nest=False):
@@ -699,7 +699,7 @@ class BundleNode:
         content=str(new_doc)
       )
 
-      # add the new node after this existing node so it's on all the same boards.
+      # add the new node after this existing node so it's on all the same folders.
       if nest:
         self.add_child(new_node, first=True)
       else:
@@ -767,7 +767,7 @@ class BundleNode:
         content=new_content
       )
 
-      # add the new node after this existing node so it's on all the same boards.
+      # add the new node after this existing node so it's on all the same folders.
       for parent_node in self.parents:
         parent_node.add_child(new_node, after=self)
 
@@ -870,16 +870,16 @@ class BundleNode:
         # i'm pretty sure this is required but i forget why.
         elif url.startswith("//"):
           element.attrs[attr] = "https:" + url
-  
+
       # we want to return True if the value changed.
       if element.attrs and element.attrs[attr] != initial_value:
         url_map[initial_value] = element.attrs[attr]
-    
+
     # images and iframes can both have src attributes that might reference files we need
     # to download or we may need to adjust ther urls (e.g. make them absolute).
     for el in doc.select("[src]"):
       check_element(el, "src")
-    
+
     # look for links to files that need to be downloaded.
     # also convert doc-to-doc links to be card-to-card.
     for link in doc.select("a[href]"):
@@ -898,34 +898,34 @@ class BundleNode:
         if (compare_links and compare_links(other_node, absolute_url)) or \
             other_node.url == absolute_url or \
             (other_node.alt_urls and absolute_url in other_node.alt_urls):
-          if other_node.type == BOARD:
-            link.attrs["href"] = "boards/%s" % other_node.id
+          if other_node.type == FOLDER:
+            link.attrs["href"] = "folders/%s" % other_node.id
           elif other_node.type == CARD:
             link.attrs["href"] = "cards/%s" % other_node.id
-          elif other_node.type == BOARD_GROUP:
-            link.attrs["href"] = "board-groups/%s" % other_node.id
+          elif other_node.type == FOLDER_GROUP:
+            link.attrs["href"] = "folder-groups/%s" % other_node.id
           check_as_attachment = False
           break
 
       # find links to local files and add these files as resources.
       if check_as_attachment:
         check_element(link, "href")
-      
+
     self.content = str(doc)
 
   def write_files(self):
     """
     internal:
     Writes the files needed for this object. For cards that's a .yaml
-    and .html file. For boards and board groups it's just a .yaml file.
+    and .html file. For folders and folder groups it's just a .yaml file.
     """
     if self.type == CARD and not self.removed:
       write_file(self.bundle.CARD_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
       write_file(self.bundle.CARD_HTML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.content.strip() or "")
-    elif self.type == BOARD:
-      write_file(self.bundle.BOARD_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
-    elif self.type == BOARD_GROUP:
-      write_file(self.bundle.BOARD_GROUP_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
+    elif self.type == FOLDER:
+      write_file(self.bundle.FOLDER_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
+    elif self.type == FOLDER_GROUP:
+      write_file(self.bundle.FOLDER_GROUP_YAML_PATH % (self.bundle.id, _id_to_filename(self.id)), self.make_yaml())
 
   def make_yaml(self):
     """internal: Generates the yaml content for this node."""
@@ -941,9 +941,9 @@ class BundleNode:
         data["ExternalUrl"] = self.url
       if self.tags:
         data["Tags"] = self.tags
-      
+
       return to_yaml(data)
-    elif self.type == BOARD:
+    elif self.type == FOLDER:
       data = {
         "Title": self.title,
         "ExternalId": self.id,
@@ -953,13 +953,13 @@ class BundleNode:
         data["ExternalUrl"] = self.url
       if self.desc:
         data["Description"] = self.desc
-      
+
       return to_yaml(data)
-    elif self.type == BOARD_GROUP:
+    elif self.type == FOLDER_GROUP:
       data = {
         "Title": self.title,
         "ExternalId": self.id,
-        "Boards": self.children
+        "Folders": self.children
       }
       if self.url:
         data["ExternalUrl"] = self.url
@@ -1008,14 +1008,14 @@ class Bundle:
     self.CSV_PATH = folder + "%s/log.csv"
     self.CARD_YAML_PATH = folder + "%s/cards/%s.yaml"
     self.CARD_HTML_PATH = folder + "%s/cards/%s.html"
-    self.BOARD_YAML_PATH = folder + "%s/boards/%s.yaml"
-    self.BOARD_GROUP_YAML_PATH = folder + "%s/board-groups/%s.yaml"
+    self.FOLDER_YAML_PATH = folder + "%s/folders/%s.yaml"
+    self.FOLDER_GROUP_YAML_PATH = folder + "%s/folder-groups/%s.yaml"
     self.COLLECTION_YAML_PATH = folder + "%s/collection.yaml"
     self.RESOURCE_PATH = folder + "%s/resources/%s"
 
     if clear:
       clear_dir(self.CONTENT_PATH % self.id)
-  
+
   def log(self, **kwargs):
     kwargs["time"] = time.time() - self.start_time
     self.events.append(kwargs)
@@ -1047,7 +1047,7 @@ class Bundle:
       if n.id == id:
         return True
     return False
-  
+
   def remove_node(self, node):
     node.detach()
     if node in self.nodes:
@@ -1080,13 +1080,13 @@ class Bundle:
     elif id:
       # some characters aren't allowed in IDs, like `/`
       id = id.replace("/", "_")
-    
+
     node = None
     for n in self.nodes:
       if n.id == id:
         node = n
         break
-    
+
     if title:
       title = str(title).strip()
       if len(title) > 200:
@@ -1095,7 +1095,7 @@ class Bundle:
     if not node:
       node = BundleNode(id, bundle=self, title=title, desc=desc, content=content, tags=tags, alt_urls=alt_urls, index=index)
       self.nodes.append(node)
-    
+
     if url:
       node.url = url
     if title:
@@ -1113,9 +1113,9 @@ class Bundle:
       node.alt_urls = alt_urls
     if index is not None:
       node.index = index
-    
+
     return node
-  
+
   def print_tree(self, print_func=None, just_types=False):
     """
     Prints the bundle's hierarchy to the terminal.
@@ -1242,7 +1242,7 @@ class Bundle:
   def get_resource_path(self, url):
     id = _url_to_id(url)
     return self.RESOURCE_PATH % (self.id, id)
-  
+
   def add_resource(self, filename):
     filename = filename.split("?")[0]
     resource_id = _url_to_id(filename)
@@ -1256,14 +1256,14 @@ class Bundle:
     items = []
     tags = []
     for node in self.nodes:
-      if node.type == BOARD:
+      if node.type == FOLDER:
         if not node.parents:
           items.append({
             "ID": node.id,
-            "Type": "board",
+            "Type": "folder",
             "Title": node.title
           })
-      elif node.type == BOARD_GROUP:
+      elif node.type == FOLDER_GROUP:
         items.append({
           "ID": node.id,
           "Type": "section",
@@ -1274,7 +1274,7 @@ class Bundle:
           for tag in node.tags:
             if tag not in tags:
               tags.append(tag)
-    
+
     data = {
       "Title": "test",
       "Items": items,
@@ -1283,13 +1283,13 @@ class Bundle:
 
     return to_yaml(data)
 
-  def zip(self, download_func=None, compare_links=None, favor_boards=None, favor_sections=None, clean_html=True):
+  def zip(self, download_func=None, compare_links=None, favor_folders=None, favor_sections=None, clean_html=True):
     """
     This wraps up the sync process. Calling this lets us know you're
     done adding content so we can do these things:
 
-    1. Assign guru types (board, card, section, etc.) to each node.
-    2. Create extra nodes as needed (e.g. to have the content that's associated with a board node)
+    1. Assign guru types (folder, card, section, etc.) to each node.
+    2. Create extra nodes as needed (e.g. to have the content that's associated with a folder node)
     3. Clean up link/image URLs and download resources.
     4. Write the .html and .yaml files.
     5. Make a .zip archive with all the content.
@@ -1302,7 +1302,7 @@ class Bundle:
 
     # these are done as tree traversals so we have the parent/child
     # relationship and node depth as parameters.
-    traverse_tree(self, assign_types, post=True, favor_boards=favor_boards, favor_sections=favor_sections)
+    traverse_tree(self, assign_types, post=True, favor_folders=favor_folders, favor_sections=favor_sections)
     traverse_tree(self, insert_nodes)
 
     # remove nodes that are cards and have no content.
@@ -1326,7 +1326,7 @@ class Bundle:
 
     for node in self.nodes:
       node.write_files()
-    
+
     # write the collection.yaml file.
     write_file(self.COLLECTION_YAML_PATH % self.id, self.__make_collection_yaml())
 
@@ -1372,24 +1372,24 @@ class Bundle:
       # get the team's list of collections and find the one matching this name.
       collection = self.guru.get_collection(name)
       collection_id = collection.id if collection else ""
-      
+
       # if no match is found, make the collection.
       if not collection_id:
         collection_id = self.guru.make_collection(name, desc, color, is_sync).id
       else:
         # todo: make the PUT call to make sure the name, color, and desc are set correctly.
         pass
-    
+
     if not collection_id:
       raise BaseException("collection_id is required")
-    
+
     return self.guru.upload_content(
       collection=collection_id,
       filename="collection_%s.zip" % self.id,
       zip_path=self.ZIP_PATH % self.id,
       is_sync=is_sync
     )
-  
+
   def build_spreadsheet(self):
     """internal"""
     rows = []

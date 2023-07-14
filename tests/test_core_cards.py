@@ -136,7 +136,7 @@ class TestCore(unittest.TestCase):
       "id": "aaaabbbb-cccc-dddd-eeee-ffffffffffff",
       "cardInfo": {
         "analytics": {
-          "boards": 1,
+          "folders": 1,
           "copies": 5,
           "favorites": 2,
           "unverifiedCopies": 0,
@@ -184,7 +184,7 @@ class TestCore(unittest.TestCase):
         "suppressVerification": True
       }
     }])
-  
+
   @use_guru()
   @responses.activate
   def test_add_comment_to_card(self, g):
@@ -209,7 +209,7 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/cards/1111/comments",
       "body": {"content": "comment text"}
     }])
-  
+
   @use_guru()
   @responses.activate
   def test_update_card_comment(self, g):
@@ -266,7 +266,7 @@ class TestCore(unittest.TestCase):
       "id": "2222"
     }])
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222/resolve")
-  
+
 
     card = g.get_card("1111")
     open_comments = card.get_open_card_comments()
@@ -348,7 +348,7 @@ class TestCore(unittest.TestCase):
       "dateCreated": "2021-03-18T17:29:04.527+0000"
     }])
     responses.add(responses.PUT, "https://api.getguru.com/api/v1/cards/1111/comments/2222/resolve")
-  
+
     card = g.get_card("1111")
     open_comments = card.get_open_card_comments()
 
@@ -434,7 +434,7 @@ class TestCore(unittest.TestCase):
 
     with patch("time.sleep", Mock(return_value=None)):
       g.restore_cards("1111", "2222", timeout=1)
-    
+
     self.assertEqual(get_calls(), [{
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/cards/bulkop",
@@ -515,7 +515,7 @@ class TestCore(unittest.TestCase):
 
     card = g.get_card("1234")
     card.add_tag("tag1")
-    
+
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1234/extended"
@@ -547,7 +547,7 @@ class TestCore(unittest.TestCase):
         "collectionIds": []
       }
     }])
-  
+
   @use_guru()
   @responses.activate
   def test_find_archived_cards(self, g):
@@ -593,7 +593,7 @@ class TestCore(unittest.TestCase):
         "collectionIds": ["1234"]
       }
     }])
-  
+
   @use_guru()
   @responses.activate
   def test_find_cards_by_tag(self, g):
@@ -730,7 +730,7 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/search/cardmgr",
       "body": post_body_no_filter
     }])
-  
+
   @use_guru()
   @responses.activate
   def test_find_card_by_tag(self, g):
@@ -906,14 +906,14 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
-  def test_find_cards_not_on_a_board(self, g):
+  def test_find_cards_not_on_a_folder(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
     responses.add(responses.POST, "https://api.getguru.com/api/v1/search/cardmgr", json=[])
 
-    g.find_cards(collection="General", board_count=0, share_status=("NE", "PRIVATE"))
+    g.find_cards(collection="General", folder_count=0, share_status=("NE", "PRIVATE"))
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
@@ -932,7 +932,7 @@ class TestCore(unittest.TestCase):
             "type": "count",
             "value": "0",
             "op": "EQ",
-            "field": "BOARDCOUNT"
+            "field": "FOLDERCOUNT"
           }, {
             "type": "share-type",
             "shareType": "PRIVATE",
@@ -981,7 +981,7 @@ class TestCore(unittest.TestCase):
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/teams/abcd/tagcategories"
     }])
-  
+
   @use_guru()
   def test_get_invalid_tag(self, g):
     self.assertIsNone(g.get_tag(""))
@@ -1031,7 +1031,7 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/cards/1234/unverify"
     }])
     self.assertEqual(result, True)
-  
+
   @use_guru()
   @responses.activate
   def test_favorite_card(self, g):
@@ -1059,7 +1059,7 @@ class TestCore(unittest.TestCase):
       "body": {
         "prevSiblingItem": "last",
         "actionType": "add",
-        "boardEntries": [{
+        "folderEntries": [{
           "cardId": "1234",
           "entryType": "card"
         }]
@@ -1122,7 +1122,7 @@ class TestCore(unittest.TestCase):
   @responses.activate
   def test_unfavorite_invalid_card(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json=None, status=404)
-    
+
     g.unfavorite_card("1111")
 
     self.assertEqual(get_calls(), [{

@@ -27,11 +27,11 @@ from guru.publish import (
     Publisher
 )
 
-# you might need these to check if an item on a board is
+# you might need these to check if an item on a folder is
 # an instance of Section or Card.
 from guru.data_objects import (
-    Board,
-    BoardGroup,
+    Folder,
+    FolderGroup,
     Card,
     Folder,
     Section

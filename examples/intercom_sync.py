@@ -102,7 +102,7 @@ bundle = g.bundle("intercom")
 
 # The grouping structures in Intercom are called Collections and Sections, which
 # is a little confusing because those are also terms in Guru. We make a node for
-# every Intercom Collection -- these will become Boards in Guru.
+# every Intercom Collection -- these will become Folders in Guru.
 for collection in get_intercom_collections():
   bundle.node(
     id=collection.get("id"),
@@ -145,7 +145,7 @@ for article in get_intercom_articles():
   #       'sad_reaction_percentage': 0
   #    }
   #   },
-  
+
   # if there's no content, skip it.
   if not article.get("body"):
     continue
@@ -176,8 +176,8 @@ def download_file(bundle, url, filename):
     return status_code
 
 bundle.zip(
-  # you can change this to favor_boards=True to make the sync create
-  # board groups with boards, rather than boards with sections, if
+  # you can change this to favor_folders=True to make the sync create
+  # folder groups with folders, rather than folders with sections, if
   # that's your preference.
   favor_sections=True,
   download_func=lambda url, filename, bundle, node: download_file(bundle, url, filename)

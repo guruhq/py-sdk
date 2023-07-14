@@ -4,7 +4,7 @@ import guru
 # call script with the credentials of the user you want to use
 # ex: GURU_USER=user@example.com GURU_TOKEN=abcd1234-abcd-abcd-abcd-abcdabcdabcd python getCardExport.py
 
-""" 
+"""
 # API token info
 email = "someperson@yourcompany.com"
 token = "yourapitokengoeshere"
@@ -158,7 +158,7 @@ test_cardNotInFolderId = "cardId not in target folder"
 
 # Parent and Home Folder
 # print(f"Parent Folder: {folder.get_parent().title}")
-# print(f"Home board: {folder.get_home().title}")
+# print(f"Home folder: {folder.get_home().title}")
 
 # Get a card from a Folder
 
@@ -177,11 +177,11 @@ test_cardNotInFolderId = "cardId not in target folder"
 # print(f"remove card: {card.remove_from_folder(test_targetFolderId)}")
 
 # for f in card.folders:
-#   print(f"card board titles: {f.title}")
+#   print(f"card folder titles: {f.title}")
 
 # call it again to show that folders already loaded, should not see another API call!
 # for f in card.folders:
-#   print(f"card board titles: {f.slug}")
+#   print(f"card folder titles: {f.slug}")
 
 # folders = g.get_folders_for_a_card(test_cardId)
 # for f in folders:

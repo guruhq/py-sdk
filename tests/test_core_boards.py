@@ -15,12 +15,12 @@ import guru
 class TestCore(unittest.TestCase):
   @use_guru()
   @responses.activate
-  def test_get_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+  def test_get_folder(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[{
       "id": "1234",
       "title": "test"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/1234", json={
       "items": [{
         "type": "section",
         "title": "test",
@@ -34,82 +34,82 @@ class TestCore(unittest.TestCase):
       }]
     })
 
-    board = g.get_board("test")
+    folder = g.get_folder("test")
 
-    self.assertEqual(len(board.items), 2)
-    self.assertEqual(len(board.cards), 2)
-    self.assertEqual(len(board.sections), 1)
-    self.assertEqual(len(board.all_items), 3)
+    self.assertEqual(len(folder.items), 2)
+    self.assertEqual(len(folder.cards), 2)
+    self.assertEqual(len(folder.sections), 1)
+    self.assertEqual(len(folder.all_items), 3)
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/1234"
+      "url": "https://api.getguru.com/api/v1/folders/1234"
     }])
 
   @use_guru()
   @responses.activate
-  def test_get_board_with_duplicate_name(self, g):
+  def test_get_folder_with_duplicate_name(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1111",
       "name": "Engineering"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/home?collection=1111", json={
       "collection": {
         "id": "1111"
       },
       "items": [{
-        "type": "board",
-        "title": "My Board",
+        "type": "folder",
+        "title": "My Folder",
         "id": "2222"
       }, {
         "type": "section",
-        "title": "Onboarding",
+        "title": "Onfoldering",
         "items": [{
-          # this it the board we should find because it's inside the 'Onboarding' board group.
-          "type": "board",
-          "title": "My Board",
+          # this it the folder we should find because it's inside the 'Onfoldering' folder group.
+          "type": "folder",
+          "title": "My Folder",
           "id": "3333"
         }]
       }]
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/3333", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/3333", json={
       "id": "3333",
-      "title": "My Board"
+      "title": "My Folder"
     })
 
-    board = g.get_board("My Board", collection="Engineering", board_group="Onboarding")
+    folder = g.get_folder("My Folder", collection="Engineering", folder_group="Onfoldering")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/home?collection=1111"
+      "url": "https://api.getguru.com/api/v1/folders/home?collection=1111"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/3333"
+      "url": "https://api.getguru.com/api/v1/folders/3333"
     }])
 
   @use_guru()
   @responses.activate
-  def test_get_board_with_110_cards(self, g):
-    # we build the list of items that comes back in the initial get call to load the board.
+  def test_get_folder_with_110_cards(self, g):
+    # we build the list of items that comes back in the initial get call to load the folder.
     # we also build the responses that come back for loading the first page of 50 and the page of 10 cards.
-    board_items = []
+    folder_items = []
     first_batch = {}
     second_batch = {}
     for i in range(110):
       if i < 50:
-        board_items.append({
+        folder_items.append({
           "type": "fact",
           "preferredPhrase": "card %s" % i,
           "id": str(i)
         })
       else:
-        board_items.append({
+        folder_items.append({
           "type": "fact",
           "id": str(i)
         })
@@ -123,29 +123,29 @@ class TestCore(unittest.TestCase):
             "preferredPhrase": "card %s" % i
           }
 
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[{
       "id": "1234",
       "title": "test"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/1234", json={
-      "items": board_items
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/1234", json={
+      "items": folder_items
     })
     responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/bulk", json=first_batch)
     responses.add(responses.POST, "https://api.getguru.com/api/v1/cards/bulk", json=second_batch)
 
-    board = g.get_board("test")
+    folder = g.get_folder("test")
 
-    self.assertEqual(len(board.items), 110)
-    self.assertEqual(len(board.cards), 110)
-    self.assertEqual(board.cards[75].title, "card 75")
-    self.assertEqual(board.cards[105].title, "card 105")
+    self.assertEqual(len(folder.items), 110)
+    self.assertEqual(len(folder.cards), 110)
+    self.assertEqual(folder.cards[75].title, "card 75")
+    self.assertEqual(folder.cards[105].title, "card 105")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/1234"
+      "url": "https://api.getguru.com/api/v1/folders/1234"
     }, {
       "method": "POST",
       "url": "https://api.getguru.com/api/v1/cards/bulk",
@@ -162,46 +162,46 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
-  def test_make_board(self, g):
+  def test_make_folder(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home/entries?collection=1234", json=[])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[{
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/home/entries?collection=1234", json=[])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders?collection=1234", json=[{
       "id": "1111",
-      "title": "New Board"
+      "title": "New Folder"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/1111", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/1111", json={})
 
-    result = g.make_board("New Board", collection="General", description="test")
+    result = g.make_folder("New Folder", collection="General", description="test")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/home/entries?collection=1234",
+      "url": "https://api.getguru.com/api/v1/folders/home/entries?collection=1234",
       "body": {
         "actionType": "add",
-        "boardEntries": [{
-          "entryType": "board",
-          "title": "New Board",
+        "folderEntries": [{
+          "entryType": "folder",
+          "title": "New Folder",
           "description": "test"
         }]
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders?collection=1234"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/1111"
+      "url": "https://api.getguru.com/api/v1/folders/1111"
     }])
 
   @use_guru()
   @responses.activate
-  def test_delete_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+  def test_delete_folder(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[{
       "id": "abcd",
       "title": "General",
       "collection": {
@@ -215,53 +215,53 @@ class TestCore(unittest.TestCase):
         "id": "cdcdcd"
       }
     }])
-    # responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/General", json={})
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/abcd", json={
+    # responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/General", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/abcd", json={
       "id": "abcd",
       "title": "General",
       "collection": {
         "id": "ababab"
       }
     })
-    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/boards/abcd")
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/folders/abcd")
 
-    board = g.get_board("General")
-    board.delete()
+    folder = g.get_folder("General")
+    folder.delete()
 
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/abcd"
+      "url": "https://api.getguru.com/api/v1/folders/abcd"
     }, {
       "method": "DELETE",
-      "url": "https://api.getguru.com/api/v1/boards/abcd"
+      "url": "https://api.getguru.com/api/v1/folders/abcd"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_delete_board_with_invalid_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
-    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/boards/abcd")
+  def test_delete_folder_with_invalid_folder(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[])
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/folders/abcd")
 
-    g.delete_board("123456")
+    g.delete_folder("123456")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }])
 
 
   @use_guru()
   @responses.activate
-  def test_get_board_group(self, g):
+  def test_get_folder_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/home?collection=1234", json={
       "collection": {
         "id": "1234"
       },
@@ -271,63 +271,63 @@ class TestCore(unittest.TestCase):
         "items": [],
       }, {
         "type": "section",
-        "title": "My Board Group",
+        "title": "My Folder Group",
         "items": [{
-          "type": "board"
+          "type": "folder"
         }]
       }, {
-        "type": "board"
+        "type": "folder"
       }]
     })
 
-    g.get_board_group("my board group", "General")
+    g.get_folder_group("my folder group", "General")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders/home?collection=1234"
     }])
 
   @use_guru()
   @responses.activate
-  def test_get_home_board(self, g):
+  def test_get_home_folder(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/home?collection=1234", json={
       "collection": {
         "id": "1234"
       },
       "items": [{
         "type": "section",
         "items": [{
-          "type": "board"
+          "type": "folder"
         }]
       }, {
-        "type": "board"
+        "type": "folder"
       }]
     })
 
-    g.get_home_board("General")
+    g.get_home_folder("General")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders/home?collection=1234"
     }])
 
   @use_guru()
   @responses.activate
-  def test_get_home_board_by_invalid_collection(self, g):
+  def test_get_home_folder_by_invalid_collection(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/home?collection=1234", json={})
 
-    g.get_home_board("General")
+    g.get_home_folder("General")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
@@ -336,12 +336,12 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
-  def test_set_home_board_item_order(self, g):
+  def test_set_home_folder_item_order(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/home?collection=1234", json={
       "id": "home",
       "collection": {
         "id": "1234"
@@ -349,58 +349,58 @@ class TestCore(unittest.TestCase):
       "items": [{
         "id": "1",
         "itemId": "i1",
-        "type": "board",
-        "title": "Board A"
+        "type": "folder",
+        "title": "Folder A"
       }, {
         "id": "2",
         "itemId": "i2",
         "type": "section",
-        "title": "Board Group",
+        "title": "Folder Group",
         "items": [{
-          "type": "board"
+          "type": "folder"
         }]
       }, {
         "id": "3",
         "itemId": "i3",
-        "type": "board",
-        "title": "Board B"
+        "type": "folder",
+        "title": "Folder B"
       }]
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/home", json={})
 
-    home_board = g.get_home_board("General")
-    home_board.set_item_order("Board B", "Board A", "Board Group")
+    home_folder = g.get_home_folder("General")
+    home_folder.set_item_order("Folder B", "Folder A", "Folder Group")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders/home?collection=1234"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/home",
+      "url": "https://api.getguru.com/api/v1/folders/home",
       "body": {
         "id": "home",
         "collection": {"id": "1234", "name": None, "type": None, "color": None},
         "items": [
-          {"id": "3", "type": "board", "title": "Board B"}, # "itemId": "i3",
-          {"id": "1", "type": "board", "title": "Board A"}, # "itemId": "i1",
-          {"id": "2", "type": "section", "itemId": "i2", "title": "Board Group", "items": [
-            {"id": None, "type": "board", "title": None}
+          {"id": "3", "type": "folder", "title": "Folder B"}, # "itemId": "i3",
+          {"id": "1", "type": "folder", "title": "Folder A"}, # "itemId": "i1",
+          {"id": "2", "type": "section", "itemId": "i2", "title": "Folder Group", "items": [
+            {"id": None, "type": "folder", "title": None}
           ]}
         ]
       }
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_set_board_item_order(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+  def test_set_folder_item_order(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[{
       "id": "1234",
       "title": "test"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/1234", json={
       "id": "1234",
       "collection": {
         "id": "abcd",
@@ -429,22 +429,22 @@ class TestCore(unittest.TestCase):
         "type": "fact"
       }]
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/1234", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/1234", json={})
 
-    board = g.get_board("test")
-    board.set_item_order("card 3", "test")
+    folder = g.get_folder("test")
+    folder.set_item_order("card 3", "test")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/1234"
+      "url": "https://api.getguru.com/api/v1/folders/1234"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/1234",
+      "url": "https://api.getguru.com/api/v1/folders/1234",
       "body": {
-        "id": "1234", "type": "board", "title": None,
+        "id": "1234", "type": "folder", "title": None,
         "collection": {"id": "abcd", "name": "General", "type": None, "color": None},
         "items": [
           {"type": "fact", "id": "4", "itemId": "i4"},
@@ -455,15 +455,15 @@ class TestCore(unittest.TestCase):
         ]
       }
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_set_board_group_item_order(self, g):
+  def test_set_folder_group_item_order(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/home?collection=1234", json={
       "id": "home",
       "collection": {
         "id": "1234"
@@ -474,59 +474,59 @@ class TestCore(unittest.TestCase):
         "items": [],
       }, {
         "type": "section",
-        "title": "My Board Group",
+        "title": "My Folder Group",
         "items": [{
-          "type": "board",
+          "type": "folder",
           "id": "1",
           "itemId": "i1",
-          "title": "Board A"
+          "title": "Folder A"
         }, {
-          "type": "board",
+          "type": "folder",
           "id": "2",
           "itemId": "i2",
-          "title": "Board B"
+          "title": "Folder B"
         }, {
-          "type": "board",
+          "type": "folder",
           "id": "3",
           "itemId": "i3",
-          "title": "Board C"
+          "title": "Folder C"
         }]
       }, {
-        "type": "board"
+        "type": "folder"
       }]
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/home", json={})
 
-    board_group = g.get_board_group("my board group", "General")
-    board_group.set_item_order("board c", "board b", "board a")
+    folder_group = g.get_folder_group("my folder group", "General")
+    folder_group.set_item_order("folder c", "folder b", "folder a")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders/home?collection=1234"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/home",
+      "url": "https://api.getguru.com/api/v1/folders/home",
       "body": {
         "id": "home",
         "collection": {"id": "1234", "name": None, "type": None, "color": None},
         "items": [
           {"id": None, "type": "section", "itemId": None, "title": "A", "items": []},
           {
-            # this is the board group we edited:
+            # this is the folder group we edited:
             "id": None,
             "type": "section",
             "itemId": None,
-            "title": "My Board Group",
+            "title": "My Folder Group",
             "items": [
-              {"id": "3", "type": "board", "title": "Board C"}, # "itemId": "i3"
-              {"id": "2", "type": "board", "title": "Board B"}, # "itemId": "i2"
-              {"id": "1", "type": "board", "title": "Board A"}  # "itemId": "i1"
+              {"id": "3", "type": "folder", "title": "Folder C"}, # "itemId": "i3"
+              {"id": "2", "type": "folder", "title": "Folder B"}, # "itemId": "i2"
+              {"id": "1", "type": "folder", "title": "Folder A"}  # "itemId": "i1"
             ]
           },
-          {"id": None, "type": "board", "title": None} # "itemId": None,
+          {"id": None, "type": "folder", "title": None} # "itemId": None,
         ]
       }
     }])
@@ -538,50 +538,50 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "General"
     }])
-    g.set_item_order("invalid", "My Board", "a", "b", "c")
+    g.set_item_order("invalid", "My Folder", "a", "b", "c")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_set_item_order_with_invalid_board(self, g):
+  def test_set_item_order_with_invalid_folder(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/isinvalid", status=404)
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/isinvalid", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders?collection=1234", json=[{
       "id": "abcd",
-      "title": "Board A",
+      "title": "Folder A",
     }, {
       "id": "efgh",
-      "title": "Board B"
+      "title": "Folder B"
     }])
 
     g.set_item_order("General", "isinvalid", "a", "b", "c")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/isinvalid"
+      "url": "https://api.getguru.com/api/v1/folders/isinvalid"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections",
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders?collection=1234"
     }])
 
   @use_guru()
   @responses.activate
-  def test_make_board_group(self, g):
+  def test_make_folder_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/home?collection=1234", json={
       "collection": {
         "id": "1234"
       },
@@ -591,61 +591,61 @@ class TestCore(unittest.TestCase):
         "items": [],
       }, {
         "type": "section",
-        "title": "My Board Group",
+        "title": "My Folder Group",
         "items": [{
-          "type": "board"
+          "type": "folder"
         }]
       }, {
-        "type": "board"
+        "type": "folder"
       }]
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home/entries?collection=1234", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/home/entries?collection=1234", json={})
 
-    g.make_board_group("General", "my board group", "desc...")
+    g.make_folder_group("General", "my folder group", "desc...")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/home/entries?collection=1234",
+      "url": "https://api.getguru.com/api/v1/folders/home/entries?collection=1234",
       "body": {
         "actionType": "add",
-        "boardEntries": [{
+        "folderEntries": [{
           "description": "desc...",
           "entryType": "section",
-          "title": "my board group"
+          "title": "my folder group"
         }]
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders/home?collection=1234"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_add_card_to_board(self, g):
+  def test_add_card_to_folder(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={
       "id": "22222222-2222-2222-2222-222222222222",
-      "title": "my board",
+      "title": "my folder",
       "items": []
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={})
 
-    g.add_card_to_board("1111", "22222222-2222-2222-2222-222222222222")
+    g.add_card_to_folder("1111", "22222222-2222-2222-2222-222222222222")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222",
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222",
       "body": {
         "id": "22222222-2222-2222-2222-222222222222",
         "items": [{
@@ -653,42 +653,42 @@ class TestCore(unittest.TestCase):
           "itemId": None,
           "type": "fact"
         }],
-        "title": "my board",
-        "type": "board"
+        "title": "my folder",
+        "type": "folder"
       }
     }])
 
   @use_guru()
   @responses.activate
-  def test_add_card_to_board_by_board_name(self, g):
+  def test_add_card_to_folder_by_folder_name(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[{
       "id": "2222",
-      "title": "my board"
+      "title": "my folder"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/2222", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/2222", json={
       "id": "2222",
-      "title": "my board",
+      "title": "my folder",
       "items": []
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/2222", json={})
 
-    g.add_card_to_board("1111", "my board")
+    g.add_card_to_folder("1111", "my folder")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/2222"
+      "url": "https://api.getguru.com/api/v1/folders/2222"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/2222",
+      "url": "https://api.getguru.com/api/v1/folders/2222",
       "body": {
         "id": "2222",
         "items": [{
@@ -696,35 +696,35 @@ class TestCore(unittest.TestCase):
           "itemId": None,
           "type": "fact"
         }],
-        "title": "my board",
-        "type": "board"
+        "title": "my folder",
+        "type": "folder"
       }
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_add_card_to_board_by_board_slug(self, g):
+  def test_add_card_to_folder_by_folder_slug(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/abcde123", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/abcde123", json={
       "id": "2222",
-      "slug": "abcde123/my-board",
-      "title": "my board"
+      "slug": "abcde123/my-folder",
+      "title": "my folder"
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/2222", json={})
 
-    g.add_card_to_board("1111", "abcde123")
+    g.add_card_to_folder("1111", "abcde123")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/abcde123"
+      "url": "https://api.getguru.com/api/v1/folders/abcde123"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/2222",
+      "url": "https://api.getguru.com/api/v1/folders/2222",
       "body": {
         "id": "2222",
         "items": [{
@@ -732,44 +732,44 @@ class TestCore(unittest.TestCase):
           "itemId": None,
           "type": "fact"
         }],
-        "title": "my board",
-        "type": "board"
+        "title": "my folder",
+        "type": "folder"
       }
     }])
 
   @use_guru()
   @responses.activate
-  def test_add_card_to_invalid_board(self, g):
+  def test_add_card_to_invalid_folder(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[{
       "id": "2222",
-      "title": "my board"
+      "title": "my folder"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/2222", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/2222", json={
       "id": "2222",
-      "title": "my board",
+      "title": "my folder",
       "items": []
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/2222", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/2222", json={})
 
-    g.add_card_to_board("1111", "no match")
+    g.add_card_to_folder("1111", "no match")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }])
 
   @use_guru()
   @responses.activate
-  def test_add_invalid_card_to_board(self, g):
+  def test_add_invalid_card_to_folder(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", status=404)
-    
-    g.add_card_to_board("1111", "2222")
+
+    g.add_card_to_folder("1111", "2222")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
@@ -778,123 +778,36 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
-  def test_add_card_to_board_and_existing_section(self, g):
+  def test_add_card_to_folder_and_existing_section(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
       "id": "1111"
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={
       "id": "22222222-2222-2222-2222-222222222222",
-      "title": "my board",
+      "title": "my folder",
       "items": [{
         "type": "section",
         "title": "section 8",
         "id": "3333"
       }]
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={})
 
-    g.add_card_to_board("1111", "22222222-2222-2222-2222-222222222222", "section 8")
+    g.add_card_to_folder("1111", "22222222-2222-2222-2222-222222222222", "section 8")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/cards/1111/extended"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222",
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222",
       "body": {
         "id": "22222222-2222-2222-2222-222222222222",
-        "type": "board",
-        "title": "my board",
-        "items": [{
-          "type": "section",
-          "id": "3333",
-          "itemId": None,
-          "items": [{
-            "type": "fact",
-            "id": "1111", 
-            "itemId": None
-          }]
-        }]
-      }
-    }])
-
-  @use_guru()
-  @responses.activate
-  def test_add_card_to_board_and_invalid_section(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
-      "id": "1111"
-    })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
-      "id": "22222222-2222-2222-2222-222222222222",
-      "title": "my board",
-      "items": []
-    })
-    # responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={})
-
-    g.add_card_to_board("1111", "22222222-2222-2222-2222-222222222222", "section 8")
-
-    self.assertEqual(get_calls(), [{
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
-    }])
-  
-  @use_guru()
-  @responses.activate
-  def test_add_card_to_board_and_new_section(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
-      "id": "1111"
-    })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
-      "id": "22222222-2222-2222-2222-222222222222",
-      "title": "my board",
-      "items": []
-    })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222/entries", status=204)
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
-      "id": "22222222-2222-2222-2222-222222222222",
-      "title": "my board",
-      "items": [{
-        "type": "section",
-        "title": "section 8",
-        "id": "3333"
-      }]
-    })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={})
-
-    g.add_card_to_board("1111", "22222222-2222-2222-2222-222222222222", "section 8", create_section_if_needed=True)
-
-    self.assertEqual(get_calls(), [{
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
-    }, {
-      "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222/entries",
-      "body": {
-        "actionType": "add",
-        "boardEntries": [{
-          "entryType": "section",
-          "title": "section 8"
-        }]
-      }
-    }, {
-      "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
-    }, {
-      "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222",
-      "body": {
-        "id": "22222222-2222-2222-2222-222222222222",
-        "type": "board",
-        "title": "my board",
+        "type": "folder",
+        "title": "my folder",
         "items": [{
           "type": "section",
           "id": "3333",
@@ -907,13 +820,100 @@ class TestCore(unittest.TestCase):
         }]
       }
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_remove_card_from_board_by_card_id(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+  def test_add_card_to_folder_and_invalid_section(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={
       "id": "22222222-2222-2222-2222-222222222222",
-      "title": "my board",
+      "title": "my folder",
+      "items": []
+    })
+    # responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={})
+
+    g.add_card_to_folder("1111", "22222222-2222-2222-2222-222222222222", "section 8")
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222"
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_add_card_to_folder_and_new_section(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/cards/1111/extended", json={
+      "id": "1111"
+    })
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
+      "title": "my folder",
+      "items": []
+    })
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222/entries", status=204)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
+      "title": "my folder",
+      "items": [{
+        "type": "section",
+        "title": "section 8",
+        "id": "3333"
+      }]
+    })
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={})
+
+    g.add_card_to_folder("1111", "22222222-2222-2222-2222-222222222222", "section 8", create_section_if_needed=True)
+
+    self.assertEqual(get_calls(), [{
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/cards/1111/extended"
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222/entries",
+      "body": {
+        "actionType": "add",
+        "folderEntries": [{
+          "entryType": "section",
+          "title": "section 8"
+        }]
+      }
+    }, {
+      "method": "GET",
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222"
+    }, {
+      "method": "PUT",
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222",
+      "body": {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "type": "folder",
+        "title": "my folder",
+        "items": [{
+          "type": "section",
+          "id": "3333",
+          "itemId": None,
+          "items": [{
+            "type": "fact",
+            "id": "1111",
+            "itemId": None
+          }]
+        }]
+      }
+    }])
+
+  @use_guru()
+  @responses.activate
+  def test_remove_card_from_folder_by_card_id(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={
+      "id": "22222222-2222-2222-2222-222222222222",
+      "title": "my folder",
       "collection": {
         "id": "3333"
       },
@@ -923,33 +923,33 @@ class TestCore(unittest.TestCase):
         "preferredPhrase": "my card"
       }]
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222/entries", json={})
-    
-    g.remove_card_from_board("1111", "22222222-2222-2222-2222-222222222222")
-    
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222/entries", json={})
+
+    g.remove_card_from_folder("1111", "22222222-2222-2222-2222-222222222222")
+
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222/entries",
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222/entries",
       "body": {
         "actionType": "remove",
         "collectionId": "3333",
         "id": "22222222-2222-2222-2222-222222222222",
-        "boardEntries": [{
+        "folderEntries": [{
           "entryType": "card",
           "id": None
         }]
       }
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_remove_card_from_board_with_invalid_card(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", json={
+  def test_remove_card_from_folder_with_invalid_card(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", json={
       "id": "22222222-2222-2222-2222-222222222222",
-      "title": "my board",
+      "title": "my folder",
       "collection": {
         "id": "3333"
       },
@@ -959,38 +959,38 @@ class TestCore(unittest.TestCase):
         "preferredPhrase": "my card"
       }]
     })
-    
-    g.remove_card_from_board("invalid", "22222222-2222-2222-2222-222222222222")
-    
+
+    g.remove_card_from_folder("invalid", "22222222-2222-2222-2222-222222222222")
+
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222"
     }])
 
   @use_guru()
   @responses.activate
-  def test_remove_card_from_board_with_invalid_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222", status=404)
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
-    
-    g.remove_card_from_board("1111", "22222222-2222-2222-2222-222222222222")
-    
+  def test_remove_card_from_folder_with_invalid_folder(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222", status=404)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[])
+
+    g.remove_card_from_folder("1111", "22222222-2222-2222-2222-222222222222")
+
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/22222222-2222-2222-2222-222222222222"
+      "url": "https://api.getguru.com/api/v1/folders/22222222-2222-2222-2222-222222222222"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_get_board_permissions(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_get_folder_permissions(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions", json=[{
       "id": "1234",
       "group": {
         "id": "1111",
@@ -998,25 +998,25 @@ class TestCore(unittest.TestCase):
       }
     }])
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    
-    groups = board.get_groups()
+    folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+
+    groups = folder.get_groups()
     self.assertEqual(groups[0].id, "1234")
     self.assertEqual(groups[0].group.id, "1111")
     self.assertEqual(groups[0].group.name, "Experts")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_add_board_permission(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_add_folder_permission(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
@@ -1024,20 +1024,20 @@ class TestCore(unittest.TestCase):
       "id": "1111",
       "name": "Experts"
     }])
-    responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions")
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions")
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    board.add_group("Experts")
+    folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+    folder.add_group("Experts")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
       "method": "POST",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions",
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions",
       "body": [{
         "type": "group",
         "role": "MEMBER",
@@ -1046,15 +1046,15 @@ class TestCore(unittest.TestCase):
         }
       }]
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_remove_board_permission(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_remove_folder_permission(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions", json=[{
       "id": "1234",
       "group": {
         "id": "1111",
@@ -1065,72 +1065,72 @@ class TestCore(unittest.TestCase):
       "id": "1111",
       "name": "Experts"
     }])
-    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions/1234", status=204)
+    responses.add(responses.DELETE, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions/1234", status=204)
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    result = board.remove_group("Experts")
+    folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+    result = folder.remove_group("Experts")
 
     self.assertEqual(result, True)
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions"
     }, {
       "method": "DELETE",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions/1234"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions/1234"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_get_board_permissions_with_invalid_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[{
+  def test_get_folder_permissions_with_invalid_folder(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[{
       "id": "1234",
       "title": "test"
     }])
 
-    result = g.get_shared_groups("my board")
-    
+    result = g.get_shared_groups("my folder")
+
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_add_board_permission_with_invalid_group(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_add_folder_permission_with_invalid_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[])
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    board.add_group("Experts")
+    folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+    folder.add_group("Experts")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_add_board_permission_with_invalid_board(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
+  def test_add_folder_permission_with_invalid_folder(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[])
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1111",
       "name": "Experts"
     }])
 
-    result = g.add_shared_group("my board", "Experts")
+    result = g.add_shared_group("my folder", "Experts")
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
@@ -1138,35 +1138,35 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_remove_board_permission_with_invalid_group(self, g):
+  def test_remove_folder_permission_with_invalid_group(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1111",
       "name": "other group"
     }])
-    
-    result = g.remove_shared_group("my board", "Experts")
+
+    result = g.remove_shared_group("my folder", "Experts")
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_remove_board_permission_with_invalid_board(self, g):
+  def test_remove_folder_permission_with_invalid_folder(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/groups", json=[{
       "id": "1111",
       "name": "Experts"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards", json=[])
-    
-    result = g.remove_shared_group("my board", "Experts")
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders", json=[])
+
+    result = g.remove_shared_group("my folder", "Experts")
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
@@ -1174,17 +1174,17 @@ class TestCore(unittest.TestCase):
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards"
+      "url": "https://api.getguru.com/api/v1/folders"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_remove_board_permission_with_unshared_group(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_remove_folder_permission_with_unshared_group(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions", json=[{
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions", json=[{
       "id": "1234",
       "group": {
         "id": "1111",
@@ -1196,29 +1196,29 @@ class TestCore(unittest.TestCase):
       "name": "other group"
     }])
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    result = board.remove_group("other group")
+    folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+    result = folder.remove_group("other group")
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/groups"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111/permissions"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111/permissions"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_add_board_to_board_group_by_uuid(self, g):
+  def test_add_folder_to_folder_group_by_uuid(self, g):
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/home?collection=1234", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/home?collection=1234", json={
       "collection": {
         "id": "1234"
       },
@@ -1227,52 +1227,52 @@ class TestCore(unittest.TestCase):
         "title": "Test",
         "itemId": "bg1",
         "items": [{
-          "type": "board",
+          "type": "folder",
           "id": "22222222-2222-2222-2222-222222222222",
           "itemId": "i2",
-          "title": "board 2" 
+          "title": "folder 2"
         }],
       }, {
-        "type": "board",
+        "type": "folder",
         "id": "11111111-1111-1111-1111-111111111111",
         "itemId": "i1",
-        "title": "board 1"
+        "title": "folder 1"
       }]
     })
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
-      "title": "board 2",
+      "title": "folder 2",
       "collection": {
         "id": "1234"
       }
     })
-    responses.add(responses.PUT, "https://api.getguru.com/api/v1/boards/home/entries?collection=1234", json={})
+    responses.add(responses.PUT, "https://api.getguru.com/api/v1/folders/home/entries?collection=1234", json={})
 
-    board_group = g.get_board_group("Test", collection="General")
-    board_group.add_board("11111111-1111-1111-1111-111111111111")
-    
+    folder_group = g.get_folder_group("Test", collection="General")
+    folder_group.add_folder("11111111-1111-1111-1111-111111111111")
+
     self.assertEqual(get_calls(), [{
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders/home?collection=1234"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/home?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders/home?collection=1234"
     }, {
       "method": "PUT",
-      "url": "https://api.getguru.com/api/v1/boards/home/entries?collection=1234",
+      "url": "https://api.getguru.com/api/v1/folders/home/entries?collection=1234",
       "body": {
         "sectionId": "bg1",
         "actionType": "move",
-        "boardEntries": [
+        "folderEntries": [
           {
             "id": "i1",
-            "entryType": "board"
+            "entryType": "folder"
           }
         ],
         "prevSiblingItem": "i2"
@@ -1282,8 +1282,8 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
-  def test_move_board_to_collection(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_move_folder_to_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
@@ -1291,26 +1291,26 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/folders/bulkop", json={
       "id": "2222"
     })
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    board.move_to_collection("General")
+    folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+    folder.move_to_collection("General")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "POST",
-      "url": "https://api.getguru.com/api/v1/boards/bulkop",
+      "url": "https://api.getguru.com/api/v1/folders/bulkop",
       "body": {
         "action": {
           "collectionId": "1234",
-          "type": "move-board"
+          "type": "move-folder"
         },
         "items": {
           "itemIds": ["11111111-1111-1111-1111-111111111111"],
@@ -1321,8 +1321,8 @@ class TestCore(unittest.TestCase):
 
   @use_guru()
   @responses.activate
-  def test_move_board_to_collection_and_wait(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_move_folder_to_collection_and_wait(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
@@ -1330,28 +1330,28 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/folders/bulkop", json={
       "id": "2222"
     }, status=202)
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", json={})
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/bulkop/2222", json={})
 
     with patch("time.sleep", Mock(return_value=None)):
-      board = g.get_board("11111111-1111-1111-1111-111111111111")
-      board.move_to_collection("General", timeout=1)
+      folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+      folder.move_to_collection("General", timeout=1)
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "POST",
-      "url": "https://api.getguru.com/api/v1/boards/bulkop",
+      "url": "https://api.getguru.com/api/v1/folders/bulkop",
       "body": {
         "action": {
           "collectionId": "1234",
-          "type": "move-board"
+          "type": "move-folder"
         },
         "items": {
           "itemIds": ["11111111-1111-1111-1111-111111111111"],
@@ -1360,58 +1360,58 @@ class TestCore(unittest.TestCase):
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/bulkop/2222"
+      "url": "https://api.getguru.com/api/v1/folders/bulkop/2222"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_move_board_to_invalid_collection(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_move_folder_to_invalid_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[])
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    result = board.move_to_collection("General")
+    folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+    result = folder.move_to_collection("General")
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_move_invalid_board_to_collection(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111", status=404)
+  def test_move_invalid_folder_to_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111", status=404)
     responses.add(responses.GET, "https://api.getguru.com/api/v1/collections", json=[{
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards?collection=1234", json=[])
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders?collection=1234", json=[])
 
-    result = g.move_board_to_collection("11111111", "General")
+    result = g.move_folder_to_collection("11111111", "General")
 
     self.assertEqual(result, None)
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards?collection=1234"
+      "url": "https://api.getguru.com/api/v1/folders?collection=1234"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_move_board_to_its_current_collection(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_move_folder_to_its_current_collection(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "collection": {
         "id": "1234"
@@ -1423,21 +1423,21 @@ class TestCore(unittest.TestCase):
       "name": "General"
     }])
 
-    board = g.get_board("11111111-1111-1111-1111-111111111111")
-    board.move_to_collection("General")
+    folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+    folder.move_to_collection("General")
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }])
-  
+
   @use_guru()
   @responses.activate
-  def test_move_board_to_collection_and_it_times_out(self, g):
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111", json={
+  def test_move_folder_to_collection_and_it_times_out(self, g):
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111", json={
       "id": "11111111-1111-1111-1111-111111111111",
       "items": []
     })
@@ -1445,28 +1445,28 @@ class TestCore(unittest.TestCase):
       "id": "1234",
       "name": "General"
     }])
-    responses.add(responses.POST, "https://api.getguru.com/api/v1/boards/bulkop", json={
+    responses.add(responses.POST, "https://api.getguru.com/api/v1/folders/bulkop", json={
       "id": "2222"
     }, status=202)
-    responses.add(responses.GET, "https://api.getguru.com/api/v1/boards/bulkop/2222", status=204)
+    responses.add(responses.GET, "https://api.getguru.com/api/v1/folders/bulkop/2222", status=204)
 
     with patch("time.sleep", Mock(return_value=None)):
-      board = g.get_board("11111111-1111-1111-1111-111111111111")
-      board.move_to_collection("General", timeout=3)
+      folder = g.get_folder("11111111-1111-1111-1111-111111111111")
+      folder.move_to_collection("General", timeout=3)
 
     self.assertEqual(get_calls(), [{
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/11111111-1111-1111-1111-111111111111"
+      "url": "https://api.getguru.com/api/v1/folders/11111111-1111-1111-1111-111111111111"
     }, {
       "method": "GET",
       "url": "https://api.getguru.com/api/v1/collections"
     }, {
       "method": "POST",
-      "url": "https://api.getguru.com/api/v1/boards/bulkop",
+      "url": "https://api.getguru.com/api/v1/folders/bulkop",
       "body": {
         "action": {
           "collectionId": "1234",
-          "type": "move-board"
+          "type": "move-folder"
         },
         "items": {
           "itemIds": ["11111111-1111-1111-1111-111111111111"],
@@ -1475,8 +1475,8 @@ class TestCore(unittest.TestCase):
       }
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/bulkop/2222"
+      "url": "https://api.getguru.com/api/v1/folders/bulkop/2222"
     }, {
       "method": "GET",
-      "url": "https://api.getguru.com/api/v1/boards/bulkop/2222"
+      "url": "https://api.getguru.com/api/v1/folders/bulkop/2222"
     }])

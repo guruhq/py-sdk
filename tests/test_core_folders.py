@@ -64,7 +64,7 @@ class TestCore(unittest.TestCase):
         "url": "https://api.getguru.com/api/v1/folders"
     }, {
         "method": "GET",
-        "url": "https://api.getguru.com/api/v1/boards/folders"
+        "url": "https://api.getguru.com/api/v1/folders/folders"
     }])
 
     @use_guru()
@@ -78,13 +78,13 @@ class TestCore(unittest.TestCase):
           responses.POST, "https://api.getguru.com/api/v1/folder/1234/action", json=[])
       responses.add(responses.GET, "https://api.getguru.com/api/v1/folders?collection=1234", json=[{
           "id": "1111",
-          "title": "New Board"
+          "title": "New Folder"
       }])
       responses.add(
           responses.GET, "https://api.getguru.com/api/v1/folder/1111", json={})
 
-      result = g.make_board(
-          "New Board", collection="General", description="test")
+      result = g.make_folder(
+          "New Folder", collection="General", description="test")
 
       self.assertEqual(get_calls(), [{
           "method": "GET",
@@ -94,9 +94,9 @@ class TestCore(unittest.TestCase):
           "url": "https://api.getguru.com/api/v1/folders/action",
           "body": {
               "actionType": "add",
-              "boardEntries": [{
-                  "entryType": "board",
-                  "title": "New Board",
+              "folderEntries": [{
+                  "entryType": "folder",
+                  "title": "New Folder",
                   "description": "test"
               }]
           }

@@ -16,15 +16,15 @@ def is_successful(result):
 
 
 class CardChanges:
-  def __init__(self, content_changed, boards_added, boards_removed, tags_added, tags_removed):
+  def __init__(self, content_changed, folders_added, folders_removed, tags_added, tags_removed):
     self.content_changed = content_changed
-    self.boards_added = boards_added
-    self.boards_removed = boards_removed
+    self.folders_added = folders_added
+    self.folders_removed = folders_removed
     self.tags_added = tags_added
     self.tags_removed = tags_removed
 
   def needs_publishing(self):
-    if self.content_changed or self.boards_added or self.boards_removed or self.tags_added or self.tags_removed:
+    if self.content_changed or self.folders_added or self.folders_removed or self.tags_added or self.tags_removed:
       return True
     else:
       return False
@@ -44,7 +44,7 @@ class Publisher:
       )
       if not self.__metadata:
         self.__metadata = {}
-    
+
     self.silent = silent
     self.dry_run = dry_run
     self.skip_unverified_cards = skip_unverified_cards
@@ -81,13 +81,13 @@ class Publisher:
           self.delete_external_card(external_id)
         elif type == "section":
           self.delete_external_section(external_id)
-        elif type == "board":
-          self.delete_external_board(external_id)
-        elif type == "board_group":
-          self.delete_external_board_group(external_id)
+        elif type == "folder":
+          self.delete_external_folder(external_id)
+        elif type == "folder_group":
+          self.delete_external_folder_group(external_id)
         elif type == "collection":
           self.delete_external_collection(external_id)
-        
+
         # we hard delete this from the metadata so the next time this runs if
         # the object comes back, we treat it like a brand new object and call
         # the method to create it.
@@ -95,77 +95,77 @@ class Publisher:
 
   def find_external_collection(self, collection):
     pass
-  
-  def find_external_board_group(self, board_group):
+
+  def find_external_folder_group(self, folder_group):
     pass
-  
-  def find_external_board(self, board):
+
+  def find_external_folder(self, folder):
     pass
-  
+
   def find_external_section(self, section):
     pass
-  
+
   def find_external_card(self, card):
     pass
-  
+
   # crud operations for cards.
   # these have to be implemented because you're always publishing cards.
-  # sections, boards, etc. may be unimplemented because it's possible
+  # sections, folders, etc. may be unimplemented because it's possible
   # thoe don't have any meaning in the system you're publishing to.
-  def create_external_card(self, card, changes, section, board, board_group, collection):
+  def create_external_card(self, card, changes, section, folder, folder_group, collection):
     raise NotImplementedError()
-  
-  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
+
+  def update_external_card(self, external_id, card, changes, section, folder, folder_group, collection):
     raise NotImplementedError()
-  
+
   def delete_external_card(self, external_id):
     raise NotImplementedError()
 
   # crud operations for sections.
-  def create_external_section(self, section, board, board_group, collection):
+  def create_external_section(self, section, folder, folder_group, collection):
     pass
-  
-  def update_external_section(self, external_id, section, board, board_group, collection):
+
+  def update_external_section(self, external_id, section, folder, folder_group, collection):
     pass
-  
+
   def delete_external_section(self, external_id):
     pass
 
-  # crud operations for boards.
-  def create_external_board(self, board, board_group, collection):
+  # crud operations for folders.
+  def create_external_folder(self, folder, folder_group, collection):
     pass
-  
-  def update_external_board(self, external_id, board, board_group, collection):
+
+  def update_external_folder(self, external_id, folder, folder_group, collection):
     pass
-  
-  def delete_external_board(self, external_id):
+
+  def delete_external_folder(self, external_id):
     pass
-  
-  # crud operations for board groups.
-  def create_external_board_group(self, board_group, collection):
+
+  # crud operations for folder groups.
+  def create_external_folder_group(self, folder_group, collection):
     pass
-  
-  def update_external_board_group(self, external_id, board_group, collection):
+
+  def update_external_folder_group(self, external_id, folder_group, collection):
     pass
-  
-  def delete_external_board_group(self, external_id):
+
+  def delete_external_folder_group(self, external_id):
     pass
-  
+
   # crud operations for collections.
   def create_external_collection(self, collection):
     pass
-  
+
   def update_external_collection(self, external_id, collection):
     pass
-  
+
   def delete_external_collection(self, external_id):
     pass
 
   def get_external_id(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("external_id")
 
-  def get_board_names(self, guru_id):
-    return self.__metadata.get(guru_id, {}).get("boards") or []
+  def get_folder_names(self, guru_id):
+    return self.__metadata.get(guru_id, {}).get("folders") or []
 
   def get_tags(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("tags") or []
@@ -173,7 +173,7 @@ class Publisher:
   def get_card_changes(self, card):
     """
     This generates a CardChanges object which wraps up all the possible changes
-    that can happen. Notably, this includes the boards the card was added to or
+    that can happen. Notably, this includes the folders the card was added to or
     removed from.
     """
     content_changed = False
@@ -181,11 +181,11 @@ class Publisher:
     if not last_published_date or card.last_modified_date > last_published_date:
       content_changed = True
 
-    # figure out which board assignments were added or removed.
-    old_board_names = set(self.get_board_names(card.id))
-    new_board_names = set([b.title for b in card.boards])
-    boards_added = list(new_board_names - old_board_names)
-    boards_removed = list(old_board_names - new_board_names)
+    # figure out which folder assignments were added or removed.
+    old_folder_names = set(self.get_folder_names(card.id))
+    new_folder_names = set([b.title for b in card.folders])
+    folders_added = list(new_folder_names - old_folder_names)
+    folders_removed = list(old_folder_names - new_folder_names)
 
     # figure out which tags were added or removed.
     old_tags = set(self.get_tags(card.id))
@@ -193,7 +193,7 @@ class Publisher:
     tags_added = list(new_tags - old_tags)
     tags_removed = list(old_tags - new_tags)
 
-    return CardChanges(content_changed, boards_added, boards_removed, tags_added, tags_removed)
+    return CardChanges(content_changed, folders_added, folders_removed, tags_added, tags_removed)
 
   def get_type(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("type")
@@ -201,24 +201,24 @@ class Publisher:
   def get_last_updated(self, guru_id):
     return self.__metadata.get(guru_id, {}).get("last_updated")
 
-  def __update_metadata(self, guru_id, external_id="", type="", last_modified_date=None, boards=None, tags=None):
+  def __update_metadata(self, guru_id, external_id="", type="", last_modified_date=None, folders=None, tags=None):
     if not self.__metadata.get(guru_id):
       self.__metadata[guru_id] = {}
-    
+
     if last_modified_date:
       self.__log("update metadata", guru_id, "->", external_id, "last modified at", last_modified_date)
       self.__metadata[guru_id]["last_updated"] = last_modified_date
     else:
       self.__log("update metadata", guru_id, "->", external_id)
-    
+
     if type:
       self.__metadata[guru_id]["type"] = type
 
     if external_id:
       self.__metadata[guru_id]["external_id"] = external_id
-    
-    if boards != None:
-      self.__metadata[guru_id]["boards"] = boards
+
+    if folders != None:
+      self.__metadata[guru_id]["folders"] = folders
 
     if tags != None:
       self.__metadata[guru_id]["tags"] = tags
@@ -236,7 +236,7 @@ class Publisher:
 
   def publish_collection(self, collection):
     collection = self.g.get_collection(collection)
-    home_board = self.g.get_home_board(collection)
+    home_folder = self.g.get_home_folder(collection)
 
     # call create/update/delete_collection as needed.
     external_id = self.get_external_id(collection.id)
@@ -262,102 +262,102 @@ class Publisher:
         external_id = self.create_external_collection(collection)
         if external_id:
           successful = True
-    
+
     if successful or external_id:
       self.__update_metadata(collection.id, external_id, type="collection")
-    
-    for item in home_board.items:
-      if item.type == "board":
-        # we load the board here because the data we have might be a 'lite' board.
-        board = self.g.get_board(item.id)
-        self.publish_board(board, collection, None)
+
+    for item in home_folder.items:
+      if item.type == "folder":
+        # we load the folder here because the data we have might be a 'lite' folder.
+        folder = self.g.get_folder(item.id)
+        self.publish_folder(folder, collection, None)
       else:
-        self.publish_board_group(item, collection)    
-  
-  def publish_board_group(self, board_group, collection=None):
+        self.publish_folder_group(item, collection)
+
+  def publish_folder_group(self, folder_group, collection=None):
     if collection:
       collection = self.g.get_collection(collection)
-    board_group = self.g.get_board_group(board_group, collection)
+    folder_group = self.g.get_folder_group(folder_group, collection)
 
-    # call create/update/delete_board_group as needed.
-    external_id = self.get_external_id(board_group.id)
+    # call create/update/delete_folder_group as needed.
+    external_id = self.get_external_id(folder_group.id)
 
-    # if we don't have an external_id, call find_external_board_group to try to find it.
+    # if we don't have an external_id, call find_external_folder_group to try to find it.
     if not external_id:
-      self.__log("find board group", board_group.title)
-      external_id = self.find_external_board_group(board_group)
+      self.__log("find folder group", folder_group.title)
+      external_id = self.find_external_folder_group(folder_group)
       if external_id:
-        self.__log("found board_group!", board_group.title, "->", external_id)
+        self.__log("found folder_group!", folder_group.title, "->", external_id)
 
     successful = False
     if external_id:
-      self.__results[board_group.id] = "update"
-      self.__log("update board group", external_id, board_group.title)
+      self.__results[folder_group.id] = "update"
+      self.__log("update folder group", external_id, folder_group.title)
       if not self.dry_run:
-        result = self.update_external_board_group(external_id, board_group, collection)
+        result = self.update_external_folder_group(external_id, folder_group, collection)
         successful = is_successful(result)
     else:
-      self.__results[board_group.id] = "create"
-      self.__log("create board group", board_group.title)
+      self.__results[folder_group.id] = "create"
+      self.__log("create folder group", folder_group.title)
       if not self.dry_run:
-        external_id = self.create_external_board_group(board_group, collection)
+        external_id = self.create_external_folder_group(folder_group, collection)
         if external_id:
           successful = True
-    
+
     if successful or external_id:
-      self.__update_metadata(board_group.id, external_id, type="board_group")
+      self.__update_metadata(folder_group.id, external_id, type="folder_group")
 
-    for item in board_group.items:
-      # we load the board here because the data we have might be a 'lite' board.
-      board = self.g.get_board(item.id)
-      self.publish_board(board, collection, board_group)
+    for item in folder_group.items:
+      # we load the folder here because the data we have might be a 'lite' folder.
+      folder = self.g.get_folder(item.id)
+      self.publish_folder(folder, collection, folder_group)
 
-  def publish_board(self, board, collection=None, board_group=None):
-    # this could be called where 'board' is an ID, slug, or Board object,
+  def publish_folder(self, folder, collection=None, folder_group=None):
+    # this could be called where 'folder' is an ID, slug, or Folder object,
     # the same goes for collection.
     if collection:
       collection = self.g.get_collection(collection)
-    board = self.g.get_board(board, collection)
-    
-    # call create/update/delete_board as needed.
-    external_id = self.get_external_id(board.id)
+    folder = self.g.get_folder(folder, collection)
 
-    # if we don't have an external_id, call find_external_board to try to find it.
+    # call create/update/delete_folder as needed.
+    external_id = self.get_external_id(folder.id)
+
+    # if we don't have an external_id, call find_external_folder to try to find it.
     if not external_id:
-      self.__log("find board", board.title)
-      external_id = self.find_external_board(board)
+      self.__log("find folder", folder.title)
+      external_id = self.find_external_folder(folder)
       if external_id:
-        self.__log("found board!", board.title, "->", external_id)
+        self.__log("found folder!", folder.title, "->", external_id)
 
     successful = False
     if external_id:
-      self.__results[board.id] = "update"
-      self.__log("update board", external_id, board.title)
+      self.__results[folder.id] = "update"
+      self.__log("update folder", external_id, folder.title)
       if not self.dry_run:
-        result = self.update_external_board(external_id, board, board_group, collection)
+        result = self.update_external_folder(external_id, folder, folder_group, collection)
         successful = is_successful(result)
     else:
-      self.__results[board.id] = "create"
-      self.__log("create board", board.title)
+      self.__results[folder.id] = "create"
+      self.__log("create folder", folder.title)
       if not self.dry_run:
-        external_id = self.create_external_board(board, board_group, collection)
+        external_id = self.create_external_folder(folder, folder_group, collection)
         if external_id:
           successful = True
-    
-    if successful or external_id:
-      self.__update_metadata(board.id, external_id, type="board")
-    
-    for item in board.items:
-      if item.type == "section":
-        self.publish_section(item, collection, board_group, board)
-      else:
-        # todo: if the board has > 50 items we'll  need to load the full card object here.
-        #       we can use a single api call to bulk load cards.
-        self.publish_card(item, collection, board_group, board)
 
-  def publish_section(self, section, collection=None, board_group=None, board=None):
+    if successful or external_id:
+      self.__update_metadata(folder.id, external_id, type="folder")
+
+    for item in folder.items:
+      if item.type == "section":
+        self.publish_section(item, collection, folder_group, folder)
+      else:
+        # todo: if the folder has > 50 items we'll  need to load the full card object here.
+        #       we can use a single api call to bulk load cards.
+        self.publish_card(item, collection, folder_group, folder)
+
+  def publish_section(self, section, collection=None, folder_group=None, folder=None):
     # this can't be called directly so we can assume the args are all objects.
-    
+
     # call create/update/delete_section as needed.
     external_id = self.get_external_id(section.id)
 
@@ -373,23 +373,23 @@ class Publisher:
       self.__results[section.id] = "update"
       self.__log("update section", external_id, section.title)
       if not self.dry_run:
-        result = self.update_external_section(external_id, section, board, board_group, collection)
+        result = self.update_external_section(external_id, section, folder, folder_group, collection)
         successful = is_successful(result)
     else:
       self.__results[section.id] = "create"
       self.__log("create section", section.title)
       if not self.dry_run:
-        external_id = self.create_external_section(section, board, board_group, collection)
+        external_id = self.create_external_section(section, folder, folder_group, collection)
         if external_id:
           successful = True
-    
+
     if successful or external_id:
       self.__update_metadata(section.id, external_id, type="section")
 
     for item in section.items:
-      self.publish_card(item, collection, board_group, board, section)
+      self.publish_card(item, collection, folder_group, folder, section)
 
-  def publish_card(self, card, collection=None, board_group=None, board=None, section=None):
+  def publish_card(self, card, collection=None, folder_group=None, folder=None, section=None):
     """
     This method figures out if the card has changes that need to be published and
     calls create/update_external_card based on whether the card has ever been
@@ -433,28 +433,28 @@ class Publisher:
       external_id = self.find_external_card(card)
       if external_id:
         self.__log("found card!", card.title, "->", external_id)
-    
+
     successful = False
     if external_id:
       self.__results[card.id] = "update"
-      self.__log("update card", external_id, card.title, card.boards)
+      self.__log("update card", external_id, card.title, card.folders)
       if not self.dry_run:
-        result = self.update_external_card(external_id, card, changes, section, board, board_group, collection)
+        result = self.update_external_card(external_id, card, changes, section, folder, folder_group, collection)
         successful = is_successful(result)
     else:
       self.__results[card.id] = "create"
       self.__log("create card", card.title)
       if not self.dry_run:
-        external_id = self.create_external_card(card, changes, section, board, board_group, collection)
+        external_id = self.create_external_card(card, changes, section, folder, folder_group, collection)
         if external_id:
           successful = True
-    
+
     if successful:
       self.__update_metadata(
         card.id,
         external_id,
         last_modified_date=card.last_modified_date,
-        boards=[b.title for b in card.boards],
+        folders=[b.title for b in card.folders],
         tags=[t.value for t in card.tags],
         type="card"
       )

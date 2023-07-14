@@ -155,13 +155,13 @@ if __name__ == "__main__":
   g = guru.Guru(GURU_USER, GURU_API_TOKEN)
   publisher = ReadmePublisherFolders(g)
 
-  # 6Tkg78RT is the slug that identifies the board we publish to Readme.
-  # you can find this ID in the board's URL, like:
-  # https://app.getguru.com/boards/6Tkg78RT/Readme-Guides
+  # 6Tkg78RT is the slug that identifies the folder we publish to Readme.
+  # you can find this ID in the folder's URL, like:
+  # https://app.getguru.com/folders/6Tkg78RT/Readme-Guides
   publisher.publish_folder("6Tkg78RT")
 
   # for now, we haven't implemented any of the 'delete' methods. if we do want to
   # be able to delete Readme docs when the guru cards are archived (or when they're
-  # removed from our 'readme' board), we'll need to implement the delete method and
+  # removed from our 'readme' folder), we'll need to implement the delete method and
   # also call process_deletions().
   # publisher.process_deletions()

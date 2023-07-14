@@ -2,7 +2,7 @@
 import guru
 
 # these are the pages we'll download and import into guru.
-# we'll end up with 6 cards on 1 board.
+# we'll end up with 6 cards on 1 folder.
 urls = [
   "https://en.wikipedia.org/wiki/Odessey_and_Oracle",
   "https://en.wikipedia.org/wiki/Pet_Sounds",
@@ -21,9 +21,9 @@ g = guru.Guru()
 bundle = g.bundle("favorite_albums")
 
 # make a node called 'My Favorite Albums'. we'll add the other nodes as its
-# children so it'll become a board in guru. we don't have to specify that a
-# node will be a board or a card, the guru code will figure out this needs
-# to be a board once we add nodes to it.
+# children so it'll become a folder in guru. we don't have to specify that a
+# node will be a folder or a card, the guru code will figure out this needs
+# to be a folder once we add nodes to it.
 my_favorite_albums = bundle.node(id="albums", title="My Favorite Albums")
 
 for url in urls:

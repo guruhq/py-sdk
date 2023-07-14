@@ -30,13 +30,13 @@ class PublisherTest(guru.Publisher):
     self.calls.append("find collection %s" % collection.name)
     return collection.id[0:4] if collection.name in self.external_data else ""
 
-  def find_external_board_group(self, board_group):
-    self.calls.append("find board group %s" % board_group.title)
-    return board_group.id[0:4] if board_group.title in self.external_data else ""
+  def find_external_folder_group(self, folder_group):
+    self.calls.append("find folder group %s" % folder_group.title)
+    return folder_group.id[0:4] if folder_group.title in self.external_data else ""
 
-  def find_external_board(self, board):
-    self.calls.append("find board %s" % board.title)
-    return board.id[0:4] if board.title in self.external_data else ""
+  def find_external_folder(self, folder):
+    self.calls.append("find folder %s" % folder.title)
+    return folder.id[0:4] if folder.title in self.external_data else ""
 
   def find_external_section(self, section):
     self.calls.append("find section %s" % section.title)
@@ -47,58 +47,58 @@ class PublisherTest(guru.Publisher):
     return card.id[0:4] if card.title in self.external_data else ""
 
   # crud operations for cards
-  def create_external_card(self, card, changes, section, board, board_group, collection):
+  def create_external_card(self, card, changes, section, folder, folder_group, collection):
     self.calls.append("create card %s" % card.title)
     return card.id[0:4]
-  
-  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
+
+  def update_external_card(self, external_id, card, changes, section, folder, folder_group, collection):
     self.calls.append("update card %s" % card.title)
-  
+
   def delete_external_card(self, external_id):
     self.calls.append("delete card %s" % external_id)
 
   # crud operations for sections.
-  def create_external_section(self, section, board, board_group, collection):
-    super().create_external_section(section, board, board_group, collection)
+  def create_external_section(self, section, folder, folder_group, collection):
+    super().create_external_section(section, folder, folder_group, collection)
     self.calls.append("create section %s" % section.title)
     return section.id[0:4]
-  
-  def update_external_section(self, external_id, section, board, board_group, collection):
-    super().update_external_section(external_id, section, board, board_group, collection)
+
+  def update_external_section(self, external_id, section, folder, folder_group, collection):
+    super().update_external_section(external_id, section, folder, folder_group, collection)
     self.calls.append("update section %s" % section.title)
-  
+
   def delete_external_section(self, external_id):
     super().delete_external_section(external_id)
     self.calls.append("delete section %s" % external_id)
 
-  # crud operations for boards.
-  def create_external_board(self, board, board_group, collection):
-    super().create_external_board(board, board_group, collection)
-    self.calls.append("create board %s" % board.title)
-    return board.id[0:4]
-  
-  def update_external_board(self, external_id, board, board_group, collection):
-    super().update_external_board(external_id, board, board_group, collection)
-    self.calls.append("update board %s" % board.title)
-  
-  def delete_external_board(self, external_id):
-    super().delete_external_board(external_id)
-    self.calls.append("delete board %s" % external_id)
-  
-  # crud operations for board groups.
-  def create_external_board_group(self, board_group, collection):
-    super().create_external_board_group(board_group, collection)
-    self.calls.append("create board group %s" % board_group.title)
-    return board_group.id[0:4]
-  
-  def update_external_board_group(self, external_id, board_group, collection):
-    super().update_external_board_group(external_id, board_group, collection)
-    self.calls.append("update board group %s" % board_group.title)
-  
-  def delete_external_board_group(self, external_id):
-    super().delete_external_board_group(external_id)
-    self.calls.append("delete board group %s" % external_id)
-  
+  # crud operations for folders.
+  def create_external_folder(self, folder, folder_group, collection):
+    super().create_external_folder(folder, folder_group, collection)
+    self.calls.append("create folder %s" % folder.title)
+    return folder.id[0:4]
+
+  def update_external_folder(self, external_id, folder, folder_group, collection):
+    super().update_external_folder(external_id, folder, folder_group, collection)
+    self.calls.append("update folder %s" % folder.title)
+
+  def delete_external_folder(self, external_id):
+    super().delete_external_folder(external_id)
+    self.calls.append("delete folder %s" % external_id)
+
+  # crud operations for folder groups.
+  def create_external_folder_group(self, folder_group, collection):
+    super().create_external_folder_group(folder_group, collection)
+    self.calls.append("create folder group %s" % folder_group.title)
+    return folder_group.id[0:4]
+
+  def update_external_folder_group(self, external_id, folder_group, collection):
+    super().update_external_folder_group(external_id, folder_group, collection)
+    self.calls.append("update folder group %s" % folder_group.title)
+
+  def delete_external_folder_group(self, external_id):
+    super().delete_external_folder_group(external_id)
+    self.calls.append("delete folder group %s" % external_id)
+
   # crud operations for collections.
   def create_external_collection(self, collection):
     super().create_external_collection(collection)
@@ -108,7 +108,7 @@ class PublisherTest(guru.Publisher):
   def update_external_collection(self, external_id, collection):
     super().update_external_collection(external_id, collection)
     self.calls.append("update collection %s" % collection.title)
-  
+
   def delete_external_collection(self, external_id):
     super().delete_external_collection(external_id)
     self.calls.append("delete collection %s" % external_id)
@@ -124,14 +124,14 @@ class TestPublish(unittest.TestCase):
     self.assertEqual(publisher.calls, [
       "find collection Engineering",
       "create collection Engineering",
-      "find board Other Docs",
-      "create board Other Docs",
-      "find card Onboarding",
-      "create card Onboarding",
-      "find board group API Docs",
-      "create board group API Docs",
-      "find board API",
-      "create board API",
+      "find folder Other Docs",
+      "create folder Other Docs",
+      "find card Onfoldering",
+      "create card Onfoldering",
+      "find folder group API Docs",
+      "create folder group API Docs",
+      "find folder API",
+      "create folder API",
       "find section General Information",
       "create section General Information",
       "get external url Pagination",
@@ -143,21 +143,21 @@ class TestPublish(unittest.TestCase):
       "create section User & Groups",
       "find card Inviting Users",
       "create card Inviting Users",
-      "find board SDK",
-      "create board SDK",
+      "find folder SDK",
+      "create folder SDK",
       "get external url Authentication",
       "find card Getting Started with the SDK",
       "create card Getting Started with the SDK"
     ])
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
-  def test_publishing_a_board(self, g):
+  def test_publishing_a_folder(self, g):
     publisher = PublisherTest(g, metadata={})
-    publisher.publish_board("KTgKBoGT")
+    publisher.publish_folder("KTgKBoGT")
 
     self.assertEqual(publisher.calls, [
-      "find board API",
-      "create board API",
+      "find folder API",
+      "create folder API",
       "find section General Information",
       "create section General Information",
       "get external url Pagination",
@@ -180,17 +180,17 @@ class TestPublish(unittest.TestCase):
         "last_updated": "2020-01-01T00:00:00.000+0000"
       }
     }
-    
+
     publisher = PublisherTest(g, metadata)
-    publisher.publish_board("9cxgG7jc")
+    publisher.publish_folder("9cxgG7jc")
 
     self.assertEqual(publisher.calls, [
-      "find board SDK",
-      "create board SDK",
+      "find folder SDK",
+      "create folder SDK",
       "get external url Authentication",
       "update card Getting Started with the SDK"
     ])
-  
+
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_skipping_a_card(self, g):
     # we set the card's last_updated date to the year 2030
@@ -201,16 +201,16 @@ class TestPublish(unittest.TestCase):
         "type": "card",
         "external_id": "1234",
         "last_updated": "2030-01-01T00:00:00.000+0000",
-        "boards": ["SDK"]
+        "folders": ["SDK"]
       }
     }
-    
+
     publisher = PublisherTest(g, metadata)
-    publisher.publish_board("9cxgG7jc")
+    publisher.publish_folder("9cxgG7jc")
 
     self.assertEqual(publisher.calls, [
-      "find board SDK",
-      "create board SDK"
+      "find folder SDK",
+      "create folder SDK"
     ])
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
@@ -222,12 +222,12 @@ class TestPublish(unittest.TestCase):
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
       "516405af-dcbe-4478-94b6-6e2a16c2fde7": {
-        "type": "board_group",
+        "type": "folder_group",
         "external_id": "5164",
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
       "d32d4329-6894-486f-9dd0-834077576f08": {
-        "type": "board",
+        "type": "folder",
         "external_id": "d32d",
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
@@ -237,7 +237,7 @@ class TestPublish(unittest.TestCase):
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
       "4c6086fc-0f5d-47be-b053-2fcf7c8ecc24": {
-        "type": "board",
+        "type": "folder",
         "external_id": "4c60",
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
@@ -262,7 +262,7 @@ class TestPublish(unittest.TestCase):
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
       "c6ce0381-12cc-452c-9634-c8766d5e72e7": {
-        "type": "board",
+        "type": "folder",
         "external_id": "c6ce",
         "last_updated": "2020-01-01T00:00:00.000+0000"
       }
@@ -275,11 +275,11 @@ class TestPublish(unittest.TestCase):
     # are creates and some are updates.
     self.assertEqual(publisher.calls, [
       "update collection Engineering",
-      "update board Other Docs",
-      "find card Onboarding",
-      "create card Onboarding",
-      "update board group API Docs",
-      "update board API",
+      "update folder Other Docs",
+      "find card Onfoldering",
+      "create card Onfoldering",
+      "update folder group API Docs",
+      "update folder API",
       "update section General Information",
       "get external url Pagination",
       "update card Authentication",
@@ -287,11 +287,11 @@ class TestPublish(unittest.TestCase):
       "update section User & Groups",
       "find card Inviting Users",
       "create card Inviting Users",
-      "update board SDK",
+      "update folder SDK",
       "get external url Authentication",
       "update card Getting Started with the SDK"
     ])
-  
+
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_processing_a_deletion(self, g):
     metadata = {
@@ -309,12 +309,12 @@ class TestPublish(unittest.TestCase):
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
       "cccccccc-cccc-cccc-cccc-cccccccccccc": {
-        "type": "board",
+        "type": "folder",
         "external_id": "cccc",
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
       "dddddddd-dddd-dddd-dddd-dddddddddddd": {
-        "type": "board_group",
+        "type": "folder_group",
         "external_id": "dddd",
         "last_updated": "2020-01-01T00:00:00.000+0000"
       },
@@ -324,28 +324,28 @@ class TestPublish(unittest.TestCase):
         "last_updated": "2020-01-01T00:00:00.000+0000"
       }
     }
-    
+
     publisher = PublisherTest(g, metadata)
-    publisher.publish_board("9cxgG7jc")
+    publisher.publish_folder("9cxgG7jc")
     publisher.process_deletions()
 
     self.assertEqual(publisher.calls, [
-      "find board SDK",
-      "create board SDK",
+      "find folder SDK",
+      "create folder SDK",
       "get external url Authentication",
       "find card Getting Started with the SDK",
       "create card Getting Started with the SDK",
       "delete card aaaa",
       "delete section bbbb",
-      "delete board cccc",
-      "delete board group dddd",
+      "delete folder cccc",
+      "delete folder group dddd",
       "delete collection eeee"
     ])
-  
+
   @use_guru()
   def test_the_base_class(self, g):
     publisher = guru.Publisher(g)
-    
+
     with self.assertRaises(NotImplementedError):
       publisher.get_external_url(None, None)
     with self.assertRaises(NotImplementedError):
@@ -362,17 +362,17 @@ class TestPublish(unittest.TestCase):
 
     self.assertEqual(publisher.calls, [
       "find collection Engineering",
-      "find board Other Docs",
-      "find card Onboarding",
-      "find board group API Docs",
-      "find board API",
+      "find folder Other Docs",
+      "find card Onfoldering",
+      "find folder group API Docs",
+      "find folder API",
       "find section General Information",
       "get external url Pagination",
       "find card Authentication",
       "find card Pagination",
       "find section User & Groups",
       "find card Inviting Users",
-      "find board SDK",
+      "find folder SDK",
       "get external url Authentication",
       "find card Getting Started with the SDK"
     ])
@@ -383,17 +383,17 @@ class TestPublish(unittest.TestCase):
     # system so find_external_* will return an ID if the object's name is in this list.
     external_data = [
       "Engineering",                 # collection
-      "Other Docs",                  # board
-      "Onboarding",                  # card
-      "API Docs",                    # board group
-      "API",                         # board
+      "Other Docs",                  # folder
+      "Onfoldering",                  # card
+      "API Docs",                    # folder group
+      "API",                         # folder
       "General Information",         # section
       "Authentication",              # card
       # we leave out this so one card is not found.
       # "Pagination",                # card
       "User & Groups",               # section
       "Inviting Users",              # card
-      "SDK",                         # board
+      "SDK",                         # folder
       "Getting Started with the SDK" # card
     ]
 
@@ -403,14 +403,14 @@ class TestPublish(unittest.TestCase):
     self.assertEqual(publisher.calls, [
       "find collection Engineering",
       "update collection Engineering",
-      "find board Other Docs",
-      "update board Other Docs",
-      "find card Onboarding",
-      "update card Onboarding",
-      "find board group API Docs",
-      "update board group API Docs",
-      "find board API",
-      "update board API",
+      "find folder Other Docs",
+      "update folder Other Docs",
+      "find card Onfoldering",
+      "update card Onfoldering",
+      "find folder group API Docs",
+      "update folder group API Docs",
+      "find folder API",
+      "update folder API",
       "find section General Information",
       "update section General Information",
       "get external url Pagination",
@@ -423,8 +423,8 @@ class TestPublish(unittest.TestCase):
       "update section User & Groups",
       "find card Inviting Users",
       "update card Inviting Users",
-      "find board SDK",
-      "update board SDK",
+      "find folder SDK",
+      "update folder SDK",
       "get external url Authentication",
       "find card Getting Started with the SDK",
       "update card Getting Started with the SDK",

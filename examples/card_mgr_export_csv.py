@@ -1,20 +1,20 @@
 import guru
 import csv
 
-# call script with the credentials of the user you want to use 
+# call script with the credentials of the user you want to use
 # ex: GURU_USER=user@example.com GURU_TOKEN=abcd1234-abcd-abcd-abcd-abcdabcdabcd python getCardExport.py
 email = "user@example.com"
 token = "abcd1234-abcd-abcd-abcd-abcdabcdabcd"
 
-g_user = guru.Guru(email, token) 
-collection = "General" 
+g_user = guru.Guru(email, token)
+collection = "General"
 all_cards = []
 
 EXPORT_FOLDER_PATH = "/tmp/" # replace with the folder you want the export to go
 TEAM = "Most Informative Knowledge" # edit this line with the team name
 
 def write_csv(filename, coll):
-    labels = ["Title","Content","ID","Boards","Tags","Date Created","Created By","Last Modified","Last Modified By","Last Verified","Last Verified By","Verifier","Views","Copies","Favorites","Trust State","Verification Interval","Collection","Link"]
+    labels = ["Title","Content","ID","Folders","Tags","Date Created","Created By","Last Modified","Last Modified By","Last Verified","Last Verified By","Verifier","Views","Copies","Favorites","Trust State","Verification Interval","Collection","Link"]
     with open(filename, "w") as file_out:
       csv_out = csv.writer(file_out)
       csv_out.writerow(labels)
@@ -23,7 +23,7 @@ def write_csv(filename, coll):
         row.append(card.title)
         row.append(card.content)
         row.append(card.id)
-        row.append(", ".join([b.title for b in card.boards]) if card.boards else None)
+        row.append(", ".join([b.title for b in card.folders]) if card.folders else None)
         row.append(", ".join([t.value for t in card.tags]) if card.tags else None)
         row.append(card.created_date)
         row.append(card.original_owner.full_name)

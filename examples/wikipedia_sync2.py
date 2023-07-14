@@ -3,7 +3,7 @@ import guru
 
 # this is like wikipedia_sync1 except there are two main differences:
 # 1. this sync creates a deeper hierarchy so the resulting guru content has
-#    a board group with two boards, and one of the boards contains sections.
+#    a folder group with two folders, and one of the folders contains sections.
 # 2. we download images from wikipedia so the resulting guru cards have their
 #    images hosted in guru, rather than referencing the external images.
 
@@ -17,10 +17,10 @@ def get_page(bundle, url, include_image=True):
 
   for el in body.select(".ambox-content, .infobox, [role='navigation'], .wikitable.floatright, #toc, .shortdescription, .hatnote"):
     el.decompose()
-  
+
   title = doc.find(id="firstHeading").text
 
-  # make a node for this page and add it to the board.
+  # make a node for this page and add it to the folder.
   return bundle.node(
     id=title,
     url=url,
@@ -54,7 +54,7 @@ albums = {
   ]
 }
 
-# these pages get added to a separate board that has no sections.
+# these pages get added to a separate folder that has no sections.
 musicians = [
   "https://en.wikipedia.org/wiki/Joe_Strummer",
   "https://en.wikipedia.org/wiki/Paul_Simon",
@@ -65,14 +65,14 @@ g = guru.Guru()
 bundle = g.bundle("favorite_stuff", verbose=True)
 
 # make a node called 'My Favorite Albums', we'll add the other nodes
-# as its children so it'll become a board in guru.
+# as its children so it'll become a folder in guru.
 all_stuff = bundle.node(id="favorites", title="My Favorites")
-albums_board = bundle.node(id="albums", title="Albums").add_to(all_stuff)
-musicians_board = bundle.node(id="musicians", title="Musicians").add_to(all_stuff)
+albums_folder = bundle.node(id="albums", title="Albums").add_to(all_stuff)
+musicians_folder = bundle.node(id="musicians", title="Musicians").add_to(all_stuff)
 
-# for each url, make a new node with the page's title/content and add it to the board.
+# for each url, make a new node with the page's title/content and add it to the folder.
 for era in sorted(albums.keys()):
-  section = bundle.node(id=era, title=era).add_to(albums_board)
+  section = bundle.node(id=era, title=era).add_to(albums_folder)
 
   for url in albums[era]:
     node = get_page(bundle, url)
@@ -80,7 +80,7 @@ for era in sorted(albums.keys()):
     node.add_to(section)
 
 for url in musicians:
-  get_page(bundle, url).add_to(musicians_board)
+  get_page(bundle, url).add_to(musicians_folder)
 
 bundle.zip(download_func=download_file)
 bundle.view_in_browser()

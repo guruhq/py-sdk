@@ -23,7 +23,7 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(getattr(object, key), expected[key])
       else:
         self.assertEqual(hasattr(object, key), True)
-        
+
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_cards(self, g):
     # first we'll load the card by slug.
@@ -53,11 +53,11 @@ class TestEndToEnd(unittest.TestCase):
       "version": "",
       "archived": False,
       "favorited": False,
-      "boards": ""
+      "folders": ""
     }
 
     self.check_attrs(card, expected)
-    self.assertEqual(len(card.boards), 1)
+    self.assertEqual(len(card.folders), 1)
 
     # use the doc to check some things.
     self.assertEqual(len(card.doc.select("a[href]")), 3)
@@ -80,7 +80,7 @@ class TestEndToEnd(unittest.TestCase):
     card.unfavorite()
     card = g.get_card(card.id)
     self.assertEqual(card.favorited, False)
-  
+
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_card_comments(self, g):
     card = g.get_card("cddaekgi")
@@ -137,7 +137,7 @@ class TestEndToEnd(unittest.TestCase):
     cards = g.find_cards(tag="api")
     self.assertEqual(len(cards), 3)
 
-    card = g.find_card(title="Onboarding", collection="Engineering")
+    card = g.find_card(title="Onfoldering", collection="Engineering")
     self.assertEqual(card.id, "09643e16-0794-4550-9bb9-25e65014dfe1")
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
@@ -159,7 +159,7 @@ class TestEndToEnd(unittest.TestCase):
     # save() makes it record the changes as a new version.
     card.add_tag("support")
     card.save()
-    
+
     # load the card again and compare some things.
     card = g.get_card(card.id)
     self.check_attrs(card, {
@@ -182,15 +182,15 @@ class TestEndToEnd(unittest.TestCase):
       "value": "support"
     })
 
-    # add the card to a board.
-    # load the board before and after so we can check that its
+    # add the card to a folder.
+    # load the folder before and after so we can check that its
     # number of items changed as expected.
-    board_before = g.get_board("Bored Board", collection="Sandbox")
-    card.add_to_board("Bored Board")
-    board_after = g.get_board("Bored Board", collection="Sandbox", cache=False)
+    folder_before = g.get_folder("Bored Folder", collection="Sandbox")
+    card.add_to_folder("Bored Folder")
+    folder_after = g.get_folder("Bored Folder", collection="Sandbox", cache=False)
     card = g.get_card(card.id)
 
-    self.assertEqual(len(board_before.items) + 1, len(board_after.items))
+    self.assertEqual(len(folder_before.items) + 1, len(folder_after.items))
 
     # unverify then verify the card.
     card.unverify()
@@ -229,30 +229,30 @@ class TestEndToEnd(unittest.TestCase):
     # })
 
     time.sleep(1)
-    board_after_archive = g.get_board("Bored Board", collection="Sandbox", cache=False)
-    self.assertEqual(len(board_before.items), len(board_after_archive.items))
+    folder_after_archive = g.get_folder("Bored Folder", collection="Sandbox", cache=False)
+    self.assertEqual(len(folder_before.items), len(folder_after_archive.items))
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
-  def test_boards(self, g):
-    # load the board using its slug.
-    board = g.get_board("KTgKBoGT")
+  def test_folders(self, g):
+    # load the folder using its slug.
+    folder = g.get_folder("KTgKBoGT")
 
-    # make some assertions about the board.
+    # make some assertions about the folder.
     expected = {
       "last_modified": "",
       "title": "API",
       "slug": "KTgKBoGT/API",
       "id": "4c6086fc-0f5d-47be-b053-2fcf7c8ecc24",
       "item_id": "",
-      "type": "board",
+      "type": "folder",
       "collection": "",
       "items": ""
     }
 
-    self.check_attrs(board, expected)
+    self.check_attrs(folder, expected)
 
     # check its items.
-    self.assertEqual(board.json().get("items"), [{
+    self.assertEqual(folder.json().get("items"), [{
       "type": "section",
       "id": "6e0010d6-6486-40c8-8624-d5095462e52b",
       "itemId": "6e0010d6-6486-40c8-8624-d5095462e52b",
@@ -276,13 +276,13 @@ class TestEndToEnd(unittest.TestCase):
       }]
     }])
 
-    # also load the board using its name and ID.
-    board2 = g.get_board(board.id)
-    board3 = g.get_board(board.title)
+    # also load the folder using its name and ID.
+    folder2 = g.get_folder(folder.id)
+    folder3 = g.get_folder(folder.title)
 
-    self.assertEqual(board.json(), board2.json())
-    self.assertEqual(board.json(), board3.json())
-  
+    self.assertEqual(folder.json(), folder2.json())
+    self.assertEqual(folder.json(), folder3.json())
+
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_collections(self, g):
     # load the collection using its name.
@@ -352,91 +352,91 @@ class TestEndToEnd(unittest.TestCase):
     g.delete_collection(collection)
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
-  def test_home_board_item_order(self, g):
-    home_board = g.get_home_board("Engineering")
-    home_board.set_item_order("API Docs", "Other Docs")
+  def test_home_folder_item_order(self, g):
+    home_folder = g.get_home_folder("Engineering")
+    home_folder.set_item_order("API Docs", "Other Docs")
 
     # assert that this worked.
-    home_board = g.get_home_board("Engineering")
-    self.assertEqual(home_board.items[0].title, "API Docs")
-    self.assertEqual(home_board.items[1].title, "Other Docs")
+    home_folder = g.get_home_folder("Engineering")
+    self.assertEqual(home_folder.items[0].title, "API Docs")
+    self.assertEqual(home_folder.items[1].title, "Other Docs")
 
     # switch them back.
-    home_board.set_item_order("Other Docs", "API Docs")
-    home_board = g.get_home_board("Engineering")
-    self.assertEqual(home_board.items[0].title, "Other Docs")
-    self.assertEqual(home_board.items[1].title, "API Docs")
+    home_folder.set_item_order("Other Docs", "API Docs")
+    home_folder = g.get_home_folder("Engineering")
+    self.assertEqual(home_folder.items[0].title, "Other Docs")
+    self.assertEqual(home_folder.items[1].title, "API Docs")
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
-  def test_board_group_item_order(self, g):
-    board_group = g.get_board_group("API Docs", "Engineering")
-    board_group.set_item_order("SDK", "API")
+  def test_folder_group_item_order(self, g):
+    folder_group = g.get_folder_group("API Docs", "Engineering")
+    folder_group.set_item_order("SDK", "API")
 
     # assert that this worked.
-    board_group = g.get_board_group("API Docs", "Engineering")
-    self.assertEqual(board_group.items[0].title, "SDK")
-    self.assertEqual(board_group.items[1].title, "API")
+    folder_group = g.get_folder_group("API Docs", "Engineering")
+    self.assertEqual(folder_group.items[0].title, "SDK")
+    self.assertEqual(folder_group.items[1].title, "API")
 
     # switch them back.
-    board_group.set_item_order("API", "SDK")
-    board_group = g.get_board_group("API Docs", "Engineering")
-    self.assertEqual(board_group.items[0].title, "API")
-    self.assertEqual(board_group.items[1].title, "SDK")
+    folder_group.set_item_order("API", "SDK")
+    folder_group = g.get_folder_group("API Docs", "Engineering")
+    self.assertEqual(folder_group.items[0].title, "API")
+    self.assertEqual(folder_group.items[1].title, "SDK")
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
-  def test_board_item_order(self, g):
-    board = g.get_board("API", "Engineering")
-    board.set_item_order("User & Groups", "General Information")
-    
+  def test_folder_item_order(self, g):
+    folder = g.get_folder("API", "Engineering")
+    folder.set_item_order("User & Groups", "General Information")
+
     # assert that this worked.
-    board = g.get_board("API", "Engineering")
-    self.assertEqual(board.items[0].title, "User & Groups")
-    self.assertEqual(board.items[1].title, "General Information")
+    folder = g.get_folder("API", "Engineering")
+    self.assertEqual(folder.items[0].title, "User & Groups")
+    self.assertEqual(folder.items[1].title, "General Information")
 
     # switch them back.
-    board.set_item_order("General Information", "User & Groups")
-    board = g.get_board("API", "Engineering")
-    self.assertEqual(board.items[0].title, "General Information")
-    self.assertEqual(board.items[1].title, "User & Groups")
+    folder.set_item_order("General Information", "User & Groups")
+    folder = g.get_folder("API", "Engineering")
+    self.assertEqual(folder.items[0].title, "General Information")
+    self.assertEqual(folder.items[1].title, "User & Groups")
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
-  def test_board_permissions(self, g):
-    board = g.get_board("zTBG4GbT")
+  def test_folder_permissions(self, g):
+    folder = g.get_folder("zTBG4GbT")
 
     # make sure it's not shared with any groups.
-    groups1 = board.get_groups()
+    groups1 = folder.get_groups()
     self.assertEqual(groups1, [])
 
     # add a group and check that it worked.
-    board.add_group("Support")
-    groups2 = board.get_groups()
+    folder.add_group("Support")
+    groups2 = folder.get_groups()
     self.assertEqual(groups2[0].group.name, "Support")
 
     # remove the group and make sure that worked too.
-    board.remove_group("Support")
-    groups3 = board.get_groups()
+    folder.remove_group("Support")
+    groups3 = folder.get_groups()
     self.assertEqual(groups3, [])
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
-  def test_adding_card_to_board(self, g):
-    # make sure the card is not on the 'Other Docs' board.
-    board = g.get_board("zTBG4GbT")
-    self.assertIsNone(board.get_card("Getting Started with the SDK"))
+  def test_adding_card_to_folder(self, g):
+    # make sure the card is not on the 'Other Docs' folder.
+    folder = g.get_folder("zTBG4GbT")
+    self.assertIsNone(folder.get_card("Getting Started with the SDK"))
 
-    # add the SDK card to the 'Other Docs' board.
+    # add the SDK card to the 'Other Docs' folder.
     # https://app.getguru.com/card/TbbGKLac/Getting-Started-with-the-SDK
     card = g.get_card("TbbGKLac")
-    board.add_card(card)
+    folder.add_card(card)
 
     # make sure the card got added.
-    board = g.get_board("zTBG4GbT")
-    card2 = board.get_card("Getting Started with the SDK")
+    folder = g.get_folder("zTBG4GbT")
+    card2 = folder.get_card("Getting Started with the SDK")
     self.assertEqual(card.id, card2.id)
 
     # remove the SDK card from 'Other Docs' and make sure it worked.
-    board.remove_card(card)
-    board = g.get_board("zTBG4GbT")
-    self.assertIsNone(board.get_card("Getting Started with the SDK"))
+    folder.remove_card(card)
+    folder = g.get_folder("zTBG4GbT")
+    self.assertIsNone(folder.get_card("Getting Started with the SDK"))
 
   @use_guru(SDK_E2E_USER, SDK_E2E_TOKEN)
   def test_groups(self, g):
@@ -518,8 +518,8 @@ class TestEndToEnd(unittest.TestCase):
 
 # these are the methods that aren't tested yet:
 # add_users_to_group
-# make_board_group (there is no 'delete_board_group' yet)
-# add_board_to_board_group (there is no 'remove_board_from_board_group' yet)
-# add_section_to_board (there is no 'remove_section_from_board' yet)
+# make_folder_group (there is no 'delete_folder_group' yet)
+# add_folder_to_folder_group (there is no 'remove_folder_from_folder_group' yet)
+# add_section_to_folder (there is no 'remove_section_from_folder' yet)
 # merge_tags, delete_tag (there is no 'make_tag' yet)
 # upload_content

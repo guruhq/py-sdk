@@ -18,7 +18,7 @@ else:
   from urlparse import quote
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Folder, FolderPermission, Group, HomeBoard, Tag, User, Question, Framework
+from guru.data_objects import Folder, FolderGroup, FolderPermission, Card, CardComment, Collection, CollectionAccess, Draft, Folder, FolderPermission, Group, HomeFolder, Tag, User, Question, Framework
 from guru.util import clean_slug, download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
@@ -82,7 +82,7 @@ def base64_encode(string):
   ).decode("ascii")
 
 
-def is_board_slug(value):
+def is_folder_slug(value):
   return re.match("^[a-zA-Z0-9]{8,9}$", value)
 
 
@@ -1356,7 +1356,7 @@ class Guru:
   def find_cards(
       self, title="", tag="", collection="", author="", verified=None, unverified=None,
       created_before=None, created_after=None, last_modified_before=None, last_modified_after=None,
-      last_modified_by=None, archived=False, board_count=None, share_status=None
+      last_modified_by=None, archived=False, folder_count=None, share_status=None
   ):
     """
     Gets a list of cards that match the criteria defined by the parameters.
@@ -1513,12 +1513,12 @@ class Guru:
           "op": "EQ"
       })
 
-    if board_count is not None:
+    if folder_count is not None:
       nested_expressions.append({
           "type": "count",
           "value": "0",
           "op": "EQ",
-          "field": "BOARDCOUNT"
+          "field": "FOLDERCOUNT"
       })
 
     if share_status:
@@ -1666,7 +1666,7 @@ class Guru:
 
   def get_favorite_lists(self):
     url = "%s/favoritelists" % self.base_url
-    return [Board(b) for b in self.__get(url).json()]
+    return [Folder(b) for b in self.__get(url).json()]
 
   def favorite_card(self, card):
     # find the favorites list to add it to.
@@ -1686,7 +1686,7 @@ class Guru:
     data = {
         "prevSiblingItem": "last",
         "actionType": "add",
-        "boardEntries": [{
+        "folderEntries": [{
             "cardId": card_obj.id,
             "entryType": "card"
         }]
@@ -1756,7 +1756,7 @@ class Guru:
     "we've queued this up" and will work on it asynchronously.
 
     You may want to wait for the operation to complete. For example, if you're
-    restoring a bunch of cards then adding them to a board, you need to wait for
+    restoring a bunch of cards then adding them to a folder, you need to wait for
     the 'restore' operation to finish. To make this happen you can use the
     `timeout` parameter, which is the number of seconds to wait for the operation
     to complete. The SDK will automatically check the bulk operation's status
@@ -1856,7 +1856,7 @@ class Guru:
     # load a card using it's slug and add a comment.
     card = g.get_card("TyRM678c")
     card.add_comment(
-        "Is this still a good doc to include in our onboarding materials?")
+        "Is this still a good doc to include in our onfoldering materials?")
     ```
 
     Args:
@@ -2189,42 +2189,42 @@ class Guru:
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
-  def get_board(self, board, collection=None, board_group=None, cache=True):
+  def get_folder(self, folder, collection=None, folder_group=None, cache=True):
     """
-    Loads a board.
+    Loads a folder.
 
     Args:
-            id (str): The board's full ID or slug.
+            id (str): The folder's full ID or slug.
 
     Returns:
-            Board: An object representing the board.
+            Folder: An object representing the folder.
     """
-    if isinstance(board, Board) or isinstance(board, HomeBoard):
-      return board
+    if isinstance(folder, Folder) or isinstance(folder, HomeFolder):
+      return folder
 
     # if the value looks like a slug or uuid, try treating it like one and make the API call to
-    # load this board directly. if this fails, we fall back to loading a list of all boards and
+    # load this folder directly. if this fails, we fall back to loading a list of all folders and
     # scanning it to match by title.
-    if is_board_slug(board) or is_uuid(board):
-      url = "%s/boards/%s" % (self.base_url, board)
+    if is_folder_slug(folder) or is_uuid(folder):
+      url = "%s/folders/%s" % (self.base_url, folder)
       response = self.__get(url)
       if status_to_bool(response.status_code):
-        return Board(response.json(), guru=self)
+        return Folder(response.json(), guru=self)
 
-    # todo: use the 'collection' parameter as a way to also filter, in case the same board appears
-    #       in more than one collection (board titles still aren't unique within a collection though).
+    # todo: use the 'collection' parameter as a way to also filter, in case the same folder appears
+    #       in more than one collection (folder titles still aren't unique within a collection though).
 
-    # this returns a list of 'lite' objects that don't have the lists of items on the board.
-    # once we find the matching board, then we can make the get call to get the complete object.
-    board_obj = find_by_name_or_id(self.get_boards(
-        collection, board_group, cache), board)
+    # this returns a list of 'lite' objects that don't have the lists of items on the folder.
+    # once we find the matching folder, then we can make the get call to get the complete object.
+    folder_obj = find_by_name_or_id(self.get_folders(
+        collection, folder_group, cache), folder)
 
-    if not board_obj:
+    if not folder_obj:
       return
 
-    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    url = "%s/folders/%s" % (self.base_url, folder_obj.id)
     response = self.__get(url)
-    return Board(response.json(), guru=self)
+    return Folder(response.json(), guru=self)
 
   def get_folder(self, folder, collection=None, cache=True):
     """
@@ -2321,7 +2321,7 @@ class Guru:
         folder (str or Folder): The name or ID of a folder or a Folder object
         collection (str or Collection, optional): The name or ID of a collection or a Collection object
             to filter by. If this is not provided, the operation will be performed on all folders.
-        remove_type (str, optional): The type of removal to perform. 
+        remove_type (str, optional): The type of removal to perform.
           Values are:
             'FOLDERS_ONLY' - Just the folder is deleted, any Folders and Cards w/in the Folder are   assigned to the Collections home folder
 
@@ -2535,7 +2535,7 @@ class Guru:
             {
                 "entryType": "folder",
                 "id": source_folder_obj.item_id,
-                "legacyType": "BOARD"
+                "legacyType": "FOLDER"
             }
         ],
         "prevSiblingItemId": "first"
@@ -2646,7 +2646,7 @@ class Guru:
       card (str, required): The ID or Card Object you are adding to the Folder.
       target_folder (str, required): the ID/Slug/Name/Folder Object you are adding the Card to.
 
-    Returns: 
+    Returns:
       Boolean
     """
 
@@ -2690,7 +2690,7 @@ class Guru:
     """
     Return a folder's parent Folder
 
-    Args: 
+    Args:
       folder (str, required): the ID/Slug/Name/Folder Object
 
     Returns:
@@ -2735,7 +2735,7 @@ class Guru:
       Get shared groups on a folder
       Args:
         folder (str, required): the ID/Slug/Name/Folder Object you are getting groups for
-      Returns: 
+      Returns:
         FolderPermissions object.
     """
     folder_obj = self.get_folder(folder)
@@ -2912,28 +2912,28 @@ class Guru:
     # return bool
     return status_to_bool(response.status_code)
 
-  def get_boards(self, collection=None, board_group=None, cache=False):
+  def get_folders(self, collection=None, folder_group=None, cache=False):
     """
-    Gets a list of boards you can see. You can optionally filter by collection.
+    Gets a list of folders you can see. You can optionally filter by collection.
 
     Args:
             collection (str or Collection, optional): The name or ID of a collection or a Collection object
-                    to filter by. If this is not provided, you'll get back a list of all boards in all collections
+                    to filter by. If this is not provided, you'll get back a list of all folders in all collections
                     you can see.
 
     Returns:
-            list of Board: Either all boards you have access to or all boards within the specified collection.
+            list of Folder: Either all folders you have access to or all folders within the specified collection.
     """
-    # if you're filtering by a board group we find the boards differently.
-    # this will load the home board to find the board group and return its items.
-    if collection and board_group:
-      board_group_obj = self.get_board_group(board_group, collection)
-      if not board_group_obj:
+    # if you're filtering by a folder group we find the folders differently.
+    # this will load the home folder to find the folder group and return its items.
+    if collection and folder_group:
+      folder_group_obj = self.get_folder_group(folder_group, collection)
+      if not folder_group_obj:
         self.__log(
-            make_red("could not find board group:", board_group))
+            make_red("could not find folder group:", folder_group))
         return
 
-      return board_group_obj.items
+      return folder_group_obj.items
 
     # filtering by collection is optional.
     if collection:
@@ -2941,49 +2941,49 @@ class Guru:
       if not collection_obj:
         self.__log(make_red("could not find collection:", collection))
         return
-      url = "%s/boards?collection=%s" % (self.base_url,
+      url = "%s/folders?collection=%s" % (self.base_url,
                                          collection_obj.id)
     else:
-      url = "%s/boards" % self.base_url
+      url = "%s/folders" % self.base_url
 
-    boards = self.__get_and_get_all(url, cache)
-    return [Board(b, guru=self) for b in boards]
+    folders = self.__get_and_get_all(url, cache)
+    return [Folder(b, guru=self) for b in folders]
 
-  def get_board_group(self, board_group, collection):
+  def get_folder_group(self, folder_group, collection):
     """
-    Loads a board group.
+    Loads a folder group.
 
     Args:
-            board_group(str): The name of the board group.
+            folder_group(str): The name of the folder group.
             collection(str or Collection): The name of the collection or the Collection object
-                    for the collection that contains the board group you're looking for.
+                    for the collection that contains the folder group you're looking for.
 
     Returns:
-            BoardGroup: an object representing the board group.
+            FolderGroup: an object representing the folder group.
     """
-    if isinstance(board_group, BoardGroup):
-      return board_group
+    if isinstance(folder_group, FolderGroup):
+      return folder_group
 
-    home_board_obj = self.get_home_board(collection)
+    home_folder_obj = self.get_home_folder(collection)
 
-    for item in home_board_obj.items:
-      if isinstance(item, BoardGroup) and item.title.lower() == board_group.lower():
+    for item in home_folder_obj.items:
+      if isinstance(item, FolderGroup) and item.title.lower() == folder_group.lower():
         return item
 
-  def make_board_group(self, collection, title, desc=""):
+  def make_folder_group(self, collection, title, desc=""):
     """
-    Creates a new board group. It'll be added as the last item in the collection.
+    Creates a new folder group. It'll be added as the last item in the collection.
 
     Args:
             collection (str or Collection): A collection ID or a Collection object
-                    the board group will be added to.
-            title (str): The title for the new board group.
-            desc (str, optional): The description of the new board group.
+                    the folder group will be added to.
+            title (str): The title for the new folder group.
+            desc (str, optional): The description of the new folder group.
 
     Returns:
             bool: True if it was successful and False otherwise.
     """
-    # https://api.getguru.com/api/v1/boards/home/entries?collection=fac2ed4d-a2c0-4d47-b409-5a988fe8dcf7
+    # https://api.getguru.com/api/v1/folders/home/entries?collection=fac2ed4d-a2c0-4d47-b409-5a988fe8dcf7
     collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
@@ -2991,133 +2991,133 @@ class Guru:
 
     data = {
         "actionType": "add",
-        "boardEntries": [{
+        "folderEntries": [{
             "entryType": "section",
             "title": title,
             "description": desc
         }],
         # "nextSiblingItem": "b93799c8-6fb7-467d-a8ea-9a6e62ff8e93"
     }
-    url = "%s/boards/home/entries?collection=%s" % (
+    url = "%s/folders/home/entries?collection=%s" % (
         self.base_url, collection_obj.id)
 
     # this doesn't need to have a timeout or wait for a response because it's just
-    # creating one board so that should always be done synchronously.
+    # creating one folder so that should always be done synchronously.
     response = self.__put(url, data)
     if status_to_bool(response.status_code):
-      return self.get_board_group(title, collection)
+      return self.get_folder_group(title, collection)
 
-  def add_board_to_board_group(self, board, board_group, collection="", last=True):
+  def add_folder_to_folder_group(self, folder, folder_group, collection="", last=True):
     """
-    Adds an existing board to a board group. You can also load the Board and
-    BoardGroup objects and add boards like this:
+    Adds an existing folder to a folder group. You can also load the Folder and
+    FolderGroup objects and add folders like this:
 
     ```
-    board_group = g.get_board_group("Onboarding", "Engineering")
-    board_group.add_board("Week 1")
+    folder_group = g.get_folder_group("Onfoldering", "Engineering")
+    folder_group.add_folder("Week 1")
     ```
 
     Args:
-            board (str or Board): The name, ID, or slug of the Board or a Board object.
-            board_group (str or BoardGrop): The name of the Board Group or a BoardGroup object.
-            collection (str or Collection): The name or ID of the Collection the board and board group
+            folder (str or Folder): The name, ID, or slug of the Folder or a Folder object.
+            folder_group (str or FolderGrop): The name of the Folder Group or a FolderGroup object.
+            collection (str or Collection): The name or ID of the Collection the folder and folder group
                     are located in, or the Collection object.
 
     Returns:
             bool: True if it was successful and False otherwise.
     """
-    board_obj = self.get_board(board, collection)
-    if not board_obj:
-      self.__log(make_red("could not find board:", board))
+    folder_obj = self.get_folder(folder, collection)
+    if not folder_obj:
+      self.__log(make_red("could not find folder:", folder))
       return
 
-    board_group_obj = self.get_board_group(board_group, collection)
-    if not board_group_obj:
-      self.__log(make_red("could not find board group:", board_group))
+    folder_group_obj = self.get_folder_group(folder_group, collection)
+    if not folder_group_obj:
+      self.__log(make_red("could not find folder group:", folder_group))
       return
 
-    # bug: board_obj doesn't have an item_id, we only get that when we load the home board.
+    # bug: folder_obj doesn't have an item_id, we only get that when we load the home folder.
     data = {
-        "sectionId": board_group_obj.item_id,
+        "sectionId": folder_group_obj.item_id,
         "actionType": "move",
-        "boardEntries": [
+        "folderEntries": [
             {
-                "id": board_obj.item_id,
-                "entryType": "board"
+                "id": folder_obj.item_id,
+                "entryType": "folder"
             }
         ],
-        # this makes us insert it as the first item in the board group.
+        # this makes us insert it as the first item in the folder group.
         # if we omit this, we get a 500 error.
-        "prevSiblingItem": board_group_obj.item_id
+        "prevSiblingItem": folder_group_obj.item_id
     }
 
     # if we're inserting it at the end, set the prevSiblingItem accordingly.
-    if last and board_group_obj.items:
-      data["prevSiblingItem"] = board_group_obj.items[-1].item_id
+    if last and folder_group_obj.items:
+      data["prevSiblingItem"] = folder_group_obj.items[-1].item_id
 
-    url = "%s/boards/home/entries?collection=%s" % (
-        self.base_url, board_obj.collection.id)
+    url = "%s/folders/home/entries?collection=%s" % (
+        self.base_url, folder_obj.collection.id)
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
-  def get_home_board(self, collection):
+  def get_home_folder(self, collection):
     """
-    Loads a collection's "home board". The home board is the object
-    that lists all of the boards and board groups in the collection
+    Loads a collection's "home folder". The home folder is the object
+    that lists all of the folders and folder groups in the collection
     and shows you the order they're in.
 
     Args:
             collection (str): The name or ID of the collection whose home
-                    board you're loading.
+                    folder you're loading.
 
     Returns:
-            HomeBoard: An object representing the home board.
+            HomeFolder: An object representing the home folder.
     """
     collection_obj = self.get_collection(collection, cache=True)
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
       return
 
-    url = "%s/boards/home?collection=%s" % (
+    url = "%s/folders/home?collection=%s" % (
         self.base_url, collection_obj.id)
     response = self.__get(url)
-    return HomeBoard(response.json(), guru=self)
+    return HomeFolder(response.json(), guru=self)
 
-  def set_item_order(self, collection, board, *items):
+  def set_item_order(self, collection, folder, *items):
     """
-    Rearranges a board or board group's items based on the values provided.
+    Rearranges a folder or folder group's items based on the values provided.
     This doesn't add or remove any items, it just rearranges the items that
     are already there.
 
-    It also doesn't rearrange items inside sections on a board. If a board
+    It also doesn't rearrange items inside sections on a folder. If a folder
     has two sections each with 3 cards, this just rearranges the two sections.
     There will be a separate way (or an update to this method) to let it
     rearrange content inside sections.
 
     This method is often not called directly. Instead you'd make the call to
-    load a board then call its set_item_order method, like this:
+    load a folder then call its set_item_order method, like this:
 
     ```
-    board = g.get_board("My Board")
-    board.set_item_order("Card 1", "Card 2", "Card 3")
+    folder = g.get_folder("My Folder")
+    folder.set_item_order("Card 1", "Card 2", "Card 3")
     ```
 
     Args:
             collection (str or Collection): A collection to filter by if you're
-                    specifying a board title.
-            board (str or Board or BoardGroup): Either a string that'll match a
-                    board's name or the Board or BoardGroup object whose items you're
+                    specifying a folder title.
+            folder (str or Folder or FolderGroup): Either a string that'll match a
+                    folder's name or the Folder or FolderGroup object whose items you're
                     rearranging.
             *items (str): The names of the objects in the order you want them to appear.
 
     Returns:
             None
     """
-    if isinstance(board, BoardGroup):
-      board_obj = board
+    if isinstance(folder, FolderGroup):
+      folder_obj = folder
     else:
-      board_obj = self.get_board(board, collection)
-      if not board_obj:
+      folder_obj = self.get_folder(folder, collection)
+      if not folder_obj:
         return
 
     def get_key(b):
@@ -3127,24 +3127,24 @@ class Guru:
       # if we couldn't find it, move it to the back.
       return len(items)
 
-    board_obj.items.sort(key=get_key)
+    folder_obj.items.sort(key=get_key)
 
-    # if it's a board group, we need to save the entire home board.
-    if isinstance(board_obj, BoardGroup):
-      self.save_board(board_obj.home_board)
+    # if it's a folder group, we need to save the entire home folder.
+    if isinstance(folder_obj, FolderGroup):
+      self.save_folder(folder_obj.home_folder)
     else:
-      self.save_board(board_obj)
+      self.save_folder(folder_obj)
 
-  def make_board(self, title, collection, description=""):
+  def make_folder(self, title, collection, description=""):
     """
-    Creates a new board in the specified collection.
+    Creates a new folder in the specified collection.
 
     Args:
-            title (str): The title of the board you're creating. Board titles are not
-                    unique so we do not check if a board with the same title already exists.
+            title (str): The title of the folder you're creating. Folder titles are not
+                    unique so we do not check if a folder with the same title already exists.
             collection (str or Collection): The name or ID of the collection you're adding
-                    the board to, or a Collection object.
-            description (str, optional): The description of the board you're creating.
+                    the folder to, or a Collection object.
+            description (str, optional): The description of the folder you're creating.
 
     Returns:
             bool: True if it was successful and false otherwise.
@@ -3153,74 +3153,74 @@ class Guru:
     if not collection_obj:
       self.__log(make_red("could not find collection:", collection))
 
-    url = "%s/boards/home/entries?collection=%s" % (
+    url = "%s/folders/home/entries?collection=%s" % (
         self.base_url, collection_obj.id)
     data = {
         "actionType": "add",
-        "boardEntries": [{
-            "entryType": "board",
+        "folderEntries": [{
+            "entryType": "folder",
             "title": title,
             "description": description
         }]
     }
 
-    # when we try to get a board we cache the collection's home board, so when we make
-    # a new board we need to clear that cache entry because the home board has changed.
-    self.__clear_cache("%s/boards?collection=%s" %
+    # when we try to get a folder we cache the collection's home folder, so when we make
+    # a new folder we need to clear that cache entry because the home folder has changed.
+    self.__clear_cache("%s/folders?collection=%s" %
                        (self.base_url, collection_obj.id))
 
     # this doesn't need to have a timeout or wait for a response because it's just
-    # creating one board so that should always be done synchronously.
+    # creating one folder so that should always be done synchronously.
     response = self.__put(url, data)
     if status_to_bool(response.status_code):
-      return self.get_board(title, collection)
+      return self.get_folder(title, collection)
 
-  def save_board(self, board_obj):
-    url = "%s/boards/%s" % (self.base_url, board_obj.id)
-    response = self.__put(url, data=board_obj.json(include_item_id=False))
+  def save_folder(self, folder_obj):
+    url = "%s/folders/%s" % (self.base_url, folder_obj.id)
+    response = self.__put(url, data=folder_obj.json(include_item_id=False))
 
     if status_to_bool(response.status_code):
-      # todo: update the board obj so the caller doesn't have to store this return value.
-      return board_obj
+      # todo: update the folder obj so the caller doesn't have to store this return value.
+      return folder_obj
 
-  def add_card_to_board(self, card, board, section=None, collection=None, board_group=None, create_section_if_needed=False):
+  def add_card_to_folder(self, card, folder, section=None, collection=None, folder_group=None, create_section_if_needed=False):
     """
-    Adds a card to a board. You can optionally provide the name of a section
+    Adds a card to a folder. You can optionally provide the name of a section
     to add the card to. The card will be added to the end -- either to the
-    end of the board if no section is specified or to the end of the specified
+    end of the folder if no section is specified or to the end of the specified
     section.
 
-    The board can be defined using its ID or slug, which uniquely identify it.
-    You can also use its title. If there are multiple boards with the same title
-    you can also provide a collection name, then it'll find the board with a
+    The folder can be defined using its ID or slug, which uniquely identify it.
+    You can also use its title. If there are multiple folders with the same title
+    you can also provide a collection name, then it'll find the folder with a
     matching name in that collection.
 
-    Board names still don't have to be unique inside a collection. If you run
-    into this problem, you'll have to use the board's ID or slug.
+    Folder names still don't have to be unique inside a collection. If you run
+    into this problem, you'll have to use the folder's ID or slug.
 
-    You can also do this using the Board or Card objects:
+    You can also do this using the Folder or Card objects:
 
     ```
-    # load a card using its slug and add it to a board:
+    # load a card using its slug and add it to a folder:
     card = g.get_card("TyRM678c")
-    card.add_to_board("Onboarding")
+    card.add_to_folder("Onfoldering")
 
-    # or you load the board and add cards like this:
-    board = g.get_board("Onboarding", collection="Engineering")
-    board.add_card("TyRM678c")
+    # or you load the folder and add cards like this:
+    folder = g.get_folder("Onfoldering", collection="Engineering")
+    folder.add_card("TyRM678c")
     ```
 
     Args:
-            card (str or Card): The card to be added to the board. Can either be the
+            card (str or Card): The card to be added to the folder. Can either be the
                     card's title, ID, slug, or the Card object.
-            board (str or Board): The board you're adding the card to. Can either be
-                    the board's title, ID, slug, or the Board object.
+            folder (str or Folder): The folder you're adding the card to. Can either be
+                    the folder's title, ID, slug, or the Folder object.
             section (str, optional): The name of the section to add the card to.
-            board_group (str or BoardGroup, optional): The board group in which the board
-                    resides. This is optional but is necessary if the board name is not unique.
-            collection (str or Collection, optional): The collection in which the board
+            folder_group (str or FolderGroup, optional): The folder group in which the folder
+                    resides. This is optional but is necessary if the folder name is not unique.
+            collection (str or Collection, optional): The collection in which the folder
                     resides. This is optional but might be necessary if you're identifying the
-                    board by title and the same title is used by boards in different collections.
+                    folder by title and the same title is used by folders in different collections.
 
     Returns:
             None
@@ -3231,22 +3231,22 @@ class Guru:
       self.__log(make_red("could not find card:", card))
       return
 
-    # get the board object.
-    board_obj = self.get_board(
-        board, collection=collection, board_group=board_group)
-    if not board_obj:
-      self.__log(make_red("could not find board:", board))
+    # get the folder object.
+    folder_obj = self.get_folder(
+        folder, collection=collection, folder_group=folder_group)
+    if not folder_obj:
+      self.__log(make_red("could not find folder:", folder))
       return
 
     if section:
       # find the section (if applicable).
-      section_obj = find_by_name_or_id(board_obj.items, section)
+      section_obj = find_by_name_or_id(folder_obj.items, section)
       if not section_obj:
         if create_section_if_needed:
-          board_obj.add_section(section)
-          # load the objects again so we get the updated board and section.
-          board_obj = self.get_board(board_obj.id, cache=False)
-          section_obj = find_by_name_or_id(board_obj.items, section)
+          folder_obj.add_section(section)
+          # load the objects again so we get the updated folder and section.
+          folder_obj = self.get_folder(folder_obj.id, cache=False)
+          section_obj = find_by_name_or_id(folder_obj.items, section)
         else:
           self.__log(make_red("could not find section:", section))
           return
@@ -3254,51 +3254,51 @@ class Guru:
       # add the card to the section.
       section_obj.items.append(card_obj)
     else:
-      # add the card to the board.
-      board_obj.items.append(card_obj)
+      # add the card to the folder.
+      folder_obj.items.append(card_obj)
 
-    self.save_board(board_obj)
+    self.save_folder(folder_obj)
 
-    # clear the cache entry for this board.
-    self.__clear_cache("%s/boards/%s" % (self.base_url, board_obj.id))
+    # clear the cache entry for this folder.
+    self.__clear_cache("%s/folders/%s" % (self.base_url, folder_obj.id))
 
-  def add_section_to_board(self, board, section, collection=None):
+  def add_section_to_folder(self, folder, section, collection=None):
     """
-    Adds a section to a board.
+    Adds a section to a folder.
 
-    You can also do this through the Board object:
+    You can also do this through the Folder object:
 
     ```
-    # load a board using its slug and add some new sections.
-    board = g.get_board("Onboarding", collection="Engineering")
-    board.add_section("Week 1")
-    board.add_section("Week 2")
-    board.add_section("Week 3")
+    # load a folder using its slug and add some new sections.
+    folder = g.get_folder("Onfoldering", collection="Engineering")
+    folder.add_section("Week 1")
+    folder.add_section("Week 2")
+    folder.add_section("Week 3")
     ```
 
     Args:
-            board (str or Board): The board you're adding the section to. Can either
-                    be the board's title, ID, slug, or the Board object.
+            folder (str or Folder): The folder you're adding the section to. Can either
+                    be the folder's title, ID, slug, or the Folder object.
             section (str, optional): The name of the section you're adding.
-            collection (str or Collection, optional): The collection in which the board
+            collection (str or Collection, optional): The collection in which the folder
                     resides. This is optional but might be necessary if you're identifying the
-                    board by title and the same title is used by boards in different collections.
+                    folder by title and the same title is used by folders in different collections.
 
     Returns:
             bool: True if it was successful and False otherwise.
     """
-    # get the board object.
-    board_obj = self.get_board(board, collection)
-    if not board_obj:
+    # get the folder object.
+    folder_obj = self.get_folder(folder, collection)
+    if not folder_obj:
       return
 
-    url = "%s/boards/%s/entries" % (
+    url = "%s/folders/%s/entries" % (
         self.base_url,
-        board_obj.id
+        folder_obj.id
     )
     data = {
         "actionType": "add",
-        "boardEntries": [{
+        "folderEntries": [{
             "entryType": "section",
             "title": section
         }]
@@ -3306,29 +3306,29 @@ class Guru:
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
-  def remove_card_from_board(self, card, board, collection=None, section=None):
+  def remove_card_from_folder(self, card, folder, collection=None, section=None):
     """
-    Removes a card from a board.
+    Removes a card from a folder.
 
     Args:
-            card (str or Card): The card to be removed from the board. Can either be
+            card (str or Card): The card to be removed from the folder. Can either be
                     the card's title, ID, slug, or the Card object.
-            board (str or Board): The board you're removing the card from. Can either
-                    be the board's title, ID, slug, or the Board object.
-            collection (str or Collection, optional): The collection in which the board
+            folder (str or Folder): The folder you're removing the card from. Can either
+                    be the folder's title, ID, slug, or the Folder object.
+            collection (str or Collection, optional): The collection in which the folder
                     resides. This is optional but might be necessary if you're identifying the
-                    board by title and the same title is used by boards in different collections.
+                    folder by title and the same title is used by folders in different collections.
             section (str, optional): The name of the section to find the card in.
 
     Returns:
             bool: True if it was successful and False otherwise.
     """
-    board_obj = self.get_board(board, collection)
-    if not board_obj:
-      self.__log(make_red("could not find board:", board))
+    folder_obj = self.get_folder(folder, collection)
+    if not folder_obj:
+      self.__log(make_red("could not find folder:", folder))
       return
 
-    card_obj = board_obj.get_card(card, section)
+    card_obj = folder_obj.get_card(card, section)
     if not card_obj:
       if section:
         self.__log(
@@ -3337,12 +3337,12 @@ class Guru:
         self.__log(make_red("could not find card:", card))
       return
 
-    url = "%s/boards/%s/entries" % (self.base_url, board_obj.id)
+    url = "%s/folders/%s/entries" % (self.base_url, folder_obj.id)
     data = {
         "actionType": "remove",
-        "collectionId": board_obj.collection.id,
-        "id": board_obj.id,
-        "boardEntries": [{
+        "collectionId": folder_obj.collection.id,
+        "id": folder_obj.id,
+        "folderEntries": [{
             "entryType": "card",
             "id": card_obj.item_id
         }]
@@ -3350,28 +3350,28 @@ class Guru:
     response = self.__put(url, data)
     return status_to_bool(response.status_code)
 
-  def delete_board(self, board, collection=None):
+  def delete_folder(self, folder, collection=None):
     """
-    deletes board
+    deletes folder
 
     Args:
-                    board (str or Board): The name or ID of a board or a Board object
+                    folder (str or Folder): The name or ID of a folder or a Folder object
 
                     collection (str or Collection, optional): The name or ID of a collection or a Collection object
-                            to filter by. If this is not provided, you'll get back a list of all boards in all collections
+                            to filter by. If this is not provided, you'll get back a list of all folders in all collections
                             you can see.
 
     Returns:
                     bool: True if it was successful and False otherwise.
     """
 
-    board_obj = self.get_board(board, collection=collection)
+    folder_obj = self.get_folder(folder, collection=collection)
 
-    if not board_obj:
-      self.__log(make_red("could not find board:", board))
+    if not folder_obj:
+      self.__log(make_red("could not find folder:", folder))
       return
 
-    url = "%s/boards/%s" % (self.base_url, board_obj.id)
+    url = "%s/folders/%s" % (self.base_url, folder_obj.id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
@@ -3410,32 +3410,32 @@ class Guru:
     )
     return self.__get_and_get_all(url, max_pages=max_pages)
 
-  def get_shared_groups(self, board):
-    board_obj = self.get_board(board)
-    if not board_obj:
-      self.__log(make_red("could not find board:", board))
+  def get_shared_groups(self, folder):
+    folder_obj = self.get_folder(folder)
+    if not folder_obj:
+      self.__log(make_red("could not find folder:", folder))
       return
 
-    url = "%s/boards/%s/permissions" % (self.base_url, board_obj.id)
+    url = "%s/folders/%s/permissions" % (self.base_url, folder_obj.id)
     response = self.__get(url)
-    return [BoardPermission(b) for b in response.json()]
+    return [FolderPermission(b) for b in response.json()]
 
-  def add_shared_group(self, board, group):
+  def add_shared_group(self, folder, group):
     """
-    Shares a board with a group using the Board Permissions settings.
-    This is how you share specific boards with groups that don't have full
+    Shares a folder with a group using the Folder Permissions settings.
+    This is how you share specific folders with groups that don't have full
     read access to the collection.
 
-    You can also do this through the board object:
+    You can also do this through the folder object:
 
     ```
-    # load a board using its slug and share it with a group:
-    board = g.get_board("KTRX8zMT")
-    board.add_group("Sales")
+    # load a folder using its slug and share it with a group:
+    folder = g.get_folder("KTRX8zMT")
+    folder.add_group("Sales")
     ```
 
     Args:
-            board (str or Board): The board's ID or slug or a Board object.
+            folder (str or Folder): The folder's ID or slug or a Folder object.
             group (str or Group): The group's name or ID or a Group object.
 
     Returns:
@@ -3446,9 +3446,9 @@ class Guru:
       self.__log(make_red("could not find group:", group))
       return
 
-    board_obj = self.get_board(board)
-    if not board_obj:
-      self.__log(make_red("could not find board:", board))
+    folder_obj = self.get_folder(folder)
+    if not folder_obj:
+      self.__log(make_red("could not find folder:", folder))
       return
 
     data = [{
@@ -3459,35 +3459,35 @@ class Guru:
         }
     }]
 
-    url = "%s/boards/%s/permissions" % (self.base_url, board_obj.id)
+    url = "%s/folders/%s/permissions" % (self.base_url, folder_obj.id)
     response = self.__post(url, data)
     return status_to_bool(response.status_code)
 
-  def remove_shared_group(self, board, group):
+  def remove_shared_group(self, folder, group):
     group_obj = self.get_group(group)
     if not group_obj:
       self.__log(make_red("could not find group:", group))
       return
 
-    board_obj = self.get_board(board)
-    if not board_obj:
-      self.__log(make_red("could not find board:", board))
+    folder_obj = self.get_folder(folder)
+    if not folder_obj:
+      self.__log(make_red("could not find folder:", folder))
       return
 
     # find the id of the permission assignment.
     perm_obj = None
-    for perm in self.get_shared_groups(board_obj):
+    for perm in self.get_shared_groups(folder_obj):
       if perm.group.id == group_obj.id:
         perm_obj = perm
         break
 
     if not perm_obj:
       self.__log(make_red(
-          "could not find assigned permission for group %s, maybe it's not assigned to this board" % group))
+          "could not find assigned permission for group %s, maybe it's not assigned to this folder" % group))
       return
 
-    url = "%s/boards/%s/permissions/%s" % (
-        self.base_url, board_obj.id, perm_obj.id)
+    url = "%s/folders/%s/permissions/%s" % (
+        self.base_url, folder_obj.id, perm_obj.id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
 
@@ -3538,19 +3538,19 @@ class Guru:
     else:
       return status_to_bool(response.status_code)
 
-  def move_board_to_collection(self, board, collection, timeout=0):
+  def move_folder_to_collection(self, folder, collection, timeout=0):
     """
-    Moves a board from one collection to another.
+    Moves a folder from one collection to another.
 
     Args:
-            board (str or Board): The board to be moved. Can either be the board's title,
-                    ID, slug, or the Board object.
-            collection (str or Collection): The collection you're moving the board to. Can
+            folder (str or Folder): The folder to be moved. Can either be the folder's title,
+                    ID, slug, or the Folder object.
+            collection (str or Collection): The collection you're moving the folder to. Can
                     either be the collection's title, ID, or the Collection object.
-            timeout (int, optional): The API call to move a board just queues up the operation.
-                    This parameter is used if you want to wait until Guru is done moving the board to
+            timeout (int, optional): The API call to move a folder just queues up the operation.
+                    This parameter is used if you want to wait until Guru is done moving the folder to
                     its new collection. This helpful if you want to do multiple operations, like move
-                    a board to a new collection then add it to a board group there. By default this is
+                    a folder to a new collection then add it to a folder group there. By default this is
                     0 so it doesn't wait. If you set a timeout of 10, we'll wait up to 10 seconds to
                     see if the move completes.
 
@@ -3558,9 +3558,9 @@ class Guru:
             bool: True if it was successful and False otherwise. False could mean that there was
                     an error or that you were waiting for the operation to finish and it timed out.
     """
-    board_obj = self.get_board(board, collection=collection)
-    if not board_obj:
-      self.__log(make_red("could not find board:", board))
+    folder_obj = self.get_folder(folder, collection=collection)
+    if not folder_obj:
+      self.__log(make_red("could not find folder:", folder))
       return
 
     collection_obj = self.get_collection(collection)
@@ -3568,32 +3568,32 @@ class Guru:
       self.__log(make_red("could not find collection:", collection))
       return
 
-    # if the board is already in that collection, do nothing.
-    if board_obj.collection and board_obj.collection.id == collection_obj.id:
-      self.__log(make_red("board", board_obj.title,
+    # if the folder is already in that collection, do nothing.
+    if folder_obj.collection and folder_obj.collection.id == collection_obj.id:
+      self.__log(make_red("folder", folder_obj.title,
                           "is already in collection", collection_obj.name))
       return
 
-    # make the bulk op call to move the board to the other collection.
+    # make the bulk op call to move the folder to the other collection.
     data = {
         "action": {
-            "type": "move-board",
+            "type": "move-folder",
             "collectionId": collection_obj.id
         },
         "items": {
             "type": "id",
-            "itemIds": [board_obj.id]
+            "itemIds": [folder_obj.id]
         }
     }
 
-    url = "%s/boards/bulkop" % self.base_url
+    url = "%s/folders/bulkop" % self.base_url
     response = self.__post(url, data)
 
     # if there's a timeout and the operation is being done async, we wait.
     if timeout and response.status_code == 202:
       # poll and wait for the bulk operation to finish.
       bulk_op_id = response.json().get("id")
-      url = "%s/boards/bulkop/%s" % (self.base_url, bulk_op_id)
+      url = "%s/folders/bulkop/%s" % (self.base_url, bulk_op_id)
       return self.__wait_for_bulkop(url, timeout)
     else:
       return status_to_bool(response.status_code)

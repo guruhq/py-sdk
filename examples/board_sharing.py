@@ -3,9 +3,9 @@ import guru
 
 g = guru.Guru()
 
-# find the Products board group in the CS collection.
-board_group = g.get_board_group("Products", collection="CS")
+# find the Products folder group in the CS collection.
+folder_group = g.get_folder_group("Products", collection="CS")
 
-# share each board in the Products board group with the 'Knowledge Pilot Team' group.
-for board in board_group.items:
-  board.add_group("Knowledge Pilot Team")
+# share each folder in the Products folder group with the 'Knowledge Pilot Team' group.
+for folder in folder_group.items:
+  folder.add_group("Knowledge Pilot Team")

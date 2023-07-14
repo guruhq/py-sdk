@@ -1,18 +1,18 @@
 """
 This script shows how to use Guru's SDK to publish cards,
-boards, or entire collections to an external site, like a
+folders, or entire collections to an external site, like a
 third-party help site.
 
 This is the script we use to publish our docs from Guru to
 https://developer.getguru.com/docs
 
-This script takes the contents of a board in Guru and makes
+This script takes the contents of a folder in Guru and makes
 API calls to Readme (https://readme.com/) to create or update
 docs in Readme based on the changes seen in Guru. There are
 a few parts to this:
 
 1. Behind the scenes, the SDK enumerates all the sections
-   and cards on the board we specify.
+   and cards on the folder we specify.
 2. The SDK also writes a metadata .json file to keep track
    of which cards have been published before.
 3. Using the metadata, the SDK knows whether a card has been
@@ -67,14 +67,14 @@ class ReadmePublisher(guru.Publisher):
       if category["title"].lower() == section.title.lower():
         return category["_id"]
 
-  def create_external_section(self, section, board, board_group, collection):
-    # When we add a new section to our board, this method will
+  def create_external_section(self, section, folder, folder_group, collection):
+    # When we add a new section to our folder, this method will
     # be called to create the section in Readme. We don't have
     # to do anything here, it just meanas that new sections won't
     # automatically get created in Readme.
     pass
 
-  def update_external_section(self, external_id, section, board, board_group, collection):
+  def update_external_section(self, external_id, section, folder, folder_group, collection):
     # todo: update a 'category' in readme.
     pass
 
@@ -98,7 +98,7 @@ class ReadmePublisher(guru.Publisher):
         if doc.get("title") == card.title:
           return doc.get("slug")
 
-  def create_external_card(self, card, changes, section, board, board_group, collection):
+  def create_external_card(self, card, changes, section, folder, folder_group, collection):
     """
     This method is called automatically when the SDK sees a card
     that it knows hasn't been published before. This means we need
@@ -112,7 +112,7 @@ class ReadmePublisher(guru.Publisher):
     }
     if section:
       data["category"] = self.get_external_id(section.id)
-    
+
     url = "https://dash.readme.io/api/v1/docs"
 
     # This method has to return the Readme ID of the new doc. We need
@@ -120,8 +120,8 @@ class ReadmePublisher(guru.Publisher):
     # so the next time we publish this card we can make the 'update'
     # call to Readme to update this particular doc.
     return requests.post(url, json=data, auth=(README_API_TOKEN, "")).json().get("_id")
-  
-  def update_external_card(self, external_id, card, changes, section, board, board_group, collection):
+
+  def update_external_card(self, external_id, card, changes, section, folder, folder_group, collection):
     """
     This script stores metadata so it knows which cards have been
     published before. If a card has already been published to
@@ -142,7 +142,7 @@ class ReadmePublisher(guru.Publisher):
     # this method returns the response object so the SDK will know
     # if the API call to update the doc was successful.
     return requests.put(url, json=data, auth=(README_API_TOKEN, ""))
-  
+
   def delete_external_card(self, external_id):
     # if we want to automatically delete Readme docs when the Guru
     # cards are archived, we could implement that here.
@@ -153,13 +153,13 @@ if __name__ == "__main__":
   g = guru.Guru(GURU_USER, GURU_API_TOKEN)
   publisher = ReadmePublisher(g)
 
-  # 6Tkg78RT is the slug that identifies the board we publish to Readme.
-  # you can find this ID in the board's URL, like:
-  # https://app.getguru.com/boards/6Tkg78RT/Readme-Guides
-  publisher.publish_board("6Tkg78RT")
+  # 6Tkg78RT is the slug that identifies the folder we publish to Readme.
+  # you can find this ID in the folder's URL, like:
+  # https://app.getguru.com/folders/6Tkg78RT/Readme-Guides
+  publisher.publish_folder("6Tkg78RT")
 
   # for now, we haven't implemented any of the 'delete' methods. if we do want to
   # be able to delete Readme docs when the guru cards are archived (or when they're
-  # removed from our 'readme' board), we'll need to implement the delete method and
+  # removed from our 'readme' folder), we'll need to implement the delete method and
   # also call process_deletions().
   # publisher.process_deletions()

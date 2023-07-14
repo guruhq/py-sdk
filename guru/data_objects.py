@@ -27,14 +27,14 @@ def find_urls_in_doc(doc):
 class Section:
   """
   You can often refer to sections simply by their name. For example, when
-  adding a card to a board, you can say `section="Onboarding"` to add the
-  card to the Onboarding section.
+  adding a card to a folder, you can say `section="Onfoldering"` to add the
+  card to the Onfoldering section.
 
   Sections do have more properties and if you need to reference them, you'll
   use the Section object. They have these properties:
 
   - `type`: always the string "section", but this is useful when you have a list
-    of board items where each item could be a section or card and you want to check
+    of folder items where each item could be a section or card and you want to check
     which type it is.
   - `title` the displayed title for this section.
   - `id` the internal Guru ID for the section.
@@ -228,7 +228,7 @@ class Folder:
 
   def get_home(self):
     """
-    Gets a Folder's collection's home board
+    Gets a Folder's collection's home folder
 
     Returns:
       Folder object.
@@ -410,35 +410,35 @@ class FolderPermission:
     self.group = Group(data.get("group"))
 
 
-class Board:
+class Folder:
   """
-  The Board object contains the board's properties, like title and description,
+  The Folder object contains the folder's properties, like title and description,
   and also includes a list of the cards and sections it contains.
 
   Here's a partial list of properties these objects have:
 
-  - `title` is the board's name as it's displayed in the UI.
+  - `title` is the folder's name as it's displayed in the UI.
   - `description` is an optional description.
-  - `id` is the board's internal ID.
-  - `url` is the full URL for the board.
-  - `items` is the list of items on the board, where each item can be a Card object or a Section object.
-  - `cards` is a flattened list of Card objects for each card on the board.
-  - `sections` is the list of Section objects for each section on the board.
+  - `id` is the folder's internal ID.
+  - `url` is the full URL for the folder.
+  - `items` is the list of items on the folder, where each item can be a Card object or a Section object.
+  - `cards` is a flattened list of Card objects for each card on the folder.
+  - `sections` is the list of Section objects for each section on the folder.
   - `all_items` is a flattened list where each is a Card object or Section object. This is similar to the `items` list
-    except a board with 2 sections (each containing 1 card) will have two items (just the sections) but `all_items` will
+    except a folder with 2 sections (each containing 1 card) will have two items (just the sections) but `all_items` will
     have all four items.
   """
 
-  def __init__(self, data, guru=None, home_board=None):
+  def __init__(self, data, guru=None, home_folder=None):
     self.guru = guru
-    self.home_board = home_board
+    self.home_folder = home_folder
     self.last_modified = data.get("lastModified")
     self.title = data.get("title")
     self.description = data.get("description")
     self.slug = data.get("slug")
     self.id = data.get("id")
     self.__item_id = data.get("itemId")
-    self.type = "board"
+    self.type = "folder"
 
     if data.get("collection"):
       self.collection = Collection(data.get("collection"))
@@ -480,8 +480,8 @@ class Board:
 
   def __load_all_cards(self):
     # identify the partially-loaded cards.
-    # these come from boards that have more than 50 cards.
-    # sometimes the API returns a 'lite' board that doesn't have items at all. these will
+    # these come from folders that have more than 50 cards.
+    # sometimes the API returns a 'lite' folder that doesn't have items at all. these will
     # naturally skip over most of this logic because their items list is missing or empty
     # so we don't have any card IDs to try to load.
     unloaded_card_ids = []
@@ -489,7 +489,7 @@ class Board:
       if not card.title:
         unloaded_card_ids.append(card.id)
 
-    # if the board has < 50 cards this list will be empty and we can stop early.
+    # if the folder has < 50 cards this list will be empty and we can stop early.
     if not unloaded_card_ids:
       return
 
@@ -512,7 +512,7 @@ class Board:
   @property
   def url(self):
     if self.slug:
-      return "https://app.getguru.com/boards/%s" % self.slug
+      return "https://app.getguru.com/folders/%s" % self.slug
     else:
       return ""
 
@@ -521,15 +521,15 @@ class Board:
     if self.__item_id:
       return self.__item_id
 
-    # load the home board (if necessary), find this board, and set its item_id.
-    if not self.home_board:
-      self.home_board = self.guru.get_home_board(self.collection)
+    # load the home folder (if necessary), find this folder, and set its item_id.
+    if not self.home_folder:
+      self.home_folder = self.guru.get_home_folder(self.collection)
 
-    board_item = find_by_id(self.home_board.boards, self.id)
-    if not board_item:
-      print("could not find board on home board")
+    folder_item = find_by_id(self.home_folder.folders, self.id)
+    if not folder_item:
+      print("could not find folder on home folder")
     else:
-      self.__item_id = board_item.item_id
+      self.__item_id = folder_item.item_id
 
     return self.__item_id
 
@@ -559,7 +559,7 @@ class Board:
 
   def has_section(self, section):
     """
-    Returns True if the board contains the section and False if it doesn't.
+    Returns True if the folder contains the section and False if it doesn't.
     Other operations, like adding a section, doesn't check for duplicates
     so here's how we can do that:
 
@@ -567,52 +567,52 @@ class Board:
     import guru
     g = guru.Guru()
 
-    board = g.get_board("TrE4qxgc")
-    if not board.has_section("Week 2"):
-      board.add_section("Week 2"):
+    folder = g.get_folder("TrE4qxgc")
+    if not folder.has_section("Week 2"):
+      folder.add_section("Week 2"):
     ```
 
     Args:
       section (str): The section's name or ID.
 
     Returns:
-      bool: True if the board contains the section and False otherwise.
+      bool: True if the folder contains the section and False otherwise.
     """
     return True if self.get_section(section) else False
 
   def add_section(self, name):
     """
-    Adds a section to the board. The new section is added at the end of the
-    board. If the board already has a section by this name, this _will_ add another.
+    Adds a section to the folder. The new section is added at the end of the
+    folder. If the folder already has a section by this name, this _will_ add another.
 
     ```
     import guru
     g = guru.Guru()
 
-    # we can load a board using its slug, which we find from its URL:
-    # https://app.getguru.com/boards/TrE4qxgc/Onboarding
-    board = g.get_board("TrE4qxgc")
-    board.add_section("Week 2")
+    # we can load a folder using its slug, which we find from its URL:
+    # https://app.getguru.com/folders/TrE4qxgc/Onfoldering
+    folder = g.get_folder("TrE4qxgc")
+    folder.add_section("Week 2")
     ```
 
     Args:
       name (str): The name of the section to add.
     """
-    self.guru.add_section_to_board(self, name)
+    self.guru.add_section_to_folder(self, name)
 
   def set_item_order(self, *items):
     """
-    Rearranges the items on the board based on the list of strings
-    you pass in here. For example, if you have a board about
-    onboarding and it has sections called Week 1, Week 2, and Week 3,
+    Rearranges the items on the folder based on the list of strings
+    you pass in here. For example, if you have a folder about
+    onfoldering and it has sections called Week 1, Week 2, and Week 3,
     here's how you'd arrange them to make sure they're in order:
 
     ```
-    board = g.get_board("TrE4qxgc")
-    board.set_item_order("Week 1", "Week 2", "Week 3")
+    folder = g.get_folder("TrE4qxgc")
+    folder.set_item_order("Week 1", "Week 2", "Week 3")
     ```
 
-    Remember, the items on a board aren't all sections, it can be a
+    Remember, the items on a folder aren't all sections, it can be a
     mix of cards and sections. The strings you pass in here are expected
     to match section or card titles.
 
@@ -642,51 +642,51 @@ class Board:
 
   def add_card(self, card, section=None):
     """
-    Adds a card to the board. The card will be added to the end
-    of the board. If a section name is provided, the card will
+    Adds a card to the folder. The card will be added to the end
+    of the folder. If a section name is provided, the card will
     be added inside that section. If the section doesn't exist
-    on the board it will _not_ be created.
+    on the folder it will _not_ be created.
 
     ```
     import guru
     g = guru.Guru()
 
     # we use slugs (the IDs found in URLs) to specify which
-    # board we're loading and what card we're adding to it.
-    board = g.get_board("TrE4qxgc")
-    board.add_card("Tbbqo5pc")
+    # folder we're loading and what card we're adding to it.
+    folder = g.get_folder("TrE4qxgc")
+    folder.add_card("Tbbqo5pc")
     ```
 
     Args:
-      card (str or Card): The card to add to this board. Can either be a Card object or a string
+      card (str or Card): The card to add to this folder. Can either be a Card object or a string
         that's the card's ID or slug.
       section (str, optional): The name of the section to add the card to.
     """
-    return self.guru.add_card_to_board(card, self, section=section, collection=self.collection)
+    return self.guru.add_card_to_folder(card, self, section=section, collection=self.collection)
 
   def remove_card(self, card):
     """
-    Removes a card from the board.
+    Removes a card from the folder.
 
     Args:
       card (str or Card): The card's ID or slug, or a Card object.
     """
-    return self.guru.remove_card_from_board(card, self)
+    return self.guru.remove_card_from_folder(card, self)
 
   def get_groups(self):
     """
-    Gets the list of groups the board has been shared with
-    via board permissioning. This does not include the groups
-    who can see the board due to the collection's permissioning.
+    Gets the list of groups the folder has been shared with
+    via folder permissioning. This does not include the groups
+    who can see the folder due to the collection's permissioning.
 
     Returns:
-      list of Group: A list of Group objects for each group the board has been shared with.
+      list of Group: A list of Group objects for each group the folder has been shared with.
     """
     return self.guru.get_shared_groups(self)
 
   def add_group(self, group):
     """
-    Shares the board with an additional group.
+    Shares the folder with an additional group.
 
     Args:
       group (str or Group): The group's ID or name, or a Group object.
@@ -695,7 +695,7 @@ class Board:
 
   def remove_group(self, group):
     """
-    Removes a shared group from this board.
+    Removes a shared group from this folder.
 
     Args:
       group (str or Group): The group's ID or name, or a Group object.
@@ -704,7 +704,7 @@ class Board:
 
   def move_to_collection(self, collection, timeout=0):
     """
-    Moves the board to a different collection.
+    Moves the folder to a different collection.
 
     These operations are done asynchronously and can take a little while
     to complete. If you want to wait for the operation to complete you
@@ -716,19 +716,19 @@ class Board:
       collection (str or Collection): The collection's name or ID or a Collection object.
       timeout (int, optional): If you want to wait for the move to complete, this is the
         maximum amount of time (in seconds) that you'll wait. By default this is zero which
-        means this function call returns before the board has actually been moved to its
+        means this function call returns before the folder has actually been moved to its
         new collection.
     """
-    self.guru.move_board_to_collection(self, collection, timeout)
+    self.guru.move_folder_to_collection(self, collection, timeout)
 
   def delete(self):
     """
-    deletes board
+    deletes folder
 
     Returns:
       bool: True if it was successful and False otherwise.
     """
-    return self.guru.delete_board(self, self.collection.id)
+    return self.guru.delete_folder(self, self.collection.id)
 
   def json(self, include_items=True, include_item_id=False, include_collection=True):
     data = {
@@ -747,28 +747,28 @@ class Board:
     return data
 
 
-class BoardPermission:
-  def __init__(self, data, guru=None, board=None):
+class FolderPermission:
+  def __init__(self, data, guru=None, folder=None):
     self.guru = guru
-    self.board = board
+    self.folder = folder
     self.id = data.get("id")
     self.group = Group(data.get("group"))
 
 
-class BoardGroup:
-  def __init__(self, data, guru=None, home_board=None):
+class FolderGroup:
+  def __init__(self, data, guru=None, home_folder=None):
     self.guru = guru
-    self.home_board = home_board
+    self.home_folder = home_folder
     self.title = data.get("title")
     self.item_id = data.get("itemId")
     self.description = data.get("description") or ""
     self.slug = data.get("slug")
     self.id = data.get("id")
-    self.type = "board-group"
-    self.items = [Board(b, guru) for b in data.get("items") or []]
+    self.type = "folder-group"
+    self.items = [Folder(b, guru) for b in data.get("items") or []]
 
   def set_item_order(self, *items):
-    return self.guru.set_item_order(self.home_board.collection, self, *items)
+    return self.guru.set_item_order(self.home_folder.collection, self, *items)
 
   def json(self, include_items=True, include_item_id=True, include_collection=True):
     return {
@@ -783,14 +783,14 @@ class BoardGroup:
         ) for i in self.items]
     }
 
-  def add_board(self, board):
+  def add_folder(self, folder):
     collection = None
-    if self.home_board:
-      collection = self.home_board.collection
-    return self.guru.add_board_to_board_group(board, self, collection=collection)
+    if self.home_folder:
+      collection = self.home_folder.collection
+    return self.guru.add_folder_to_folder_group(folder, self, collection=collection)
 
 
-class HomeBoard:
+class HomeFolder:
   def __init__(self, data, guru=None):
     self.guru = guru
     self.last_modified = data.get("lastModified")
@@ -799,26 +799,26 @@ class HomeBoard:
     self.collection = Collection(data.get("collection"))
 
     self.items = []
-    self.__board_groups = []
-    self.__boards = []
+    self.__folder_groups = []
+    self.__folders = []
     for item in data.get("items", []):
-      if item.get("type") == "board":
-        board = Board(item, guru, home_board=self)
-        self.items.append(board)
-        self.__boards.append(board)
+      if item.get("type") == "folder":
+        folder = Folder(item, guru, home_folder=self)
+        self.items.append(folder)
+        self.__folders.append(folder)
       elif item.get("type") == "section":
-        board_group = BoardGroup(item, guru, home_board=self)
-        self.items.append(board_group)
-        self.__board_groups.append(board_group)
-        self.__boards += board_group.items
+        folder_group = FolderGroup(item, guru, home_folder=self)
+        self.items.append(folder_group)
+        self.__folder_groups.append(folder_group)
+        self.__folders += folder_group.items
 
   @property
-  def boards(self):
-    return tuple(self.__boards)
+  def folders(self):
+    return tuple(self.__folders)
 
   @property
-  def board_groups(self):
-    return tuple(self.__board_groups)
+  def folder_groups(self):
+    return tuple(self.__folder_groups)
 
   def set_item_order(self, *items):
     return self.guru.set_item_order(self.collection, self, *items)
@@ -829,7 +829,7 @@ class HomeBoard:
         "collection": self.collection.json(),
         "items": [
             i.json(
-                include_items=isinstance(i, BoardGroup),
+                include_items=isinstance(i, FolderGroup),
                 include_item_id=include_item_id,
                 include_collection=False
             ) for i in self.items
@@ -901,7 +901,7 @@ class Collection:
     self.name = data.get("name")
     self.type = data.get("collectionType")
     self.slug = data.get("slug")
-    self.homeFolderSlug = data.get("homeBoardSlug")
+    self.homeFolderSlug = data.get("homeFolderSlug")
     self.color = data.get("color")
 
     # these are the expanded properties you get when loading a single collection
@@ -1157,7 +1157,7 @@ class Card:
   card = g.get_card("Tbbqo5pc")
   card.favorite()
   card.add_tag("SDK")
-  card.add_to_board("Shared Docs", section="API & SDK")
+  card.add_to_folder("Shared Docs", section="API & SDK")
   ```
 
   This object has a lot of properties and I encourage you to experiment
@@ -1171,7 +1171,7 @@ class Card:
     Soup and you check check [its docs](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
     for more info.
   - `collection` is a Collection object representing the collection this card is in.
-  - `boards` is a list of Board objects for all the boards this card is on.
+  - `folders` is a list of Folder objects for all the folders this card is on.
   - `url` is the full URL you can use to access the card in Guru's webapp.
   - `verifier_label` is a string representing the verifier -- either the group name if it's
     assigned to a group or the individual verifier's email address.
@@ -1184,7 +1184,7 @@ class Card:
   def __init__(self, data, guru=None):
     analytics = data.get("cardInfo", {}).get("analytics", {})
     self.guru = guru
-    self.board_count = analytics.get("boards")
+    self.folder_count = analytics.get("folders")
     self.copies = analytics.get("copies")
     self.favorites = analytics.get("favorites")
     self.unverified_copies = analytics.get("unverifiedCopies")
@@ -1619,27 +1619,27 @@ class Card:
     """
     return self.guru.remove_card_from_folder(self, folder)
 
-  def add_to_board(self, board, section=None, board_group=None):
+  def add_to_folder(self, folder, section=None, folder_group=None):
     """
-    Adds the card to a board.
+    Adds the card to a folder.
 
     Args:
-      board (str or Board): The name of the board you're adding the card to, or the Board object.
+      folder (str or Folder): The name of the folder you're adding the card to, or the Folder object.
       section (str, optional): The name of the section to add this card to.
     """
-    return self.guru.add_card_to_board(self, board, section, collection=self.collection)
+    return self.guru.add_card_to_folder(self, folder, section, collection=self.collection)
 
-  def remove_from_board(self, board):
+  def remove_from_folder(self, folder):
     """
-    Removes the card from a board.
+    Removes the card from a folder.
 
     Args:
-      board (str or Board): The name of the board you're removing the card from, or the Board object.
+      folder (str or Folder): The name of the folder you're removing the card from, or the Folder object.
 
     Returns:
       bool: True if it was successful and False otherwise.
     """
-    return self.guru.remove_card_from_board(self, board, self.collection)
+    return self.guru.remove_card_from_folder(self, folder, self.collection)
 
   def move_to_collection(self, collection, timeout=0):
     return self.guru.move_card_to_collection(self, collection, timeout=timeout)

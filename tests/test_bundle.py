@@ -41,10 +41,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_two_nodes/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_two_nodes/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -76,10 +76,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_where_the_child_has_no_content/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_where_the_child_has_no_content/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -111,8 +111,8 @@ class TestBundle(unittest.TestCase):
     self.assertEqual(read_html("/tmp/test_sync_with_html_in_card_title/cards/a.html"), "card content")
 
   @use_guru()
-  def test_sync_with_a_node_on_two_boards(self, g):
-    sync = g.bundle("test_sync_with_a_node_on_two_boards")
+  def test_sync_with_a_node_on_two_folders(self, g):
+    sync = g.bundle("test_sync_with_a_node_on_two_folders")
 
     # make two nodes, one with content, and add that one to the other.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
@@ -122,20 +122,20 @@ class TestBundle(unittest.TestCase):
     node3.add_to(node2)
     sync.zip()
 
-    self.assertEqual(read_yaml("/tmp/test_sync_with_a_node_on_two_boards/collection.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_a_node_on_two_folders/collection.yaml"), {
       "Title": "test",
       "Tags": [],
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }, {
         "ID": "2",
         "Title": "node 2",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_a_node_on_two_boards/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_a_node_on_two_folders/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -144,7 +144,7 @@ class TestBundle(unittest.TestCase):
         "Type": "card"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_a_node_on_two_boards/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_a_node_on_two_folders/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -153,12 +153,12 @@ class TestBundle(unittest.TestCase):
         "Type": "card"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_a_node_on_two_boards/cards/3.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_a_node_on_two_folders/cards/3.yaml"), {
       "ExternalId": "3",
       "ExternalUrl": "https://www.example.com/3",
       "Title": "node 3"
     })
-    self.assertEqual(read_html("/tmp/test_sync_with_a_node_on_two_boards/cards/3.html"), "card content")
+    self.assertEqual(read_html("/tmp/test_sync_with_a_node_on_two_folders/cards/3.html"), "card content")
 
   @use_guru()
   def test_sync_move_to(self, g):
@@ -178,20 +178,20 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }, {
         "ID": "2",
         "Title": "node 2",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_move_to/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_move_to/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
       "Items": []
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_move_to/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_move_to/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -211,7 +211,7 @@ class TestBundle(unittest.TestCase):
   def test_sync_with_three_nodes(self, g):
     sync = g.bundle("test_sync_with_three_nodes")
 
-    # make three nodes in a vertical hierarchy (board-group -> board -> card)
+    # make three nodes in a vertical hierarchy (folder-group -> folder -> card)
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
     node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2")
     node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content")
@@ -228,13 +228,13 @@ class TestBundle(unittest.TestCase):
         "Type": "section"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes/board-groups/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes/folder-groups/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
-      "Boards": ["2"]
+      "Folders": ["2"]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -251,22 +251,22 @@ class TestBundle(unittest.TestCase):
     self.assertEqual(read_html("/tmp/test_sync_with_three_nodes/cards/3.html"), "card content")
 
   @use_guru()
-  def test_sync_where_a_board_group_contains_a_card(self, g):
-    sync = g.bundle("test_sync_where_a_board_group_contains_a_card")
+  def test_sync_where_a_folder_group_contains_a_card(self, g):
+    sync = g.bundle("test_sync_where_a_folder_group_contains_a_card")
 
-    # make three nodes in a vertical hierarchy (board-group -> board -> card)
+    # make three nodes in a vertical hierarchy (folder-group -> folder -> card)
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
     node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2")
     node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card3 content")
     node3.add_to(node2)
     node2.add_to(node1)
 
-    # add a node with content to the board group (node 1)
+    # add a node with content to the folder group (node 1)
     node4 = sync.node(id="4", url="https://www.example.com/4", title="node 4", content="card4 content")
     node4.add_to(node1)
     sync.zip()
 
-    self.assertEqual(read_yaml("/tmp/test_sync_where_a_board_group_contains_a_card/collection.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_where_a_folder_group_contains_a_card/collection.yaml"), {
       "Title": "test",
       "Tags": [],
       "Items": [{
@@ -275,13 +275,13 @@ class TestBundle(unittest.TestCase):
         "Type": "section"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_where_a_board_group_contains_a_card/board-groups/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_where_a_folder_group_contains_a_card/folder-groups/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
-      "Boards": ["1_content_board", "2"]
+      "Folders": ["1_content_folder", "2"]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_where_a_board_group_contains_a_card/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_where_a_folder_group_contains_a_card/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -290,29 +290,29 @@ class TestBundle(unittest.TestCase):
         "Type": "card"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_where_a_board_group_contains_a_card/cards/3.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_where_a_folder_group_contains_a_card/cards/3.yaml"), {
       "ExternalId": "3",
       "ExternalUrl": "https://www.example.com/3",
       "Title": "node 3"
     })
-    self.assertEqual(read_html("/tmp/test_sync_where_a_board_group_contains_a_card/cards/3.html"), "card3 content")
+    self.assertEqual(read_html("/tmp/test_sync_where_a_folder_group_contains_a_card/cards/3.html"), "card3 content")
 
-    # this is a board that's inserted because node4 can't be directly on node1 because node1 is a board group.
-    self.assertEqual(read_yaml("/tmp/test_sync_where_a_board_group_contains_a_card/boards/1_content_board.yaml"), {
-      "ExternalId": "1_content_board",
+    # this is a folder that's inserted because node4 can't be directly on node1 because node1 is a folder group.
+    self.assertEqual(read_yaml("/tmp/test_sync_where_a_folder_group_contains_a_card/folders/1_content_folder.yaml"), {
+      "ExternalId": "1_content_folder",
       "Title": "node 1 Content",
       "Items": [{
         "ID": "4",
         "Type": "card"
       }]
     })
-    self.assertEqual(read_html("/tmp/test_sync_where_a_board_group_contains_a_card/cards/4.html"), "card4 content")
+    self.assertEqual(read_html("/tmp/test_sync_where_a_folder_group_contains_a_card/cards/4.html"), "card4 content")
 
   @use_guru()
   def test_sync_add_child_edge_cases(self, g):
     sync = g.sync("test_sync_with_three_nodes")
 
-    # make three nodes in a vertical hierarchy (board-group -> board -> card)
+    # make three nodes in a vertical hierarchy (folder-group -> folder -> card)
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
     node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2")
     node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content")
@@ -342,13 +342,13 @@ class TestBundle(unittest.TestCase):
         "Type": "section"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes/board-groups/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes/folder-groups/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
-      "Boards": ["2"]
+      "Folders": ["2"]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -368,7 +368,7 @@ class TestBundle(unittest.TestCase):
   def test_sync_with_three_nodes_favor_sections(self, g):
     sync = g.bundle("test_sync_with_three_nodes_favor_sections")
 
-    # make three nodes in a vertical hierarchy (board -> section -> card)
+    # make three nodes in a vertical hierarchy (folder -> section -> card)
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
     node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2")
     node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content")
@@ -382,10 +382,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_favor_sections/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_favor_sections/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -426,12 +426,12 @@ class TestBundle(unittest.TestCase):
         "Type": "section"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/board-groups/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/folder-groups/1.yaml"), {
       "ExternalId": "1",
       "Title": "node 1",
-      "Boards": ["2"]
+      "Folders": ["2"]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_three_nodes_that_all_have_content/folders/2.yaml"), {
       "ExternalId": "2",
       "Title": "node 2",
       "Items": [{
@@ -493,13 +493,13 @@ class TestBundle(unittest.TestCase):
         "Type": "section"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes/board-groups/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes/folder-groups/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
-      "Boards": ["2"]
+      "Folders": ["2"]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -526,7 +526,7 @@ class TestBundle(unittest.TestCase):
       "Title": "node 5"
     })
     self.assertEqual(read_html("/tmp/test_sync_with_five_nodes/cards/5.html"), "card content")
-  
+
   @use_guru()
   def test_sync_with_five_nodes_and_favor_sections(self, g):
     sync = g.bundle("test_sync_with_five_nodes_and_favor_sections")
@@ -544,7 +544,7 @@ class TestBundle(unittest.TestCase):
     sync.zip(favor_sections=True)
 
     # this ends up the same as if we don't favor sections because the hierarchy is deep
-    # enough that we need to use board groups, boards, and sections.
+    # enough that we need to use folder groups, folders, and sections.
     self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes_and_favor_sections/collection.yaml"), {
       "Title": "test",
       "Tags": [],
@@ -554,13 +554,13 @@ class TestBundle(unittest.TestCase):
         "Type": "section"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes_and_favor_sections/board-groups/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes_and_favor_sections/folder-groups/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
-      "Boards": ["2"]
+      "Folders": ["2"]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes_and_favor_sections/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_five_nodes_and_favor_sections/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -598,7 +598,7 @@ class TestBundle(unittest.TestCase):
     node2.add_to(node1)
     sync.zip()
 
-    # make sure the '1_content' node was generated because the node that becomes a board
+    # make sure the '1_content' node was generated because the node that becomes a folder
     # also needs a new node to be generated to hold its content.
     self.assertEqual(read_yaml("/tmp/test_sync_with_container_that_has_content/collection.yaml"), {
       "Title": "test",
@@ -606,10 +606,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_container_that_has_content/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_container_that_has_content/folders/1.yaml"), {
       "ExternalId": "1",
       "Title": "node 1",
       "Items": [{
@@ -884,31 +884,31 @@ class TestBundle(unittest.TestCase):
 </p>""")
 
   @use_guru()
-  def test_sync_with_tags_and_board_descriptions(self, g):
-    sync = g.bundle("test_sync_with_tags_and_board_descriptions")
+  def test_sync_with_tags_and_folder_descriptions(self, g):
+    sync = g.bundle("test_sync_with_tags_and_folder_descriptions")
 
     # make two nodes, one with content, and add that one to the other.
-    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", desc="board description")
+    node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1", desc="folder description")
     node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2", content="card content", tags=["tag1"])
     node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content", tags=["tag1", "tag2"])
     node2.add_to(node1)
     node3.add_to(node1)
     sync.zip()
 
-    self.assertEqual(read_yaml("/tmp/test_sync_with_tags_and_board_descriptions/collection.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_tags_and_folder_descriptions/collection.yaml"), {
       "Title": "test",
       "Tags": ["tag1", "tag2"],
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_tags_and_board_descriptions/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_tags_and_folder_descriptions/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
-      "Description": "board description",
+      "Description": "folder description",
       "Items": [{
         "ID": "2",
         "Type": "card"
@@ -917,20 +917,20 @@ class TestBundle(unittest.TestCase):
         "Type": "card"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_tags_and_board_descriptions/cards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_tags_and_folder_descriptions/cards/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
       "Tags": ["tag1"]
     })
-    self.assertEqual(read_html("/tmp/test_sync_with_tags_and_board_descriptions/cards/2.html"), "card content")
-    self.assertEqual(read_yaml("/tmp/test_sync_with_tags_and_board_descriptions/cards/3.yaml"), {
+    self.assertEqual(read_html("/tmp/test_sync_with_tags_and_folder_descriptions/cards/2.html"), "card content")
+    self.assertEqual(read_yaml("/tmp/test_sync_with_tags_and_folder_descriptions/cards/3.yaml"), {
       "ExternalId": "3",
       "ExternalUrl": "https://www.example.com/3",
       "Title": "node 3",
       "Tags": ["tag1", "tag2"]
     })
-    self.assertEqual(read_html("/tmp/test_sync_with_tags_and_board_descriptions/cards/3.html"), "card content")
+    self.assertEqual(read_html("/tmp/test_sync_with_tags_and_folder_descriptions/cards/3.html"), "card content")
 
   @use_guru()
   @responses.activate
@@ -1008,10 +1008,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_verbose_true/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_verbose_true/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -1033,7 +1033,7 @@ class TestBundle(unittest.TestCase):
     # same nodes but give them a different order.
     sync = g.bundle("test_sync_without_sort_order")
 
-    # make two boards and one has four nodes.
+    # make two folders and one has four nodes.
     node1 = sync.node(id="1", url="https://www.example.com/1", title="node 1")
     node2 = sync.node(id="2", url="https://www.example.com/2", title="node 2")
     node3 = sync.node(id="3", url="https://www.example.com/3", title="node 3", content="card content")
@@ -1052,20 +1052,20 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }, {
         "ID": "2",
         "Title": "node 2",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
       "Items": []
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_without_sort_order/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -1105,7 +1105,7 @@ class TestBundle(unittest.TestCase):
   def test_sync_with_sort_order(self, g):
     sync = g.bundle("test_sync_with_sort_order")
 
-    # make two boards and one has four nodes.
+    # make two folders and one has four nodes.
     # set the indexes so it goes: node 2, node 1.
     # then inside node2, set the order has: node 6, node 3, node 4, node 5
     # (if no index is provided, those come last and keep their relative order)
@@ -1127,20 +1127,20 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "2",
         "Title": "node 2",
-        "Type": "board"
+        "Type": "folder"
       }, {
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
       "Items": []
     })
-    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/boards/2.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_sync_with_sort_order/folders/2.yaml"), {
       "ExternalId": "2",
       "ExternalUrl": "https://www.example.com/2",
       "Title": "node 2",
@@ -1204,10 +1204,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_twice/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_twice/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -1274,10 +1274,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -1344,10 +1344,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings_and_nesting/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_splitting_a_node_on_all_headings_and_nesting/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -1409,10 +1409,10 @@ class TestBundle(unittest.TestCase):
       "Items": [{
         "ID": "1",
         "Title": "node 1",
-        "Type": "board"
+        "Type": "folder"
       }]
     })
-    self.assertEqual(read_yaml("/tmp/test_removing_a_node/boards/1.yaml"), {
+    self.assertEqual(read_yaml("/tmp/test_removing_a_node/folders/1.yaml"), {
       "ExternalId": "1",
       "ExternalUrl": "https://www.example.com/1",
       "Title": "node 1",
@@ -1596,15 +1596,15 @@ it's multiple lines
   def test_empty_and_removed_nodes(self, g):
     bundle = g.bundle("test_empty_and_removed_nodes", skip_empty_sections=True)
 
-    board = bundle.node(id="board", title="board")
+    folder = bundle.node(id="folder", title="folder")
     section1 = bundle.node(id="section1", title="section1")
     section2 = bundle.node(id="section2", title="section2")
     card1 = bundle.node(id="card1", title="card 1", content="""card 1""")
     card2 = bundle.node(id="card2", title="card 2")
 
-    section1.add_to(board)
-    section2.add_to(board)
-    card1.add_to(board)
+    section1.add_to(folder)
+    section2.add_to(folder)
+    card1.add_to(folder)
     card2.add_to(section2)
 
     bundle.zip(favor_sections=True)
@@ -1613,18 +1613,18 @@ it's multiple lines
       "Title": "test",
       "Tags": [],
       "Items": [{
-        "ID": "board",
-        "Title": "board",
-        "Type": "board"
+        "ID": "folder",
+        "Title": "folder",
+        "Type": "folder"
       }]
     })
 
     # card2 is removed because it has no content.
     # section2 is removed because removing card2 leaves it empty.
     # section1 is removed because it was always empty.
-    self.assertEqual(read_yaml("/tmp/test_empty_and_removed_nodes/boards/board.yaml"), {
-      "Title": "board",
-      "ExternalId": "board",
+    self.assertEqual(read_yaml("/tmp/test_empty_and_removed_nodes/folders/folder.yaml"), {
+      "Title": "folder",
+      "ExternalId": "folder",
       "Items": [{
         "ID": "card1",
         "Type": "card"
@@ -1636,19 +1636,19 @@ it's multiple lines
     bundle = g.bundle("test_linking_edge_cases")
 
     # edge cases:
-    # linking to a board
-    # linking to a board group
+    # linking to a folder
+    # linking to a folder group
     # a link with no href
     # linking to a node's alt_url
     # linking to a removed node.
     # linking to a section's url.
 
-    board_group = bundle.node(id="node1", title="node 1", url="https://www.example.com/node1")
-    board = bundle.node(id="node2", title="node 2", url="https://www.example.com/node2", alt_urls=["https://www.example.com/board"])
+    folder_group = bundle.node(id="node1", title="node 1", url="https://www.example.com/node1")
+    folder = bundle.node(id="node2", title="node 2", url="https://www.example.com/node2", alt_urls=["https://www.example.com/folder"])
     section = bundle.node(id="node3", title="node 3", url="https://www.example.com/section")
     card = bundle.node(id="node4", title="node 4", content="""<p>
-<a href="https://www.example.com/node1">board group link</a>
-<a href="https://www.example.com/board">board link</a>
+<a href="https://www.example.com/node1">folder group link</a>
+<a href="https://www.example.com/folder">folder link</a>
 <a href="https://www.example.com/section">section link</a>
 <a href="https://www.example.com/removed_card">removed card</a>
 <a href="">link with no href</a>
@@ -1656,15 +1656,15 @@ it's multiple lines
     removed_card = bundle.node(id="node5", title="node 5", url="https://www.example.com/removed_card")
 
     card.add_to(section)
-    section.add_to(board)
-    removed_card.add_to(board)
-    board.add_to(board_group)
+    section.add_to(folder)
+    removed_card.add_to(folder)
+    folder.add_to(folder_group)
 
     bundle.zip()
 
     self.assertEqual(read_html("/tmp/test_linking_edge_cases/cards/node4.html"), """<p>
-<a href="board-groups/node1">board group link</a>
-<a href="boards/node2">board link</a>
+<a href="folder-groups/node1">folder group link</a>
+<a href="folders/node2">folder link</a>
 <a href="https://www.example.com/section">section link</a>
 <a href="https://www.example.com/removed_card">removed card</a>
 <a href="">link with no href</a>
