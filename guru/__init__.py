@@ -27,6 +27,10 @@ from guru.publish import (
     Publisher
 )
 
+from guru.publish_folders import (
+    PublisherFolders
+)
+
 # you might need these to check if an item on a board is
 # an instance of Section or Card.
 from guru.data_objects import (
