@@ -37,6 +37,7 @@ from guru.data_objects import (
     Board,
     BoardGroup,
     Card,
+    Collection,
     Folder,
     Section
 )
