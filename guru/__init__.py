@@ -56,3 +56,7 @@ from guru.util import (
     save_json,
     load_json
 )
+
+from guru.find_and_replace import (
+  FindAndReplace
+)
