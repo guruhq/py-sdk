@@ -28,6 +28,7 @@ from guru.publish import (
 )
 
 from guru.publish_folders import (
+    CardChanges,
     PublisherFolders
 )
 
