@@ -1,0 +1,1 @@
+Please be advised that the successful execution of scripts referencing other platforms (ex - Salesforce, Intercom, ReadMe, Wikipedia) may vary due to changes made to their technical architecture. For any inquiries or issues, kindly contact our support team at support@getguru.com.
