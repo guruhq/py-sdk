@@ -1704,6 +1704,10 @@ class CardComment:
     self.owner = User(data.get("owner")) if data.get("owner") else None
     self.created_date = data.get("dateCreated")
     self.last_modified_date = data.get("lastModified")
+    self.status = data.get("status")
+    self.type = data.get("extraDetailsModel")
+    self.replies = data.get("replies")
+    self.total_replies = data.get("totalReplies")
 
   def delete(self):
     return self.guru.delete_card_comment(self.card.id, self.id)
