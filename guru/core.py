@@ -2598,7 +2598,7 @@ class Guru:
       raise ValueError(f"couldn't find source folder! : {source_folder}")
 
     # find the card in the source folder...
-    source_card_obj = find_by_name_or_id(source_folder.cards, source_card_id)
+    source_card_obj = find_by_name_or_id(source_folder_obj.cards, source_card_id)
     # check if we have an object...
     if not source_card_obj:
       raise ValueError(f"couldn't find card in source_folder!: {card}")
