@@ -884,12 +884,18 @@ class Collection:
 
   - `id` the internal Guru ID for the collection.
   - `name` the collection's displayed name.
+  - `type` either "INTERNAL" or "EXTERNAL", external collections are ones whose
+    content is synced and is not editable in Guru.
+  - `slug` is the collections unique slug value
+  - `homeBoardSlug` is the collections home board/folder slug
   - `title` is also the collection's name. You can use `title` or `name` interchangeably.
   - `description` the collection's displayed description.
   - `color` the collection's displayed color.
-  - `type` either "INTERNAL" or "EXTERNAL", external collections are ones whose
-    content is synced and is not editable in Guru.
+  - `cards` the number of cards in the collection.
   - `public_cards_enabled` whether or not public cards can be created in this collection.
+  - `stats` returns a CollectionStats object for the collection
+  - `roles` returns the roles for the collection
+  - `roi_enabled` this is now defunct but here for backward compat.
   """
 
   def __init__(self, data, guru=None):
