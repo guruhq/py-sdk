@@ -903,6 +903,7 @@ class Collection:
     self.slug = data.get("slug")
     self.homeFolderSlug = data.get("homeBoardSlug")
     self.color = data.get("color")
+    self.cards = data.get("cards")
 
     # these are the expanded properties you get when loading a single collection
     # or list of collections.
