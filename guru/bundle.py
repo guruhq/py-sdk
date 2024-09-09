@@ -355,7 +355,7 @@ def make_spreadsheet(node, parent, depth, rows):
       len(node.content),                         # html length
       len(doc.select("*")),                      # number of tags
       len(doc.select(essential_tags)),           # number of essential tags (p, img, table, etc.)
-      len(re.split("\s+", doc.text)),            # word count
+      len(re.split(r"\s+", doc.text)),           # word count
       len(doc.select("h1")),                     # number of H1s
       len(doc.select("h2")),                     # number of H2s
       len(doc.select("h3")),                     # number of H3s
