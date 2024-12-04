@@ -23,6 +23,8 @@ NONE = "NONE"
 FOLDER = "FOLDER"
 CARD = "CARD"
 
+MAX_FOLDER_DEPTH = 3
+
 def slugify(text):
   return re.sub(r"[^a-zA-Z0-9_\-]", "", text.replace(" ", "_"))
 
@@ -271,27 +273,19 @@ def clean_up_html(html):
   )
 
 def traverse_tree(bundle, func, node=None, parent=None, depth=0, post=False, **kwargs):
-  """internal: Does a tree traversal on the nodes and calls the provided callback (func) on each node."""
-  max_folder_depth = 3
+  """Traverses the tree and applies the function `func` to each node."""
   if node:
       if node.removed:
-          return  # Do not process removed nodes
+          return
       func(node, parent, depth, **kwargs)
-      if depth < max_folder_depth:
-          for id in node.children[:]:
-              child = bundle.node(id)
-              if child:
-                  traverse_tree(bundle, func, child, node, depth + 1, post, **kwargs)
-      else:
-          # Mark all children as removed since they exceed the depth
-          for id in node.children:
-              child = bundle.node(id)
-              if child and not child.removed:
-                  child.removed = True
-                  child.bundle.log(message="Node discarded due to exceeding maximum folder depth", node_id=child.id, depth=depth + 1)
+      for id in node.children[:]:
+          child = bundle.node(id)
+          if child:
+              traverse_tree(bundle, func, child, node, depth + 1, post, **kwargs)
       if post:
           func(node, parent, depth, post=True, **kwargs)
   else:
+      # Traverse the subtree for every node that doesn't have a parent.
       for node in bundle.nodes:
           if not node.parents and not node.removed:
               traverse_tree(bundle, func, node, post=post, **kwargs)
@@ -307,7 +301,6 @@ def make_spreadsheet(node, parent, depth, rows):
       "Type",
       "Title",
       "# of Children",
-      "# of Sections",
       "HTML Length",
       "# of HTML Tags",
       "# of Essential HTML Tags",
@@ -377,7 +370,7 @@ def make_spreadsheet(node, parent, depth, rows):
   rows.append(values)
 
 def make_html_tree(node, parent, depth, html_pieces):
-  """internal: This builds the board/card tree in the HTML preview page."""
+  """internal: This builds the folder/card tree in the HTML preview page."""
   if node.removed:
     return
 
@@ -404,6 +397,20 @@ def print_node(node, parent, depth):
 def print_type(node, parent, depth):
   print("%s- %s" % ("  " * min(3, depth), node.type))
 
+def mark_node_and_descendants_removed(node):
+    node.removed = True
+    # Remove node from parents' children lists
+    for parent in node.parents:
+        if node.id in parent.children:
+            parent.children.remove(node.id)
+    # Remove node from children's parents lists and recursively remove children
+    for child_id in node.children:
+        child_node = node.bundle.node(child_id)
+        if node in child_node.parents:
+            child_node.parents.remove(node)
+        # Recursively remove descendants
+        mark_node_and_descendants_removed(child_node)
+
 def assign_types(node, parent, depth, post=False):
   """
   internal:
@@ -411,16 +418,21 @@ def assign_types(node, parent, depth, post=False):
   node to figure out which nodes become folders and cards.
   """
 
-  max_folder_depth = 3
+  max_folder_depth = MAX_FOLDER_DEPTH
   if not post:
-      if depth <= max_folder_depth and node.children:
+    if node.children:
+      if depth < max_folder_depth:
           node.type = FOLDER
-      elif depth <= max_folder_depth and not node.children:
-          node.type = CARD
       else:
-          # Mark node as removed if depth exceeds maximum
-          node.removed = True
-          node.bundle.log(message="Node discarded due to exceeding maximum folder depth", node_id=node.id, depth=depth)
+          # Mark node and descendants as removed, note: add 1 to depth in log file b/c zero based.
+          mark_node_and_descendants_removed(node)
+          node.bundle.log(
+              message="Folder discarded due to exceeding maximum folder depth",
+              node_id=node.id,
+              depth=depth + 1
+          )
+    else:
+        node.type = CARD
   else:
       pass  # No post-traversal adjustments needed
 
@@ -434,26 +446,21 @@ def insert_nodes(node, parent, depth):
   Folders exceeding depth of 3 will be logged and discarded. This is to prevent
   the import from failing by providing a proper import file.
   """
-  max_folder_depth = 3
   if node.removed:
       return
   if node.content and node.type == FOLDER:
-      if depth < max_folder_depth:
-          # Add a CARD as the first child
-          content_id = f"{node.id}_content"
-          content_node = node.bundle.node(
-              id=content_id,
-              url=node.url,
-              title=node.title,
-              content=node.content,
-              alt_urls=node.alt_urls,
-              type=CARD
-          )
-          node.add_child(content_node, first=True)
-          node.url = ""
-      else:
-          # Cannot add child nodes beyond maximum depth
-          node.bundle.log(message="Content in folder at maximum depth cannot be added as a child", node_id=node.id, depth=depth)
+    # Add a CARD as the first child
+    content_id = f"{node.id}_content"
+    content_node = node.bundle.node(
+        id=content_id,
+        url=node.url,
+        title=node.title,
+        content=node.content,
+        alt_urls=node.alt_urls,
+        type=CARD
+    )
+    node.add_child(content_node, first=True)
+    node.url = ""
 
 class BundleNode:
   def __init__(self, id, bundle, url="", title="", desc="", content="", tags=None, alt_urls=None, index=None):
@@ -532,7 +539,6 @@ class BundleNode:
         self.children.append(child.id)
 
     return self
-
   
   def get_children_recursively(self):
     all_children = []
@@ -605,7 +611,7 @@ class BundleNode:
         content=str(new_doc)
       )
 
-      # add the new node after this existing node so it's on all the same boards.
+      # add the new node after this existing node so it's on all the same folders.
       if nest:
         self.add_child(new_node, first=True)
       else:
@@ -673,7 +679,7 @@ class BundleNode:
         content=new_content
       )
 
-      # add the new node after this existing node so it's on all the same boards.
+      # add the new node after this existing node so it's on all the same folders.
       for parent_node in self.parents:
         parent_node.add_child(new_node, after=self)
 
@@ -819,7 +825,7 @@ class BundleNode:
     """
     internal:
     Writes the files needed for this object. For cards that's a .yaml
-    and .html file. For boards and board groups it's just a .yaml file.
+    and .html file. For Folders it's just a .yaml file.
     """
     if self.removed:
       return
@@ -880,13 +886,12 @@ class Bundle:
   That'll create a bundle with one card and upload it to the collection
   called "Import Test" -- if that collection doesn't exist, it'll be created.
   """
-  def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False, skip_empty_sections=False):
+  def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False):
     self.guru = guru
     self.id = slugify(id) if id else str(int(time.time()))
     self.nodes = []
     self.resources = {}
     self.verbose = verbose
-    self.skip_empty_sections = skip_empty_sections
     self.events = []
     self.start_time = time.time()
 
@@ -1003,27 +1008,12 @@ class Bundle:
     
     return node
   
-  def print_tree(self, print_func=None, just_types=False):
-    """
-    Prints the bundle's hierarchy to the terminal.
-
-    ```
-    import guru
-    g = guru.Guru()
-
-    bundle = g.bundle("test")
-
-    # you'd have some code here to add content to the bundle...
-
-    bundle.zip()
-    bundle.print_tree()
-    """
+  def print_tree(self, print_func=None):
+    """Prints the bundle's hierarchy."""
     if print_func:
-      traverse_tree(self, print_func)
-    elif just_types:
-      traverse_tree(self, print_type)
+        traverse_tree(self, print_func)
     else:
-      traverse_tree(self, print_node)
+        traverse_tree(self, print_node)
 
   def __wait_and_retry(self, status_code, wait):
     """internal"""
@@ -1158,6 +1148,7 @@ class Bundle:
               tags.append(tag)
     
     data = {
+      "Version": 2,
       "Title": "Collection Title",
       "Items": items,
       "Tags": tags
@@ -1165,13 +1156,13 @@ class Bundle:
 
     return to_yaml(data)
 
-  def zip(self, download_func=None, compare_links=None, favor_boards=None, favor_sections=None, clean_html=True):
+  def zip(self, download_func=None, compare_links=None, clean_html=True):
     """
     This wraps up the sync process. Calling this lets us know you're
     done adding content so we can do these things:
 
-    1. Assign guru types (board, card, section, etc.) to each node.
-    2. Create extra nodes as needed (e.g. to have the content that's associated with a board node)
+    1. Assign guru types (folder, card) to each node.
+    2. Create extra nodes as needed (e.g. to have the content that's associated with a folder node)
     3. Clean up link/image URLs and download resources.
     4. Write the .html and .yaml files.
     5. Make a .zip archive with all the content.
