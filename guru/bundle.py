@@ -420,19 +420,22 @@ def assign_types(node, parent, depth, post=False):
 
   max_folder_depth = MAX_FOLDER_DEPTH
   if not post:
-    if node.children:
-      if depth < max_folder_depth:
-          node.type = FOLDER
-      else:
-          # Mark node and descendants as removed, note: add 1 to depth in log file b/c zero based.
-          mark_node_and_descendants_removed(node)
-          node.bundle.log(
-              message="Folder discarded due to exceeding maximum folder depth",
-              node_id=node.id,
-              depth=depth + 1
-          )
-    else:
+    if node.type is None:
+      if node.children:
+        if depth < max_folder_depth:
+            node.type = FOLDER
+        else:
+            # Mark node and descendants as removed, note: add 1 to depth in log file b/c zero based.
+            mark_node_and_descendants_removed(node)
+            node.bundle.log(
+                message="Folder discarded due to exceeding maximum folder depth",
+                node_id=node.id,
+                depth=depth + 1
+            )
+      elif node.content:
         node.type = CARD
+      else:
+          node.type = CARD
   else:
       pass  # No post-traversal adjustments needed
 
@@ -463,7 +466,7 @@ def insert_nodes(node, parent, depth):
     node.url = ""
 
 class BundleNode:
-  def __init__(self, id, bundle, url="", title="", desc="", content="", tags=None, alt_urls=None, index=None):
+  def __init__(self, id, bundle, url="", title="", desc="", content="", tags=None, alt_urls=None, index=None, node_type=None):
     self.id = id
     self.bundle = bundle
     self.url = ""
@@ -472,7 +475,7 @@ class BundleNode:
     self.content = content
     self.children = []
     self.parents = []
-    self.type = NONE
+    self.type = node_type
     self.tags = tags
     self.alt_urls = alt_urls
     self.removed = False
@@ -948,7 +951,7 @@ class Bundle:
   def url_to_id(self, url):
     return _url_to_id(url, False)
 
-  def node(self, id="", url="", title="", content="", desc="", tags=None, alt_urls=None, type=None, index=None, clean_html=True):
+  def node(self, id="", url="", title="", content="", desc="", tags=None, alt_urls=None, index=None, node_type=None, clean_html=True):
     """
     This method makes a node or updates one. Nodes may have content but some
     may just have titles -- nodes with just titles can be used to group the
@@ -985,7 +988,7 @@ class Bundle:
         title = f"{title[0:197]}..."
 
     if not node:
-      node = BundleNode(id, bundle=self, title=title, desc=desc, content=content, tags=tags, alt_urls=alt_urls, index=index)
+      node = BundleNode(id, bundle=self, title=title, desc=desc, content=content, tags=tags, alt_urls=alt_urls, index=index, node_type=node_type)
       self.nodes.append(node)
     
     if url:
@@ -997,8 +1000,8 @@ class Bundle:
         node.content = clean_up_html(content)
       else:
         node.content = content
-    if type:
-      node.type = type
+    if node_type:
+      node.type = node_type
     if tags:
       node.tags = tags
     if alt_urls:

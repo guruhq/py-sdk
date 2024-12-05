@@ -2,14 +2,23 @@
 import guru
 
 # API token info
-email = "username"
-token = "aptoken4"
+email = "<username>"
+token = "<apitoken>"
+
+# node types
+NONE = "NONE"
+FOLDER = "FOLDER"
+CARD = "CARD"
+
 
 g = guru.Guru(email, token, qa=False)
 
 
 # Create a new bundle
-bundle = g.bundle("ozmo_knowledge_sync")
+bundle = g.bundle("knowledge_sync")
+
+# Level 0 folder (depth = 1) - creating an empty folder
+empty_folder = bundle.node(id="empty_folder", title="Empty Folder", node_type=FOLDER)
 
 # Level 1 folder (depth = 1)
 folder_lvl_1 = bundle.node(id="folder_lvl_1", title="Folder 1")
@@ -23,13 +32,13 @@ card_at_lvl_1 = bundle.node(
 folder_lvl_1.add_child(card_at_lvl_1)
 
 # Level 2 folder (depth = 2)
-Folder_lvl_2 = bundle.node(id="folder_lvl_2", title="Folder 2")
-folder_lvl_1.add_child(Folder_lvl_2)
+folder_lvl_2 = bundle.node(id="folder_lvl_2", title="Folder 2")
+folder_lvl_1.add_child(folder_lvl_2)
 
 
 # Level 3 folder (depth = 3)
 folder_lvl_3 = bundle.node(id="folder_lvl_3", title="Folder 3")
-Folder_lvl_2.add_child(folder_lvl_3)
+folder_lvl_2.add_child(folder_lvl_3)
 
 # Add a card to level 3 folder (depth = 3)
 card_level_3 = bundle.node(
