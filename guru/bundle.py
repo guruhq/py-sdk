@@ -568,13 +568,20 @@ class BundleNode:
             "Type": "card"
           })
       elif node.type == FOLDER:
-          folder_data = {
-            "ID": node.id,
-            "Type": "folder",
-            "Title": node.title,
-            "Items": node.__make_items_list()
-          }
-          items.append(folder_data)
+          folder_items = node.__make_items_list()
+          # we can choose to skip empty sections. if there's a sync that's likely to create
+          # empty cards, then that might make us more likely to end up with empty sections.
+          if node.bundle.skip_empty_folders and not folder_items:
+            node.bundle.log(message="skipping empty folder", title=self.title, id=self.id)
+            node.removed = True
+          else:
+            folder_data = {
+              "ID": node.id,
+              "Type": "folder",
+              "Title": node.title,
+              "Items": folder_items
+            }
+            items.append(folder_data)
     return items
 
   def split_all(self, selector, nest=False):
@@ -889,7 +896,7 @@ class Bundle:
   That'll create a bundle with one card and upload it to the collection
   called "Import Test" -- if that collection doesn't exist, it'll be created.
   """
-  def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False):
+  def __init__(self, guru, id="", clear=False, folder="/tmp/", verbose=False, skip_empty_folders=False):
     self.guru = guru
     self.id = slugify(id) if id else str(int(time.time()))
     self.nodes = []
@@ -897,7 +904,7 @@ class Bundle:
     self.verbose = verbose
     self.events = []
     self.start_time = time.time()
-
+    self.skip_empty_folders = skip_empty_folders
     self.CONTENT_PATH = folder + "%s"
     self.ZIP_PATH = folder + "collection_%s.zip"
     self.CARD_PREVIEW_PATH = folder + "%s/index.html"
