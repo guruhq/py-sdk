@@ -11,13 +11,13 @@ FOLDER = "FOLDER"
 CARD = "CARD"
 
 
-g = guru.Guru(email, token, qa=False)
+g = guru.Guru(email, token, qa=True)
 
 
-# Create a new bundle
-bundle = g.bundle("knowledge_sync")
+# Create a new bundle - set skip empty folder to true
+bundle = g.bundle("knowledge_sync",skip_empty_folders=True)
 
-# Level 0 folder (depth = 1) - creating an empty folder
+# Level 0 folder (depth = 1) - creating an empty folder - should not be included b/c of the skip_empty_folders
 empty_folder = bundle.node(id="empty_folder", title="Empty Folder", node_type=FOLDER)
 
 # Level 1 folder (depth = 1)

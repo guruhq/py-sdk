@@ -555,8 +555,17 @@ class BundleNode:
   def __make_items_list(self):
     """internal: This is used internally when we're building the .yaml files."""
     #recursively process child FOLDER and CARDs
+
+    # do not process any nodes that deleted AND 
+    # use case of Folder w/no children being first and skip_empty_folders is true, this will remove it.
+    # otherwise, it would not get caught in the FOLDER processing below b/c that deals with folders that might be
+    # empty within other Folders.
     if self.removed:
         return []  # Do not include removed nodes
+    elif not self.children and self.type == FOLDER and self.bundle.skip_empty_folders:
+      self.bundle.log(message="skipping empty folder", title=self.title, id=self.id)
+      self.removed = True
+
     items = []
     for id in self.children:
       node = self.bundle.node(id)
@@ -569,8 +578,8 @@ class BundleNode:
           })
       elif node.type == FOLDER:
           folder_items = node.__make_items_list()
-          # we can choose to skip empty sections. if there's a sync that's likely to create
-          # empty cards, then that might make us more likely to end up with empty sections.
+          # we can choose to skip empty folders. if there's a sync that's likely to create
+          # empty cards, then that might make us more likely to end up with empty folders.
           if node.bundle.skip_empty_folders and not folder_items:
             node.bundle.log(message="skipping empty folder", title=self.title, id=self.id)
             node.removed = True
@@ -902,9 +911,9 @@ class Bundle:
     self.nodes = []
     self.resources = {}
     self.verbose = verbose
+    self.skip_empty_folders = skip_empty_folders
     self.events = []
     self.start_time = time.time()
-    self.skip_empty_folders = skip_empty_folders
     self.CONTENT_PATH = folder + "%s"
     self.ZIP_PATH = folder + "collection_%s.zip"
     self.CARD_PREVIEW_PATH = folder + "%s/index.html"
