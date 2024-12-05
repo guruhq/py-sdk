@@ -190,7 +190,7 @@ def copy_file(src, dest):
 
 
 def to_yaml(data):
-  return yaml.dump(data, allow_unicode=True).replace("!!python/unicode ", "").replace("!!python/str ", "")
+  return yaml.dump(data, allow_unicode=True, sort_keys=False).replace("!!python/unicode ", "").replace("!!python/str ", "")
 
 
 def find_by_name_or_id(lst, name_or_id):
