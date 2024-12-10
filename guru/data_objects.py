@@ -60,6 +60,55 @@ class Section:
   def lite_json(self):
     return self.json()
 
+class Team:
+  """
+  The Team.
+
+  Here's a list of properties these objects have:
+
+  - `org_name` top level org for this team
+  - `org_id` id for the org
+  - `total_users` - number of users in the team
+  - `name` - team name
+  - `id` - team id
+  - `description` - team description
+  - `status` - status of the team, ACTIVE, EXPIRED, DORMAT, LOCKED, etc.
+  - `date_created` - team creation date
+  """
+  def __init__(self, data: dict):
+        # Extract fields from the 'organization' dictionary if present
+        organization = data.get("organization", {})
+        self.org_name = organization.get("name")
+        self.org_id = organization.get("id")
+
+        # Extract top-level fields
+        self.total_users = data.get("totalUsers")
+        self.name = data.get("name")
+        self.id = data.get("id")
+        self.description = data.get("description")
+        self.status = data.get("status")
+        self.date_created = data.get("dateCreated")
+
+class TeamStats:
+  """
+  The TeamStats will include counts of trusted and unverified cards, 
+  as well as overall trust score and team card count.
+
+  Here's a list of properties these objects have:
+
+  - `card_count` - number of cards on the team
+  - `trusted_cout` - number of verified cards
+  - `needs_verification_count` - number of cards to be verified
+  """
+  def __init__(self, data, guru=None):
+    self.guru = guru
+    stats = data.get("stats", {})
+    team_card_count = stats.get("team-card-count", {})
+    self.card_count = team_card_count.get("count",0)
+    team_trust_score = stats.get("team-trust-score",{})
+    self.trusted_count= team_trust_score("trustedCount",0)
+    self.needs_verification_count = team_trust_score("needsVerificationCount", 0)
+
 
 class Folder:
   """

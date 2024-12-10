@@ -18,7 +18,7 @@ else:
   from urlparse import quote
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Folder, FolderPermission, Group, HomeBoard, Tag, User, Question, Framework
+from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Folder, FolderPermission, Group, HomeBoard, Tag, User, Question, Framework, TeamStats
 from guru.util import clean_slug, download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
@@ -3687,3 +3687,26 @@ class Guru:
     url = "%s/newcontexts/%s" % (self.base_url, trigger_id)
     response = self.__delete(url)
     return status_to_bool(response.status_code)
+  
+  def get_team_stats(self, cache=False):
+    """
+    Gets the team_stats for your current team.
+
+    Args:
+            cache (bool, optional): Tells us whether we should reuse the results
+                    from the previous call or not. Defaults to False. Set this to True
+                    if it's not likely the set of collections has changed since the
+                    previous call.
+
+    Returns:
+            TeamStats object for the team you are currently logged into.
+    """
+    team_id = self.get_team_id()
+    if not team_id:
+      self.__log(
+          make_red("couldn't find your Team ID, are you authenticated?"))
+      return
+    
+    url = f"{self.base_url}/teams/{team_id}"
+    response = self.__get(url, cache)
+    return TeamStats(response.json(), guru=self)
