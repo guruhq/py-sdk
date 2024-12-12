@@ -2,11 +2,11 @@
 import guru
 
 # API token info
-email = "mhornak@getguru.com"
-token = "79506702-131c-4815-8286-03b9209bd7cd"
+email = "<username>"
+token = "<apitoken>"
 
 
-g = guru.Guru(email, token, qa=True)
+g = guru.Guru(email, token, qa=False)
 
 # Get all teams you have access to
 team_stats = g.get_team_stats()
