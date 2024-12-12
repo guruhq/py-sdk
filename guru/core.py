@@ -18,7 +18,25 @@ else:
   from urlparse import quote
 
 from guru.bundle import Bundle
-from guru.data_objects import Board, BoardGroup, BoardPermission, Card, CardComment, Collection, CollectionAccess, Draft, Folder, FolderPermission, Group, HomeBoard, Tag, User, Question, Framework, TeamStats
+from guru.data_objects import (
+  Board,
+  BoardGroup, 
+  BoardPermission, 
+  Card, CardComment, 
+  Collection, 
+  CollectionAccess, 
+  Draft, 
+  Folder, 
+  FolderPermission, 
+  Group, 
+  HomeBoard, 
+  Tag, 
+  User, 
+  Question, 
+  Framework, 
+  TeamStats, 
+  ReviewedAnswer
+)
 from guru.util import clean_slug, download_file, find_by_name_or_id, find_by_email, find_by_id, format_timestamp, TRACKING_HEADERS
 
 # collection colors
@@ -3707,6 +3725,15 @@ class Guru:
           make_red("couldn't find your Team ID, are you authenticated?"))
       return
     
-    url = f"{self.base_url}/teams/{team_id}"
+    url = f"{self.base_url}/teams/{team_id}/stats"
     response = self.__get(url, cache)
     return TeamStats(response.json(), guru=self)
+  
+  def get_reviewed_answers(self):
+    """
+    Gets the reviewed answers for the current team, same as what is in the AI Training Center
+    """
+    url = f"{self.base_url}/answers/review"
+    answers = self.__get_and_get_all(url)
+    return [ReviewedAnswer(a) for a in answers]
+  

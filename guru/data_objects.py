@@ -60,34 +60,49 @@ class Section:
   def lite_json(self):
     return self.json()
 
-class Team:
+class ReviewedAnswer:
   """
-  The Team.
-
-  Here's a list of properties these objects have:
-
-  - `org_name` top level org for this team
-  - `org_id` id for the org
-  - `total_users` - number of users in the team
-  - `name` - team name
-  - `id` - team id
-  - `description` - team description
-  - `status` - status of the team, ACTIVE, EXPIRED, DORMAT, LOCKED, etc.
-  - `date_created` - team creation date
+  The ReviewedAnswer object will include...
   """
-  def __init__(self, data: dict):
-        # Extract fields from the 'organization' dictionary if present
-        organization = data.get("organization", {})
-        self.org_name = organization.get("name")
-        self.org_id = organization.get("id")
+  def __init__(self, data: dict, guru=None):
+    # Top-level fields
+    self.answer_id = data.get("answerId")
+    self.answer_date = data.get("answerDate")
+    self.status = data.get("status")
+    self.question = data.get("question")
+    self.answered = data.get("answered", False)
 
-        # Extract top-level fields
-        self.total_users = data.get("totalUsers")
-        self.name = data.get("name")
-        self.id = data.get("id")
-        self.description = data.get("description")
-        self.status = data.get("status")
-        self.date_created = data.get("dateCreated")
+    # Parse sources: a list of objects
+    # Each source is a dict with "documentType" and "source" keys
+    # "source" itself is a dict containing "definition" and "iconUrl"
+    self.sources = []
+    sources_data = data.get("sources", [])
+    for s in sources_data:
+      self.sources.append(AnswserSource(s, guru=guru))
+    # Parse searchAssistant if present
+    search_assistant_data = data.get("searchAssistant", {})
+    self.knowledge_agent = search_assistant_data.get("name")
+    self.search_assistant = {
+        "id": search_assistant_data.get("id"),
+        "name": search_assistant_data.get("name"),
+        "is_default": search_assistant_data.get("isDefault", False),
+        "image_url": search_assistant_data.get("imageUrl"),
+        "legacy_mode": search_assistant_data.get("legacyMode", False)
+    }
+class AnswserSource:
+  """
+  The Answer Source will include document type and definition for what was used to answer a question.
+
+  Here's a list of propeties these objects will have:
+
+  - `document_type` - the source type for this document
+  - `definition_type` - the type of document this is, GSHEET, CARD, etc.
+  """
+  def __init__(self, data: dict, guru=None):
+    self.guru = guru
+    self.document_type = data.get("documentType")
+    source = data.get("source")
+    self.definition_type = source.get("definition", {}).get("type")
 
 class TeamStats:
   """
@@ -100,14 +115,14 @@ class TeamStats:
   - `trusted_cout` - number of verified cards
   - `needs_verification_count` - number of cards to be verified
   """
-  def __init__(self, data, guru=None):
+  def __init__(self, data: dict, guru=None):
     self.guru = guru
     stats = data.get("stats", {})
     team_card_count = stats.get("team-card-count", {})
-    self.card_count = team_card_count.get("count",0)
+    self.card_count = team_card_count.get("count", 0)
     team_trust_score = stats.get("team-trust-score",{})
-    self.trusted_count= team_trust_score("trustedCount",0)
-    self.needs_verification_count = team_trust_score("needsVerificationCount", 0)
+    self.trusted_count= team_trust_score.get("trustedCount", 0)
+    self.needs_verification_count = team_trust_score.get("needsVerificationCount", 0)
 
 
 class Folder:
