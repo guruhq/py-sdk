@@ -37,7 +37,7 @@ def print_folder_hierarchy(folder, writer, parent_chain=None):
         print_folder_hierarchy(subfolder, writer, current_chain)
 
 # Create the Guru object
-g = guru.Guru(email, token, silent=True, qa=True)
+g = guru.Guru(email, token, silent=True, qa=False)
 
 # Get the Collection
 col = g.get_collection(targetCollection)
