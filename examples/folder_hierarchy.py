@@ -3,6 +3,20 @@ import re
 import csv
 import os
 
+"""
+Use this example to generate a collection's folder hierarchy to a csv file
+
+To use this script:
+- update <username> to your guru account
+- update <apitoken> to the API token generated for your account
+- update <collectionid> to the collection's name, slug or id
+
+The output is written to a CSV file. If no path is specified, the default name is:
+<collectionName>_folder_hierarchy.csv in the scripts working directory.  An example of setting
+a path is shown below
+
+"""
+
 
 # API token info
 email = "<username>"

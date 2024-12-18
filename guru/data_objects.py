@@ -78,7 +78,7 @@ class ReviewedAnswer:
     self.sources = []
     sources_data = data.get("sources", [])
     for s in sources_data:
-      self.sources.append(AnswserSource(s, guru=guru))
+      self.sources.append(AnswerSource(s, guru=guru))
     # Parse searchAssistant if present
     search_assistant_data = data.get("searchAssistant", {})
     self.knowledge_agent = search_assistant_data.get("name")
@@ -89,7 +89,7 @@ class ReviewedAnswer:
         "image_url": search_assistant_data.get("imageUrl"),
         "legacy_mode": search_assistant_data.get("legacyMode", False)
     }
-class AnswserSource:
+class AnswerSource:
   """
   The Answer Source will include document type and definition for what was used to answer a question.
 
