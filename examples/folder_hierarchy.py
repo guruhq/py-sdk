@@ -13,7 +13,7 @@ targetCollection = "<collectionid>"
 # RegEx pattern to get Slug
 pattern = r'^([^/]+)'
 
-# Function to recursively dump out folders hierarchy
+# Write out the folder hierarchy to a csv file
 def write_folder_hierarchy(homefolder, path=None):
     # If no path is provided, default to <collectionName>_folder_hierarchy.csv"
     if path is None:
@@ -22,10 +22,11 @@ def write_folder_hierarchy(homefolder, path=None):
     with open(path, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
 
-        # Call a recursive function that writes each folder's hierarchy
+        # traverse the folder structure
         for folder in homefolder.folders:
             print_folder_hierarchy(folder, writer)
 
+# recursively call this function to process all folders/sub-folders
 def print_folder_hierarchy(folder, writer, parent_chain=None):
     if parent_chain is None:
         parent_chain = []
@@ -46,10 +47,11 @@ col = g.get_collection(targetCollection)
 match = re.match(pattern, col.homeFolderSlug)
 if match:
     slug = match.group(1)
-
-# Get the homefolder for the collection
-homefolder = g.get_folder(slug)
-
-# Write out the file. Note: optional path to directory or choice
-write_folder_hierarchy(homefolder)
-# write_folder_hierarchy(homefolder, path=os.path.expanduser("~/Downloads/folder_hierarchy.csv"))
+    # Get the homefolder for the collection
+    homefolder = g.get_folder(slug)
+    # Write out the file.
+    write_folder_hierarchy(homefolder)
+    # OPTION to write a specified path example:
+    # write_folder_hierarchy(homefolder, path=os.path.expanduser("~/Downloads/folder_hierarchy.csv"))
+else:
+    print(f"could not find a home folder slug for collection: {col.name}")
